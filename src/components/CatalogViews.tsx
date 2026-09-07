@@ -38,11 +38,19 @@ export function CatalogError({ message, onRetry }: { message: string; onRetry: (
   );
 }
 
-export function CollectionGrid({ collections, label }: { collections: CollectionSummary[]; label: string }) {
+export function CollectionGrid({
+  collections,
+  label,
+  hrefForItem = hrefForCollection,
+}: {
+  collections: CollectionSummary[];
+  label: string;
+  hrefForItem?: (collectionId: string) => string;
+}) {
   return (
     <div class="collection-grid" aria-label={label}>
       {collections.map((collection) => (
-        <a class="collection-card" href={hrefForCollection(collection.id)} key={collection.id}>
+        <a class="collection-card" href={hrefForItem(collection.id)} key={collection.id}>
           <Artwork url={collection.artworkUrl} alt="" />
           <strong>{collection.title}</strong>
           <small>
@@ -64,6 +72,10 @@ function songCredits(song: Song): string {
   return names.length ? names.slice(0, 2).join(", ") : song.section || "Sacred music";
 }
 
+export function visibleCollectionSongs(songs: Song[], visibleSongIds?: Set<string>): Song[] {
+  return visibleSongIds ? songs.filter((song) => visibleSongIds.has(song.id)) : songs;
+}
+
 export function CollectionPage({
   client,
   summary,
@@ -74,6 +86,10 @@ export function CollectionPage({
   onAddToQueue,
   favorites,
   onToggleFavorite,
+  librarySongs,
+  onToggleLibrarySong,
+  visibleSongIds,
+  libraryContext = false,
   savedAlbum,
   onToggleAlbum,
 }: {
@@ -86,6 +102,10 @@ export function CollectionPage({
   onAddToQueue: (song: Song, collection: CollectionSummary) => void;
   favorites: Set<string>;
   onToggleFavorite: (songId: string) => void;
+  librarySongs: Set<string>;
+  onToggleLibrarySong: (songId: string) => void;
+  visibleSongIds?: Set<string>;
+  libraryContext?: boolean;
   savedAlbum: boolean;
   onToggleAlbum: () => void;
 }) {
@@ -116,7 +136,7 @@ export function CollectionPage({
   if (state.status === "loading") {
     return (
       <div class="page collection-page" aria-busy="true">
-        <a class="back-link" href="#/browse"><Icon name="back" size={18} /> Browse</a>
+        <a class="back-link" href={libraryContext ? "#/library/albums" : "#/browse"}><Icon name="back" size={18} /> {libraryContext ? "Albums" : "Browse"}</a>
         <div class="collection-header collection-header-skeleton">
           <span class="skeleton collection-artwork-skeleton" />
           <div>
@@ -132,24 +152,27 @@ export function CollectionPage({
   if (state.status === "error") {
     return (
       <div class="page collection-page">
-        <a class="back-link" href="#/browse"><Icon name="back" size={18} /> Browse</a>
+        <a class="back-link" href={libraryContext ? "#/library/albums" : "#/browse"}><Icon name="back" size={18} /> {libraryContext ? "Albums" : "Browse"}</a>
         <CatalogError message={state.message} onRetry={() => setRequest((value) => value + 1)} />
       </div>
     );
   }
 
-  const { collection, songs } = state.payload;
+  const { collection, songs: collectionSongs } = state.payload;
+  const songs = visibleCollectionSongs(collectionSongs, visibleSongIds);
 
   return (
     <div class="page collection-page">
-      <a class="back-link" href="#/browse"><Icon name="back" size={18} /> Browse</a>
+      <a class="back-link" href={libraryContext ? "#/library/albums" : "#/browse"}><Icon name="back" size={18} /> {libraryContext ? "Albums" : "Browse"}</a>
       <header class="collection-header">
         <Artwork url={collection.artworkUrl} alt="" className="collection-artwork" eager />
         <div class="collection-header-copy">
           <p class="section-kicker">Collection</p>
           <h1>{collection.title}</h1>
           <p>
-            {collection.songCount.toLocaleString()} songs · {collection.playableSongCount.toLocaleString()} with audio
+            {libraryContext
+              ? `${songs.length.toLocaleString()} ${songs.length === 1 ? "song" : "songs"} in your Library`
+              : `${collection.songCount.toLocaleString()} songs · ${collection.playableSongCount.toLocaleString()} with audio`}
           </p>
           <div class="collection-header-actions">
             <button
@@ -158,7 +181,7 @@ export function CollectionPage({
               onClick={onToggleAlbum}
               aria-pressed={savedAlbum}
             >
-              <Icon name="heart" filled={savedAlbum} size={17} />
+              <Icon name={savedAlbum ? "check" : "add"} size={17} />
               {savedAlbum ? "Added to Library" : "Add Album to Library"}
             </button>
             <a class="source-link" href={collection.sourceUrl}>
@@ -175,6 +198,13 @@ export function CollectionPage({
             <h2 id="songs-title">Songs</h2>
           </div>
         </div>
+        {libraryContext && songs.length === 0 && (
+          <div class="collection-library-empty">
+            <Icon name="music" size={24} />
+            <p>No individually added songs remain in this album.</p>
+            <a href="#/library/albums">Back to Albums</a>
+          </div>
+        )}
         <ol class="song-list">
           {songs.map((song, index) => {
             const isCurrent = currentSongId === song.id;
@@ -202,6 +232,18 @@ export function CollectionPage({
                       ? "No audio"
                       : `${song.recordings.length} ${song.recordings.length === 1 ? "recording" : "recordings"}`}
                   </span>
+                </button>
+                <button
+                  type="button"
+                  class={`song-library-button ${librarySongs.has(song.id) || savedAlbum ? "is-added" : ""}`}
+                  onClick={() => onToggleLibrarySong(song.id)}
+                  disabled={savedAlbum}
+                  aria-label={savedAlbum
+                    ? `${song.title} is included with this saved album`
+                    : librarySongs.has(song.id) ? `Remove ${song.title} from Library` : `Add ${song.title} to Library`}
+                  aria-pressed={librarySongs.has(song.id) || savedAlbum}
+                >
+                  <Icon name={librarySongs.has(song.id) || savedAlbum ? "check" : "add"} size={18} />
                 </button>
                 <button
                   type="button"

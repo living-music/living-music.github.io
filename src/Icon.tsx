@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-export type IconName="home"|"browse"|"search"|"heart"|"play"|"pause"|"previous"|"next"|"queue"|"close"|"chevron"|"music"|"back"|"more"|"up"|"down"|"repeat"|"trash"|"video";
+export type IconName="home"|"browse"|"search"|"heart"|"play"|"pause"|"previous"|"next"|"queue"|"close"|"chevron"|"music"|"back"|"more"|"up"|"down"|"repeat"|"trash"|"video"|"add"|"check";
 const paths:Record<IconName,JSX.Element>={
 home:<><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10M9.5 20v-6h5v6"/></>,
 browse:<><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,
@@ -15,7 +15,9 @@ more:<><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle c
 up:<path d="m6 15 6-6 6 6"/>,down:<path d="m6 9 6 6 6-6"/>,
 repeat:<><path d="m17 2 4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></>,
 trash:<><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></>,
-video:<><rect x="3" y="5" width="14" height="14" rx="3"/><path d="m17 10 4-2v8l-4-2Z"/></>
+video:<><rect x="3" y="5" width="14" height="14" rx="3"/><path d="m17 10 4-2v8l-4-2Z"/></>,
+add:<path d="M12 5v14M5 12h14"/>,
+check:<path d="m5 12 4.5 4.5L19 7"/>
 };
 export function Icon({name,filled=false,size=22}:{name:IconName;filled?:boolean;size?:number}){
 return <svg aria-hidden="true" class="icon" width={size} height={size} viewBox="0 0 24 24" fill={filled?"currentColor":"none"} stroke="currentColor" stroke-width={filled?1.4:1.8} stroke-linecap="round" stroke-linejoin="round">{paths[name]}</svg>

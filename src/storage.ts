@@ -15,6 +15,8 @@ export interface QueueReference {
 export interface UserState {
   favorites: string[];
   favoriteAddedAt: Record<string, string>;
+  librarySongs: string[];
+  librarySongAddedAt: Record<string, string>;
   albums: string[];
   albumAddedAt: Record<string, string>;
   queue: QueueReference[];
@@ -27,6 +29,8 @@ export interface UserState {
 export const EMPTY_USER_STATE: UserState = {
   favorites: [],
   favoriteAddedAt: {},
+  librarySongs: [],
+  librarySongAddedAt: {},
   albums: [],
   albumAddedAt: {},
   queue: [],
@@ -85,15 +89,28 @@ export function parseUserState(
         ...EMPTY_USER_STATE,
         favorites: legacy,
         favoriteAddedAt: addedAtValues({}, legacy, migrationTime),
+        librarySongs: legacy,
+        librarySongAddedAt: addedAtValues({}, legacy, migrationTime),
       };
     }
     const data = value as Record<string, unknown>;
     const repeatMode = data.repeatMode === "all" || data.repeatMode === "one" ? data.repeatMode : "off";
     const favorites = stringArray(data.favorites) ? [...new Set(data.favorites)] : legacy;
+    const favoriteAddedAt = addedAtValues(data.favoriteAddedAt, favorites, migrationTime);
+    const librarySongs = stringArray(data.librarySongs) ? [...new Set(data.librarySongs)] : favorites;
+    const librarySongAddedAtSource = data.librarySongAddedAt === undefined
+      ? favoriteAddedAt
+      : data.librarySongAddedAt;
     const albums = stringArray(data.albums) ? [...new Set(data.albums)] : [];
     return {
       favorites,
-      favoriteAddedAt: addedAtValues(data.favoriteAddedAt, favorites, migrationTime),
+      favoriteAddedAt,
+      librarySongs,
+      librarySongAddedAt: addedAtValues(
+        librarySongAddedAtSource,
+        librarySongs,
+        migrationTime,
+      ),
       albums,
       albumAddedAt: addedAtValues(data.albumAddedAt, albums, migrationTime),
       queue: queueReferences(data.queue),
@@ -111,6 +128,8 @@ export function parseUserState(
       ...EMPTY_USER_STATE,
       favorites: legacy,
       favoriteAddedAt: addedAtValues({}, legacy, migrationTime),
+      librarySongs: legacy,
+      librarySongAddedAt: addedAtValues({}, legacy, migrationTime),
     };
   }
 }

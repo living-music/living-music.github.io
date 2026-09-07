@@ -6,6 +6,8 @@ describe("parseUserState", () => {
     const state = parseUserState(JSON.stringify({
       favorites: ["song:one", "song:one", "song:two"],
       favoriteAddedAt: { "song:one": "2026-09-01T12:00:00.000Z", "song:two": "invalid" },
+      librarySongs: ["song:two"],
+      librarySongAddedAt: { "song:two": "2026-09-03T12:00:00.000Z" },
       albums: ["album:one", "album:one"],
       albumAddedAt: { "album:one": "2026-09-02T12:00:00.000Z" },
       queue: [
@@ -23,6 +25,8 @@ describe("parseUserState", () => {
       "song:one": "2026-09-01T12:00:00.000Z",
       "song:two": "2026-09-07T12:00:00.000Z",
     });
+    expect(state.librarySongs).toEqual(["song:two"]);
+    expect(state.librarySongAddedAt).toEqual({ "song:two": "2026-09-03T12:00:00.000Z" });
     expect(state.albums).toEqual(["album:one"]);
     expect(state.albumAddedAt).toEqual({ "album:one": "2026-09-02T12:00:00.000Z" });
     expect(state.queue).toEqual([
@@ -40,10 +44,24 @@ describe("parseUserState", () => {
     )).toMatchObject({
       favorites: ["legacy:song"],
       favoriteAddedAt: { "legacy:song": "2026-09-07T12:00:00.000Z" },
+      librarySongs: ["legacy:song"],
+      librarySongAddedAt: { "legacy:song": "2026-09-07T12:00:00.000Z" },
       albums: [],
       queue: [],
       currentQueueIndex: -1,
       repeatMode: "off",
     });
   });
+
+  it("migrates combined saved songs into Library using their original favorite timestamps", () => {
+    const state = parseUserState(JSON.stringify({
+      favorites: ["existing:song"],
+      favoriteAddedAt: { "existing:song": "2026-09-01T12:00:00.000Z" },
+    }), null, "2026-09-07T12:00:00.000Z");
+
+    expect(state.favorites).toEqual(["existing:song"]);
+    expect(state.librarySongs).toEqual(["existing:song"]);
+    expect(state.librarySongAddedAt).toEqual({ "existing:song": "2026-09-01T12:00:00.000Z" });
+  });
+
 });

@@ -114,6 +114,9 @@ export function NowPlaying({
   onClearUpNext,
   favorite,
   onToggleFavorite,
+  inLibrary,
+  onToggleLibrary,
+  libraryActionDisabled = false,
 }: {
   open: boolean;
   player: PlayerSnapshot;
@@ -130,6 +133,9 @@ export function NowPlaying({
   onClearUpNext: () => void;
   favorite: boolean;
   onToggleFavorite: () => void;
+  inLibrary: boolean;
+  onToggleLibrary: () => void;
+  libraryActionDisabled?: boolean;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
@@ -172,6 +178,18 @@ export function NowPlaying({
           </button>
           <strong id="now-playing-title">Now Playing</strong>
           <div class="now-playing-header-actions">
+            <button
+              type="button"
+              class={`round-button library-control ${inLibrary ? "is-added" : ""}`}
+              onClick={onToggleLibrary}
+              disabled={libraryActionDisabled}
+              aria-label={libraryActionDisabled
+                ? "Included in Library with its album"
+                : inLibrary ? "Remove from Library" : "Add to Library"}
+              aria-pressed={inLibrary}
+            >
+              <Icon name={inLibrary ? "check" : "add"} size={18} />
+            </button>
             <button
               type="button"
               class={`round-button ${favorite ? "is-favorite" : ""}`}

@@ -32,6 +32,7 @@ const navigation: NavigationItem[] = [
 ];
 
 const libraryNavigation: { id: LibraryView; label: string }[] = [
+  { id: "favorites", label: "Favorites" },
   { id: "recent", label: "Recently Added" },
   { id: "albums", label: "Albums" },
   { id: "songs", label: "Songs" },
@@ -168,7 +169,7 @@ function HomePage({ catalog, onRetry }: { catalog: CatalogState; onRetry: () => 
           </a>
           <a class="shortcut-card violet" href={hrefFor("library")}>
             <span class="shortcut-icon"><Icon name="heart" /></span>
-            <span><strong>Library</strong><small>Your saved songs and albums</small></span>
+            <span><strong>Library</strong><small>Favorites, songs, and albums</small></span>
             <Icon name="chevron" size={18} />
           </a>
         </div>
@@ -196,16 +197,20 @@ function BrowsePage({ catalog, onRetry }: { catalog: CatalogState; onRetry: () =
 function SearchPage({
   catalog,
   favorites,
+  librarySongs,
   player,
   onRetry,
   onToggleFavorite,
+  onToggleLibrarySong,
   onPlay,
 }: {
   catalog: CatalogState;
   favorites: Set<string>;
+  librarySongs: Set<string>;
   player: PlayerSnapshot;
   onRetry: () => void;
   onToggleFavorite: (songId: string) => void;
+  onToggleLibrarySong: (songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   return (
@@ -222,9 +227,11 @@ function SearchPage({
           client={catalogClient}
           catalog={catalog.index}
           favorites={favorites}
+          librarySongs={librarySongs}
           currentSongId={player.track?.song.id}
           playerStatus={player.status}
           onToggleFavorite={onToggleFavorite}
+          onToggleLibrarySong={onToggleLibrarySong}
           onPlay={onPlay}
         />
       )}
@@ -266,12 +273,14 @@ function LibraryPage({
   onThemeChange,
   catalog,
   favorites,
-  favoriteAddedAt,
+  librarySongs,
+  librarySongAddedAt,
   albums,
   albumAddedAt,
   player,
   onRetry,
   onToggleFavorite,
+  onToggleLibrarySong,
   onPlay,
 }: {
   view: LibraryView;
@@ -279,19 +288,22 @@ function LibraryPage({
   onThemeChange: (theme: Theme) => void;
   catalog: CatalogState;
   favorites: Set<string>;
-  favoriteAddedAt: Record<string, string>;
+  librarySongs: Set<string>;
+  librarySongAddedAt: Record<string, string>;
   albums: Set<string>;
   albumAddedAt: Record<string, string>;
   player: PlayerSnapshot;
   onRetry: () => void;
   onToggleFavorite: (songId: string) => void;
+  onToggleLibrarySong: (songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   const viewCopy: Record<LibraryView, { title: string; description: string }> = {
-    recent: { title: "Recently Added", description: "Your saved music grouped by album and ordered by when you added it." },
-    albums: { title: "Albums", description: "Albums you saved and albums containing songs you love." },
-    songs: { title: "Songs", description: "Every song you saved, arranged alphabetically." },
-    videos: { title: "Music Videos", description: "Your saved video performances in one place." },
+    favorites: { title: "Favorites", description: "Songs you marked as favorites, whether or not they are in your Library." },
+    recent: { title: "Recently Added", description: "Your Library music grouped by album and ordered by when you added it." },
+    albums: { title: "Albums", description: "Albums you added and albums containing songs in your Library." },
+    songs: { title: "Songs", description: "Every song you added to your Library, arranged alphabetically." },
+    videos: { title: "Music Videos", description: "Video performances you added to your Library." },
   };
   const copy = viewCopy[view];
   return (
@@ -322,12 +334,14 @@ function LibraryPage({
             client={catalogClient}
             catalog={catalog.index}
             favorites={favorites}
-            favoriteAddedAt={favoriteAddedAt}
+            librarySongs={librarySongs}
+            librarySongAddedAt={librarySongAddedAt}
             albums={albums}
             albumAddedAt={albumAddedAt}
             currentSongId={player.track?.song.id}
             playerStatus={player.status}
             onToggleFavorite={onToggleFavorite}
+            onToggleLibrarySong={onToggleLibrarySong}
             onPlay={onPlay}
           />
         )}
@@ -339,10 +353,10 @@ function LibraryPage({
   );
 }
 
-function MissingCollection() {
+function MissingCollection({ library = false }: { library?: boolean }) {
   return (
     <div class="page">
-      <a class="back-link" href="#/browse"><Icon name="back" size={18} /> Browse</a>
+      <a class="back-link" href={library ? "#/library/albums" : "#/browse"}><Icon name="back" size={18} /> {library ? "Albums" : "Browse"}</a>
       <section class="empty-state" role="alert">
         <div class="empty-icon"><Icon name="music" size={28} /></div>
         <h1 class="empty-title">Collection not found.</h1>
@@ -369,6 +383,7 @@ export function App() {
   const mainRef = useRef<HTMLElement>(null);
   const restoredQueue = useRef(false);
   const favorites = useMemo(() => new Set(userState.favorites), [userState.favorites]);
+  const librarySongs = useMemo(() => new Set(userState.librarySongs), [userState.librarySongs]);
   const albums = useMemo(() => new Set(userState.albums), [userState.albums]);
 
   useEffect(() => engine.subscribe(setPlayer), [engine]);
@@ -472,10 +487,12 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const collectionTitle = route.page === "collection" && catalog.status === "ready"
+    const isCollection = route.page === "collection" || route.page === "library-album";
+    const collectionTitle = isCollection && catalog.status === "ready"
       ? catalog.index.collections.find((entry) => entry.id === route.collectionId)?.title
       : undefined;
-    document.title = `${collectionTitle || (route.page === "collection" ? "Collection" : pageTitles[route.page])} · Living Music`;
+    const fallbackTitle = route.page === "library-album" ? "Library Album" : route.page === "collection" ? "Collection" : pageTitles[route.page];
+    document.title = `${collectionTitle || fallbackTitle} · Living Music`;
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [route, catalog]);
 
@@ -507,6 +524,21 @@ export function App() {
         favoriteAddedAt[songId] = new Date().toISOString();
       }
       return { ...current, favorites: [...next], favoriteAddedAt };
+    });
+  };
+
+  const toggleLibrarySong = (songId: string) => {
+    setUserState((current) => {
+      const next = new Set(current.librarySongs);
+      const librarySongAddedAt = { ...current.librarySongAddedAt };
+      if (next.has(songId)) {
+        next.delete(songId);
+        delete librarySongAddedAt[songId];
+      } else {
+        next.add(songId);
+        librarySongAddedAt[songId] = new Date().toISOString();
+      }
+      return { ...current, librarySongs: [...next], librarySongAddedAt };
     });
   };
 
@@ -553,9 +585,10 @@ export function App() {
   };
 
   const currentDestination = navigationDestination(route);
-  const currentLibraryView = route.page === "library" ? route.view : undefined;
+  const currentLibraryView = route.page === "library" ? route.view : route.page === "library-album" ? "albums" : undefined;
   const retryCatalog = () => setCatalogAttempt((attempt) => attempt + 1);
-  const collection = route.page === "collection" && catalog.status === "ready"
+  const collectionRoute = route.page === "collection" || route.page === "library-album";
+  const collection = collectionRoute && catalog.status === "ready"
     ? catalog.index.collections.find((entry) => entry.id === route.collectionId)
     : undefined;
 
@@ -591,9 +624,11 @@ export function App() {
           <SearchPage
             catalog={catalog}
             favorites={favorites}
+            librarySongs={librarySongs}
             player={player}
             onRetry={retryCatalog}
             onToggleFavorite={toggleFavorite}
+            onToggleLibrarySong={toggleLibrarySong}
             onPlay={playSearchSong}
           />
         )}
@@ -604,22 +639,24 @@ export function App() {
             onThemeChange={changeTheme}
             catalog={catalog}
             favorites={favorites}
-            favoriteAddedAt={userState.favoriteAddedAt}
+            librarySongs={librarySongs}
+            librarySongAddedAt={userState.librarySongAddedAt}
             albums={albums}
             albumAddedAt={userState.albumAddedAt}
             player={player}
             onRetry={retryCatalog}
             onToggleFavorite={toggleFavorite}
+            onToggleLibrarySong={toggleLibrarySong}
             onPlay={playSearchSong}
           />
         )}
-        {route.page === "collection" && catalog.status === "loading" && (
+        {collectionRoute && catalog.status === "loading" && (
           <div class="page"><CatalogSkeleton count={8} /></div>
         )}
-        {route.page === "collection" && catalog.status === "error" && (
+        {collectionRoute && catalog.status === "error" && (
           <div class="page"><CatalogError message={catalog.message} onRetry={retryCatalog} /></div>
         )}
-        {route.page === "collection" && catalog.status === "ready" && (
+        {collectionRoute && catalog.status === "ready" && (
           collection ? (
             <CollectionPage
               client={catalogClient}
@@ -631,10 +668,14 @@ export function App() {
               onAddToQueue={(song, sourceCollection) => engine.addToQueue(song, sourceCollection, preferredRecording(song.id))}
               favorites={favorites}
               onToggleFavorite={toggleFavorite}
+              librarySongs={librarySongs}
+              onToggleLibrarySong={toggleLibrarySong}
+              visibleSongIds={route.page === "library-album" && !albums.has(collection.id) ? librarySongs : undefined}
+              libraryContext={route.page === "library-album"}
               savedAlbum={albums.has(collection.id)}
               onToggleAlbum={() => toggleAlbum(collection.id)}
             />
-          ) : <MissingCollection />
+          ) : <MissingCollection library={route.page === "library-album"} />
         )}
         <footer class="content-footer">
           Living Music is not affiliated with or endorsed by The Church of Jesus Christ of Latter-day Saints.
@@ -666,6 +707,9 @@ export function App() {
         onClearUpNext={() => engine.clearUpNext()}
         favorite={player.track ? favorites.has(player.track.song.id) : false}
         onToggleFavorite={() => player.track && toggleFavorite(player.track.song.id)}
+        inLibrary={player.track ? librarySongs.has(player.track.song.id) || albums.has(player.track.collectionId) : false}
+        onToggleLibrary={() => player.track && !albums.has(player.track.collectionId) && toggleLibrarySong(player.track.song.id)}
+        libraryActionDisabled={player.track ? albums.has(player.track.collectionId) : false}
       />
 
       <Navigation current={currentDestination} libraryView={currentLibraryView} mobile />

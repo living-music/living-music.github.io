@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "preact/hooks";
 import type { CatalogClient } from "../api";
 import { Icon } from "../Icon";
 import type { PlayerStatus } from "../player";
-import { hrefForCollection, type LibraryView } from "../router";
+import { hrefForLibraryAlbum, type LibraryView } from "../router";
 import type { CatalogIndex, CollectionSummary, SearchIndex, SearchSong } from "../types";
 import { Artwork } from "./Artwork";
 import { CollectionGrid } from "./CatalogViews";
@@ -104,7 +104,7 @@ function RecentAlbums({ groups }: { groups: LibraryAlbumGroup[] }) {
       <LibraryEmpty
         icon="heart"
         title="Build your library."
-        description="Save a song with its heart button or add an album from its collection page."
+        description="Add individual songs or a whole album to see your music here."
         href="#/browse"
         action="Browse music"
       />
@@ -116,10 +116,10 @@ function RecentAlbums({ groups }: { groups: LibraryAlbumGroup[] }) {
       {groups.map((group) => {
         const savedCount = group.savedSongIds.length;
         const detail = savedCount > 0
-          ? `${savedCount.toLocaleString()} saved ${savedCount === 1 ? "song" : "songs"}`
+          ? `${savedCount.toLocaleString()} Library ${savedCount === 1 ? "song" : "songs"}`
           : `${group.collection.songCount.toLocaleString()} ${group.collection.songCount === 1 ? "song" : "songs"}`;
         return (
-          <a class="recent-library-card" href={hrefForCollection(group.collection.id)} key={group.collection.id}>
+          <a class="recent-library-card" href={hrefForLibraryAlbum(group.collection.id)} key={group.collection.id}>
             <Artwork url={group.collection.artworkUrl} alt="" />
             <span class="recent-library-copy">
               <strong>{group.collection.title}</strong>
@@ -140,37 +140,42 @@ export function LibraryViews({
   client,
   catalog,
   favorites,
-  favoriteAddedAt,
+  librarySongs,
+  librarySongAddedAt,
   albums,
   albumAddedAt,
   currentSongId,
   playerStatus,
   onToggleFavorite,
+  onToggleLibrarySong,
   onPlay,
 }: {
   view: LibraryView;
   client: CatalogClient;
   catalog: CatalogIndex;
   favorites: Set<string>;
-  favoriteAddedAt: Record<string, string>;
+  librarySongs: Set<string>;
+  librarySongAddedAt: Record<string, string>;
   albums: Set<string>;
   albumAddedAt: Record<string, string>;
   currentSongId?: string;
   playerStatus: PlayerStatus;
   onToggleFavorite: (songId: string) => void;
+  onToggleLibrarySong: (songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   const [visibleCount, setVisibleCount] = useState(100);
-  const search = useSearchIndex(client, favorites.size > 0);
+  const needsSearch = favorites.size > 0 || librarySongs.size > 0;
+  const search = useSearchIndex(client, needsSearch);
 
   useEffect(() => setVisibleCount(100), [view]);
 
-  const searchIndex = favorites.size === 0 ? emptySearch : search.status === "ready" ? search.index : undefined;
+  const searchIndex = !needsSearch ? emptySearch : search.status === "ready" ? search.index : undefined;
   const groups = useMemo(
     () => searchIndex
-      ? libraryAlbumGroups(searchIndex, catalog, favorites, albums, favoriteAddedAt, albumAddedAt)
+      ? libraryAlbumGroups(searchIndex, catalog, librarySongs, albums, librarySongAddedAt, albumAddedAt)
       : [],
-    [searchIndex, catalog, favorites, albums, favoriteAddedAt, albumAddedAt],
+    [searchIndex, catalog, librarySongs, albums, librarySongAddedAt, albumAddedAt],
   );
   const recentGroups = useMemo(() => recentLibraryAlbumGroups(groups), [groups]);
   const albumList = useMemo(
@@ -179,10 +184,10 @@ export function LibraryViews({
       .sort((left, right) => left.title.localeCompare(right.title, undefined, { sensitivity: "base" })),
     [groups],
   );
-  const songs = searchIndex ? savedSongs(searchIndex, favorites) : [];
-  const videos = searchIndex ? savedSongs(searchIndex, favorites, true) : [];
-  const activeSongs = view === "videos" ? videos : songs;
-  const needsSearch = favorites.size > 0;
+  const songs = searchIndex ? savedSongs(searchIndex, librarySongs) : [];
+  const videos = searchIndex ? savedSongs(searchIndex, librarySongs, true) : [];
+  const favoriteSongs = searchIndex ? savedSongs(searchIndex, favorites) : [];
+  const activeSongs = view === "favorites" ? favoriteSongs : view === "videos" ? videos : songs;
 
   return (
     <section class="library-browser" aria-label="Saved library">
@@ -190,21 +195,46 @@ export function LibraryViews({
         {needsSearch && search.status === "loading" && <ResultsSkeleton />}
         {needsSearch && search.status === "error" && <ResultsError message={search.message} />}
 
+        {searchIndex && view === "favorites" && (
+          favorites.size > 0
+            ? <div class="library-song-view">
+                <div class="results-heading">
+                  <h2>Favorites</h2>
+                  <p>{favoriteSongs.length.toLocaleString()} saved</p>
+                </div>
+                <SongResults
+                  songs={favoriteSongs.slice(0, visibleCount)}
+                  catalog={catalog}
+                  favorites={favorites}
+                  librarySongs={librarySongs}
+                  currentSongId={currentSongId}
+                  playerStatus={playerStatus}
+                  onToggleFavorite={onToggleFavorite}
+                  onToggleLibrarySong={onToggleLibrarySong}
+                  onPlay={onPlay}
+                />
+                {visibleCount < favoriteSongs.length && (
+                  <button type="button" class="library-load-more secondary-action" onClick={() => setVisibleCount((count) => count + 100)}>Show more</button>
+                )}
+              </div>
+            : <LibraryEmpty icon="heart" title="Favorite songs you love." description="Select the heart beside any song and it will appear here." href="#/search" action="Find music" />
+        )}
+
         {searchIndex && view === "recent" && <RecentAlbums groups={recentGroups} />}
 
         {searchIndex && view === "albums" && (
           albumList.length
-            ? <CollectionGrid collections={albumList} label="Saved albums" />
-            : <LibraryEmpty icon="browse" title="Add an album." description="Save an album or one of its songs to keep it in your Library." href="#/browse" action="Browse albums" />
+            ? <CollectionGrid collections={albumList} label="Saved albums" hrefForItem={hrefForLibraryAlbum} />
+            : <LibraryEmpty icon="browse" title="Add an album." description="Add an album or one of its songs to keep it in your Library." href="#/browse" action="Browse albums" />
         )}
 
-        {view === "songs" && !favorites.size && (
-          <LibraryEmpty icon="heart" title="Save songs you love." description="Select the heart beside any song and it will appear here." href="#/search" action="Find music" />
+        {view === "songs" && !librarySongs.size && (
+          <LibraryEmpty icon="browse" title="Add songs to your Library." description="Select the add button beside any song and it will appear here." href="#/search" action="Find music" />
         )}
-        {view === "videos" && !favorites.size && (
-          <LibraryEmpty icon="video" title="Save a music video." description="Music videos you save with the heart button will appear here." href="#/search" action="Find music videos" />
+        {view === "videos" && !librarySongs.size && (
+          <LibraryEmpty icon="video" title="Add a music video." description="Video-backed songs you add to your Library will appear here." href="#/search" action="Find music videos" />
         )}
-        {(view === "songs" || view === "videos") && searchIndex && favorites.size > 0 && (
+        {(view === "songs" || view === "videos") && searchIndex && librarySongs.size > 0 && (
           activeSongs.length ? (
             <div class="library-song-view">
               <div class="results-heading">
@@ -215,9 +245,11 @@ export function LibraryViews({
                 songs={activeSongs.slice(0, visibleCount)}
                 catalog={catalog}
                 favorites={favorites}
+                librarySongs={librarySongs}
                 currentSongId={currentSongId}
                 playerStatus={playerStatus}
                 onToggleFavorite={onToggleFavorite}
+                onToggleLibrarySong={onToggleLibrarySong}
                 onPlay={onPlay}
               />
               {visibleCount < activeSongs.length && (
@@ -227,9 +259,9 @@ export function LibraryViews({
               )}
             </div>
           ) : view === "videos" ? (
-            <LibraryEmpty icon="video" title="No saved music videos." description="Save a video-backed song and it will appear here." href="#/search" action="Find music videos" />
+            <LibraryEmpty icon="video" title="No Library music videos." description="Add a video-backed song to your Library and it will appear here." href="#/search" action="Find music videos" />
           ) : (
-            <ResultsError message="Your saved song IDs are no longer present in the current catalog." />
+            <ResultsError message="Your Library song IDs are no longer present in the current catalog." />
           )
         )}
       </div>

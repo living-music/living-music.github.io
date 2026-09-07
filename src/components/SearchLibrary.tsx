@@ -82,17 +82,21 @@ export function SongResults({
   songs,
   catalog,
   favorites,
+  librarySongs,
   currentSongId,
   playerStatus,
   onToggleFavorite,
+  onToggleLibrarySong,
   onPlay,
 }: {
   songs: SearchSong[];
   catalog: CatalogIndex;
   favorites: Set<string>;
+  librarySongs: Set<string>;
   currentSongId?: string;
   playerStatus: PlayerStatus;
   onToggleFavorite: (songId: string) => void;
+  onToggleLibrarySong: (songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   const [pendingId, setPendingId] = useState<string>();
@@ -148,6 +152,15 @@ export function SongResults({
               </button>
               <button
                 type="button"
+                class={`library-song-button ${librarySongs.has(song.id) ? "is-added" : ""}`}
+                onClick={() => onToggleLibrarySong(song.id)}
+                aria-label={librarySongs.has(song.id) ? `Remove ${song.title} from Library` : `Add ${song.title} to Library`}
+                aria-pressed={librarySongs.has(song.id)}
+              >
+                <Icon name={librarySongs.has(song.id) ? "check" : "add"} size={19} />
+              </button>
+              <button
+                type="button"
                 class={`favorite-button ${favorites.has(song.id) ? "is-favorite" : ""}`}
                 onClick={() => onToggleFavorite(song.id)}
                 aria-label={favorites.has(song.id) ? `Remove ${song.title} from favorites` : `Add ${song.title} to favorites`}
@@ -167,17 +180,21 @@ export function SearchExperience({
   client,
   catalog,
   favorites,
+  librarySongs,
   currentSongId,
   playerStatus,
   onToggleFavorite,
+  onToggleLibrarySong,
   onPlay,
 }: {
   client: CatalogClient;
   catalog: CatalogIndex;
   favorites: Set<string>;
+  librarySongs: Set<string>;
   currentSongId?: string;
   playerStatus: PlayerStatus;
   onToggleFavorite: (songId: string) => void;
+  onToggleLibrarySong: (songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   const search = useSearchIndex(client);
@@ -235,9 +252,11 @@ export function SearchExperience({
             songs={matches.slice(0, 80)}
             catalog={catalog}
             favorites={favorites}
+            librarySongs={librarySongs}
             currentSongId={currentSongId}
             playerStatus={playerStatus}
             onToggleFavorite={onToggleFavorite}
+            onToggleLibrarySong={onToggleLibrarySong}
             onPlay={onPlay}
           />
         </section>
