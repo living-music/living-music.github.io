@@ -176,3 +176,17 @@ it("wraps to the first queued song in repeat-all mode", async () => {
 
   expect(engine.state.track?.song.id).toBe("one");
 });
+
+
+it("restores a saved queue paused without requesting autoplay", () => {
+  const media = new FakeAudio();
+  const engine = new AudioEngine(media as unknown as HTMLAudioElement);
+  const tracks = collectionTracks([song("one"), song("two")], collection);
+
+  engine.restoreQueue(tracks, 1, "all");
+
+  expect(engine.state.status).toBe("paused");
+  expect(engine.state.track?.song.id).toBe("two");
+  expect(engine.state.repeatMode).toBe("all");
+  expect(media.play).not.toHaveBeenCalled();
+});

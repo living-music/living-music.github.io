@@ -112,6 +112,8 @@ export function NowPlaying({
   onMoveQueueItem,
   onRemoveQueueItem,
   onClearUpNext,
+  favorite,
+  onToggleFavorite,
 }: {
   open: boolean;
   player: PlayerSnapshot;
@@ -126,6 +128,8 @@ export function NowPlaying({
   onMoveQueueItem: (index: number, direction: -1 | 1) => void;
   onRemoveQueueItem: (index: number) => void;
   onClearUpNext: () => void;
+  favorite: boolean;
+  onToggleFavorite: () => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
@@ -167,16 +171,27 @@ export function NowPlaying({
             <Icon name="close" size={20} />
           </button>
           <strong id="now-playing-title">Now Playing</strong>
-          <button
-            type="button"
-            class={`round-button repeat-button ${player.repeatMode !== "off" ? "is-active" : ""}`}
-            onClick={onCycleRepeat}
-            aria-label={repeatLabel(player.repeatMode)}
-            aria-pressed={player.repeatMode !== "off"}
-          >
-            <Icon name="repeat" size={19} />
-            {player.repeatMode === "one" && <span>1</span>}
-          </button>
+          <div class="now-playing-header-actions">
+            <button
+              type="button"
+              class={`round-button ${favorite ? "is-favorite" : ""}`}
+              onClick={onToggleFavorite}
+              aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
+              aria-pressed={favorite}
+            >
+              <Icon name="heart" filled={favorite} size={18} />
+            </button>
+            <button
+              type="button"
+              class={`round-button repeat-button ${player.repeatMode !== "off" ? "is-active" : ""}`}
+              onClick={onCycleRepeat}
+              aria-label={repeatLabel(player.repeatMode)}
+              aria-pressed={player.repeatMode !== "off"}
+            >
+              <Icon name="repeat" size={19} />
+              {player.repeatMode === "one" && <span>1</span>}
+            </button>
+          </div>
         </header>
 
         <div class="now-playing-body">

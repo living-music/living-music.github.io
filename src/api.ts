@@ -1,4 +1,4 @@
-import type { CatalogIndex, CatalogManifest, CollectionPayload, CollectionSummary, Recording, SearchIndex, Song } from "./types";
+import type { CatalogIndex, CatalogManifest, CollectionPayload, CollectionSummary, Recording, SearchIndex, SearchSong, Song } from "./types";
 
 const SCHEMA = 1;
 
@@ -89,6 +89,16 @@ function validSong(value: unknown): value is Song {
     value.recordings.every(validRecording);
 }
 
+function validSearchSong(value: unknown): value is SearchSong {
+  return record(value) &&
+    requiredString(value.id) &&
+    requiredString(value.title) &&
+    optionalString(value.number) &&
+    requiredString(value.collectionId) &&
+    stringArray(value.artists) &&
+    stringArray(value.recordingTypes);
+}
+
 function manifest(value: unknown): asserts value is CatalogManifest {
   schema(value, "The catalog manifest");
   if (!requiredString(value.href) || !requiredString(value.revision) || !requiredString(value.currentVersion)) {
@@ -126,7 +136,9 @@ function collection(value: unknown): asserts value is CollectionPayload {
 
 function search(value: unknown): asserts value is SearchIndex {
   schema(value, "The search index");
-  if (!Array.isArray(value.songs)) throw new Error("The search index is incomplete.");
+  if (!Array.isArray(value.songs) || !value.songs.every(validSearchSong) || !requiredString(value.revision)) {
+    throw new Error("The search index is incomplete.");
+  }
 }
 
 export class CatalogClient {

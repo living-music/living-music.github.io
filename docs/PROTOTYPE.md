@@ -9,8 +9,8 @@ The first Living Music prototype is split into seven independently reviewable st
 | 3. Live catalog browsing | Complete | Catalog index, collection artwork, lazy collection pages, and API error states |
 | 4. Core playback | Complete | Shared audio engine, vocal-first selection, transport controls, seeking, and mini player |
 | 5. Now Playing and queue | Complete | Expanded player, recording choices, Up Next, and track advancement |
-| 6. Search, favorites, and Library | Next | Global search, local favorites, and populated Library |
-| 7. Polish, documentation, and deployment | Planned | Media Session, cross-browser QA, cleanup, and release documentation |
+| 6. Search, favorites, and Library | Complete | Global search, local favorites, and populated Library |
+| 7. Polish, documentation, and deployment | Next | Media Session, cross-browser QA, cleanup, and release documentation |
 
 ## Step 2 behavior
 
@@ -25,7 +25,7 @@ Desktop layouts use a fixed sidebar. Screens at 760 px and below use a fixed hea
 
 Dark appearance is the default and is set before CSS or Preact loads. Library provides Dark, Light, and System choices, stored under `livingMusic:theme`. Reduced-motion and reduced-transparency preferences have CSS fallbacks.
 
-Search and favorites remain explicit preview states. Browse and collection song lists use live catalog data.
+At the end of Step 2, Search and favorites remain preview states; Browse and collection song lists gain live data in Step 3.
 
 ## Step 3 behavior
 
@@ -49,4 +49,12 @@ Selecting the song and recording details in the mini player opens an accessible 
 
 Now Playing offers large artwork, a native alternate-recording selector, a larger seek control, transport controls, and repeat off, all, and one. Changing recordings keeps the same song selected and starts the chosen version. Repeat state and next-button availability stay synchronized.
 
-Each playable song row exposes Play Next and Add to End. Up Next supports immediate playback, move up, move down, remove, and clear actions. Queue edits never interrupt the current recording, and unavailable songs cannot enter the queue. The queue and recording selection are intentionally session-only until user-state persistence is added in Step 6.
+Each playable song row exposes Play Next and Add to End. Up Next supports immediate playback, move up, move down, remove, and clear actions. Queue edits never interrupt the current recording, and unavailable songs cannot enter the queue. Step 5 initially keeps the queue and recording selection in the session; Step 6 adds validated persistence and paused restoration.
+
+## Step 6 behavior
+
+Search fetches the revisioned compact search index only when Search or Library opens. Case- and accent-insensitive terms match titles, song numbers, artists, and collection names; every term may appear separately in the searchable text. The interface reports the full match count and renders at most 80 results at once. Playing a result lazily resolves its full song from the owning collection, so the 5,070-song catalog does not require eager collection downloads.
+
+Heart controls in collection rows, search results, and Now Playing share one favorites set. Library renders saved songs from the compact index, supports direct playback, and keeps appearance settings alongside the listener’s music. Catalog IDs that disappear are ignored safely.
+
+A validated `livingMusic:userState:v1` record stores favorites, queue references, current queue position, repeat mode, the global preferred recording type, and per-song recording preferences. Legacy favorite IDs migrate automatically. On reload the client resolves valid queue references against the current revisioned catalog and restores the selected track paused, preserving browser autoplay expectations. Malformed storage, unavailable storage, removed songs, and removed recordings degrade to valid defaults.

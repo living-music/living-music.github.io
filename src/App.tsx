@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { CatalogClient } from "./api";
+import { chooseRecording } from "./audio";
 import { CatalogError, CatalogSkeleton, CollectionGrid, CollectionPage } from "./components/CatalogViews";
 import { Icon, type IconName } from "./Icon";
 import { MiniPlayer, NowPlaying } from "./components/Player";
-import { AudioEngine, type PlayerSnapshot } from "./player";
+import { FavoriteSongs, SearchExperience } from "./components/SearchLibrary";
+import { AudioEngine, type PlayerSnapshot, type PlayerTrack } from "./player";
 import { hrefFor, navigationDestination, routeFromHash, type Destination, type Route } from "./router";
-import { readTheme, writeTheme, type Theme } from "./storage";
-import type { CatalogIndex, CollectionSummary, Song } from "./types";
+import { readTheme, readUserState, writeTheme, writeUserState, type Theme, type UserState } from "./storage";
+import type { CatalogIndex, CollectionSummary, SearchSong, Song } from "./types";
 
 interface NavigationItem {
   id: Destination;
@@ -157,22 +159,41 @@ function BrowsePage({ catalog, onRetry }: { catalog: CatalogState; onRetry: () =
   );
 }
 
-function SearchPage() {
+function SearchPage({
+  catalog,
+  favorites,
+  player,
+  onRetry,
+  onToggleFavorite,
+  onPlay,
+}: {
+  catalog: CatalogState;
+  favorites: Set<string>;
+  player: PlayerSnapshot;
+  onRetry: () => void;
+  onToggleFavorite: (songId: string) => void;
+  onPlay: (song: SearchSong) => Promise<void>;
+}) {
   return (
     <div class="page">
       <PageHeader
         eyebrow="Find a song"
         title="Search"
-        description="Search will use the global song index without downloading every collection."
+        description="Search the complete catalog without downloading every collection."
       />
-      <div class="search-field is-preview">
-        <Icon name="search" size={20} />
-        <input aria-label="Search music" placeholder="Search songs" disabled />
-      </div>
-      <section class="empty-state compact" aria-labelledby="search-empty-title">
-        <h2 id="search-empty-title">Search is coming soon.</h2>
-        <p>The live catalog is connected. Global search becomes interactive with favorites and Library in Step 6.</p>
-      </section>
+      {catalog.status === "loading" && <CatalogSkeleton count={7} />}
+      {catalog.status === "error" && <CatalogError message={catalog.message} onRetry={onRetry} />}
+      {catalog.status === "ready" && (
+        <SearchExperience
+          client={catalogClient}
+          catalog={catalog.index}
+          favorites={favorites}
+          currentSongId={player.track?.song.id}
+          playerStatus={player.status}
+          onToggleFavorite={onToggleFavorite}
+          onPlay={onPlay}
+        />
+      )}
     </div>
   );
 }
@@ -205,7 +226,25 @@ function ThemeSelector({ theme, onChange }: { theme: Theme; onChange: (theme: Th
   );
 }
 
-function LibraryPage({ theme, onThemeChange }: { theme: Theme; onThemeChange: (theme: Theme) => void }) {
+function LibraryPage({
+  theme,
+  onThemeChange,
+  catalog,
+  favorites,
+  player,
+  onRetry,
+  onToggleFavorite,
+  onPlay,
+}: {
+  theme: Theme;
+  onThemeChange: (theme: Theme) => void;
+  catalog: CatalogState;
+  favorites: Set<string>;
+  player: PlayerSnapshot;
+  onRetry: () => void;
+  onToggleFavorite: (songId: string) => void;
+  onPlay: (song: SearchSong) => Promise<void>;
+}) {
   return (
     <div class="page">
       <PageHeader
@@ -213,12 +252,20 @@ function LibraryPage({ theme, onThemeChange }: { theme: Theme; onThemeChange: (t
         title="Library"
         description="Favorites and listening preferences stay privately on this device."
       />
-      <div class="library-grid">
-        <section class="empty-state compact" aria-labelledby="favorites-title">
-          <div class="empty-icon"><Icon name="heart" size={28} /></div>
-          <h2 id="favorites-title">Favorites will live here.</h2>
-          <p>Favorite songs become available after playback is connected.</p>
-        </section>
+      <div class="library-content">
+        {catalog.status === "loading" && <CatalogSkeleton count={5} />}
+        {catalog.status === "error" && <CatalogError message={catalog.message} onRetry={onRetry} />}
+        {catalog.status === "ready" && (
+          <FavoriteSongs
+            client={catalogClient}
+            catalog={catalog.index}
+            favorites={favorites}
+            currentSongId={player.track?.song.id}
+            playerStatus={player.status}
+            onToggleFavorite={onToggleFavorite}
+            onPlay={onPlay}
+          />
+        )}
         <ThemeSelector theme={theme} onChange={onThemeChange} />
       </div>
     </div>
@@ -244,14 +291,75 @@ export function App() {
   if (!engineRef.current) engineRef.current = new AudioEngine();
   const engine = engineRef.current;
   const [player, setPlayer] = useState<PlayerSnapshot>(engine.state);
+  const [userState, setUserState] = useState<UserState>(readUserState);
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [route, setRoute] = useState<Route>(() => routeFromHash(window.location.hash));
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [catalogAttempt, setCatalogAttempt] = useState(0);
   const [catalog, setCatalog] = useState<CatalogState>({ status: "loading" });
   const mainRef = useRef<HTMLElement>(null);
+  const restoredQueue = useRef(false);
+  const favorites = useMemo(() => new Set(userState.favorites), [userState.favorites]);
 
   useEffect(() => engine.subscribe(setPlayer), [engine]);
+
+  useEffect(() => {
+    writeUserState(userState);
+  }, [userState]);
+
+  useEffect(() => {
+    if (restoredQueue.current || catalog.status !== "ready") return;
+    restoredQueue.current = true;
+    if (!userState.queue.length) return;
+    const catalogIndex = catalog.index;
+    let active = true;
+
+    void Promise.all(userState.queue.map(async (reference, originalIndex) => {
+      const summary = catalogIndex.collections.find((entry) => entry.id === reference.collectionId);
+      if (!summary) return undefined;
+      try {
+        const payload = await catalogClient.loadCollection(summary);
+        const song = payload.songs.find((entry) => entry.id === reference.songId);
+        if (!song) return undefined;
+        const recording = song.recordings.find((entry) => entry.id === reference.recordingId)
+          || chooseRecording(song, userState.songRecordingPreferences[song.id] || userState.preferredRecordingType);
+        if (!recording) return undefined;
+        const track: PlayerTrack = {
+          song,
+          recording,
+          collectionId: summary.id,
+          collectionTitle: summary.title,
+          artworkUrl: recording.artworkUrl || song.artworkUrl || summary.artworkUrl,
+        };
+        return { track, originalIndex };
+      } catch {
+        return undefined;
+      }
+    })).then((entries) => {
+      if (!active) return;
+      const valid = entries.filter((entry): entry is { track: PlayerTrack; originalIndex: number } => Boolean(entry));
+      if (!valid.length) return;
+      const requested = Math.max(0, userState.currentQueueIndex);
+      const restoredIndex = Math.max(0, valid.filter((entry) => entry.originalIndex <= requested).length - 1);
+      engine.restoreQueue(valid.map((entry) => entry.track), restoredIndex, userState.repeatMode);
+    });
+
+    return () => { active = false; };
+  }, [catalog, engine]);
+
+  useEffect(() => {
+    if (!restoredQueue.current || !player.track) return;
+    setUserState((current) => ({
+      ...current,
+      queue: player.queue.map((track) => ({
+        songId: track.song.id,
+        collectionId: track.collectionId,
+        recordingId: track.recording.id,
+      })),
+      currentQueueIndex: player.currentIndex,
+      repeatMode: player.repeatMode,
+    }));
+  }, [player.queue, player.currentIndex, player.repeatMode, player.track?.recording.id]);
 
   useEffect(() => {
     let active = true;
@@ -296,8 +404,42 @@ export function App() {
     requestAnimationFrame(() => document.querySelector<HTMLButtonElement>("#now-playing-trigger")?.focus());
   }, []);
 
+  const preferredRecording = (songId: string) =>
+    userState.songRecordingPreferences[songId] || userState.preferredRecordingType;
+
+  const toggleFavorite = (songId: string) => {
+    setUserState((current) => {
+      const next = new Set(current.favorites);
+      next.has(songId) ? next.delete(songId) : next.add(songId);
+      return { ...current, favorites: [...next] };
+    });
+  };
+
   const playSong = (song: Song, songs: Song[], sourceCollection: CollectionSummary) => {
-    engine.playCollection(songs, sourceCollection, song.id);
+    engine.playCollection(songs, sourceCollection, song.id, preferredRecording(song.id));
+  };
+
+  const playSearchSong = async (result: SearchSong) => {
+    if (catalog.status !== "ready") throw new Error("The catalog is still loading.");
+    const summary = catalog.index.collections.find((entry) => entry.id === result.collectionId);
+    if (!summary) throw new Error("This song’s collection is no longer available.");
+    const payload = await catalogClient.loadCollection(summary);
+    const song = payload.songs.find((entry) => entry.id === result.id);
+    if (!song) throw new Error("This song is no longer available in its collection.");
+    engine.playCollection(payload.songs, summary, song.id, preferredRecording(song.id));
+  };
+
+  const changeRecording = (recordingId: string) => {
+    const recording = player.track?.song.recordings.find((entry) => entry.id === recordingId);
+    const songId = player.track?.song.id;
+    engine.changeRecording(recordingId);
+    if (recording && songId) {
+      setUserState((current) => ({
+        ...current,
+        preferredRecordingType: recording.type,
+        songRecordingPreferences: { ...current.songRecordingPreferences, [songId]: recording.type },
+      }));
+    }
   };
 
   const currentDestination = navigationDestination(route);
@@ -334,8 +476,28 @@ export function App() {
       <main id="main-content" class="content" ref={mainRef} tabIndex={-1}>
         {route.page === "home" && <HomePage catalog={catalog} onRetry={retryCatalog} />}
         {route.page === "browse" && <BrowsePage catalog={catalog} onRetry={retryCatalog} />}
-        {route.page === "search" && <SearchPage />}
-        {route.page === "library" && <LibraryPage theme={theme} onThemeChange={changeTheme} />}
+        {route.page === "search" && (
+          <SearchPage
+            catalog={catalog}
+            favorites={favorites}
+            player={player}
+            onRetry={retryCatalog}
+            onToggleFavorite={toggleFavorite}
+            onPlay={playSearchSong}
+          />
+        )}
+        {route.page === "library" && (
+          <LibraryPage
+            theme={theme}
+            onThemeChange={changeTheme}
+            catalog={catalog}
+            favorites={favorites}
+            player={player}
+            onRetry={retryCatalog}
+            onToggleFavorite={toggleFavorite}
+            onPlay={playSearchSong}
+          />
+        )}
         {route.page === "collection" && catalog.status === "loading" && (
           <div class="page"><CatalogSkeleton count={8} /></div>
         )}
@@ -350,8 +512,10 @@ export function App() {
               currentSongId={player.track?.song.id}
               playerStatus={player.status}
               onPlay={playSong}
-              onPlayNext={(song, sourceCollection) => engine.playNext(song, sourceCollection)}
-              onAddToQueue={(song, sourceCollection) => engine.addToQueue(song, sourceCollection)}
+              onPlayNext={(song, sourceCollection) => engine.playNext(song, sourceCollection, preferredRecording(song.id))}
+              onAddToQueue={(song, sourceCollection) => engine.addToQueue(song, sourceCollection, preferredRecording(song.id))}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
             />
           ) : <MissingCollection />
         )}
@@ -377,12 +541,14 @@ export function App() {
         onPrevious={() => engine.previous()}
         onNext={() => engine.next()}
         onSeek={(seconds) => engine.seek(seconds)}
-        onRecordingChange={(recordingId) => engine.changeRecording(recordingId)}
+        onRecordingChange={changeRecording}
         onCycleRepeat={() => engine.cycleRepeat()}
         onPlayQueueItem={(index) => engine.playQueueItem(index)}
         onMoveQueueItem={(index, direction) => engine.moveQueueItem(index, direction)}
         onRemoveQueueItem={(index) => engine.removeQueueItem(index)}
         onClearUpNext={() => engine.clearUpNext()}
+        favorite={player.track ? favorites.has(player.track.song.id) : false}
+        onToggleFavorite={() => player.track && toggleFavorite(player.track.song.id)}
       />
 
       <Navigation current={currentDestination} mobile />

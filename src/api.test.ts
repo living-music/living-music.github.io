@@ -73,3 +73,21 @@ describe("CatalogClient", () => {
       .rejects.toThrow("catalog index is incomplete");
   });
 });
+
+
+it("rejects malformed compact search records", async () => {
+  const brokenSearch = {
+    schemaVersion: 1,
+    songs: [{ id: "song", title: "Song", collectionId: "hymns", artists: "not-an-array", recordingTypes: [] }],
+    revision: "search-revision",
+  };
+  const fetchMock = vi.fn(async (input: string | URL | Request) => {
+    const url = String(input);
+    const payload = url.includes("search.json") ? brokenSearch : url.includes("/v1/") ? index : manifest;
+    return new Response(JSON.stringify(payload), { status: 200 });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+
+  await expect(new CatalogClient(new URL("https://example.test/musicapi/")).loadSearch())
+    .rejects.toThrow("search index is incomplete");
+});

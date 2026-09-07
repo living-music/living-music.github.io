@@ -95,6 +95,14 @@ export class AudioEngine {
     return () => this.listeners.delete(listener);
   }
 
+  restoreQueue(tracks: PlayerTrack[], currentIndex: number, repeatMode: RepeatMode = "off"): void {
+    if (!tracks.length) return;
+    this.tracks = [...tracks];
+    this.index = Math.max(0, Math.min(currentIndex, tracks.length - 1));
+    this.repeatMode = repeatMode;
+    this.loadCurrent(false);
+  }
+
   playCollection(
     songs: Song[],
     collection: CollectionSummary,

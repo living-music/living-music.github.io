@@ -6,7 +6,7 @@ The companion [musicapi](https://github.com/living-music/musicapi) repository pu
 
 ## Status
 
-Steps 1 through 5 of the first prototype are complete: the project has a typed Preact foundation, a responsive dark-default shell, live catalog browsing, persistent playback, expanded Now Playing, recording choices, and an editable queue. Search, favorites, and Library population begin in Step 6. See the [prototype checklist](docs/PROTOTYPE.md) and [implementation plan](docs/PLAN.md).
+Steps 1 through 6 of the first prototype are complete: the project now supports live browsing, playback, Now Playing, an editable queue, global search, favorites, a populated Library, and durable on-device listening state. Step 7 covers final polish, browser QA, cleanup, and release documentation. See the [prototype checklist](docs/PROTOTYPE.md) and [implementation plan](docs/PLAN.md).
 
 ## Requirements
 
@@ -49,12 +49,12 @@ index.html                 Vite document entry and pre-render theme bootstrap
 public/                    Static PWA files copied into dist/
 src/
   App.tsx                  Application shell, catalog state, and top-level views
-  components/               Catalog views, artwork, song rows, and mini player
+  components/               Catalog, search, Library, artwork, and player views
   Icon.tsx                 Project-owned interface icons
   api.ts                   Versioned musicapi client and runtime validation
   audio.ts                 Recording choice and media formatting helpers
   player.ts                Shared HTMLAudioElement engine and playback state
-  storage.ts               Defensive local favorites and theme persistence
+  storage.ts               Defensive local user-state and theme persistence
   types.ts                 Catalog and player data contracts
   *.test.ts                Focused unit tests
 docs/PLAN.md               Product and implementation plan
@@ -70,7 +70,13 @@ Open a collection and select any song with audio. Living Music chooses a vocal r
 
 Select the song details in the mini player to open Now Playing. This view offers large artwork, alternate recording selection, full transport controls, repeat off/all/one, and the Up Next queue. A song row’s options menu can place that song next or at the end. Queue items can play immediately, move up or down, be removed, or be cleared together.
 
-The queue and recording choice remain in memory for the current tab. Step 6 adds durable user-owned library state.
+Favorites, the queue, repeat mode, and recording preferences are stored under the versioned `livingMusic:userState:v1` key. On reload, valid catalog entries are restored in a paused state; removed songs or recordings are discarded or replaced safely.
+
+## Search and Library
+
+Search opens the compact global index only when Search or Library is visited. Queries ignore case and accents, accept multiple non-adjacent words, and match song titles, numbers, artists, and collection names. Selecting a result then downloads only its collection payload before playback. Large result sets show the first 80 entries to keep rendering responsive.
+
+Heart controls in collections, search results, and Now Playing update the same on-device favorites list. Library resolves those IDs through the global index and provides direct playback without requiring an account.
 
 ## Catalog contract
 

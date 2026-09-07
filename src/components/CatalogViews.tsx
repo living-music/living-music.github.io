@@ -72,6 +72,8 @@ export function CollectionPage({
   onPlay,
   onPlayNext,
   onAddToQueue,
+  favorites,
+  onToggleFavorite,
 }: {
   client: CatalogClient;
   summary: CollectionSummary;
@@ -80,6 +82,8 @@ export function CollectionPage({
   onPlay: (song: Song, songs: Song[], collection: CollectionSummary) => void;
   onPlayNext: (song: Song, collection: CollectionSummary) => void;
   onAddToQueue: (song: Song, collection: CollectionSummary) => void;
+  favorites: Set<string>;
+  onToggleFavorite: (songId: string) => void;
 }) {
   const [request, setRequest] = useState(0);
   const [menuSongId, setMenuSongId] = useState<string>();
@@ -183,6 +187,15 @@ export function CollectionPage({
                       ? "No audio"
                       : `${song.recordings.length} ${song.recordings.length === 1 ? "recording" : "recordings"}`}
                   </span>
+                </button>
+                <button
+                  type="button"
+                  class={`song-favorite-button ${favorites.has(song.id) ? "is-favorite" : ""}`}
+                  onClick={() => onToggleFavorite(song.id)}
+                  aria-label={favorites.has(song.id) ? `Remove ${song.title} from favorites` : `Add ${song.title} to favorites`}
+                  aria-pressed={favorites.has(song.id)}
+                >
+                  <Icon name="heart" filled={favorites.has(song.id)} size={18} />
                 </button>
                 {!unavailable && (
                   <button

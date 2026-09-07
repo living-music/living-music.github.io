@@ -1,16 +1,117 @@
-const FAVORITES_KEY="livingMusic:favorites:v1";
-const THEME_KEY="livingMusic:theme";
-export type Theme="dark"|"light"|"system";
-export function readFavorites():Set<string>{
-  try{const value=JSON.parse(localStorage.getItem(FAVORITES_KEY)||"[]");return new Set(Array.isArray(value)?value.filter(item=>typeof item==="string"):[])}
-  catch{return new Set()}
+import type { RepeatMode } from "./player";
+
+const USER_STATE_KEY = "livingMusic:userState:v1";
+const LEGACY_FAVORITES_KEY = "livingMusic:favorites:v1";
+const THEME_KEY = "livingMusic:theme";
+
+export type Theme = "dark" | "light" | "system";
+
+export interface QueueReference {
+  songId: string;
+  collectionId: string;
+  recordingId: string;
 }
-export function writeFavorites(favorites:Set<string>):boolean{
-  try{localStorage.setItem(FAVORITES_KEY,JSON.stringify([...favorites]));return true}catch{return false}
+
+export interface UserState {
+  favorites: string[];
+  queue: QueueReference[];
+  currentQueueIndex: number;
+  repeatMode: RepeatMode;
+  preferredRecordingType?: string;
+  songRecordingPreferences: Record<string, string>;
 }
-export function readTheme():Theme{
-  try{const theme=localStorage.getItem(THEME_KEY);return theme==="light"||theme==="system"||theme==="dark"?theme:"dark"}catch{return "dark"}
+
+export const EMPTY_USER_STATE: UserState = {
+  favorites: [],
+  queue: [],
+  currentQueueIndex: -1,
+  repeatMode: "off",
+  songRecordingPreferences: {},
+};
+
+function stringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string");
 }
-export function writeTheme(theme:Theme):void{
-  document.documentElement.dataset.theme=theme;try{localStorage.setItem(THEME_KEY,theme)}catch{}
+
+function queueReferences(value: unknown): QueueReference[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is QueueReference =>
+      typeof entry === "object" &&
+      entry !== null &&
+      typeof (entry as QueueReference).songId === "string" &&
+      typeof (entry as QueueReference).collectionId === "string" &&
+      typeof (entry as QueueReference).recordingId === "string")
+    : [];
+}
+
+function recordingPreferences(value: unknown): Record<string, string> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(([key, entry]) => key && typeof entry === "string"),
+  );
+}
+
+export function parseUserState(raw: string | null, legacyFavorites: string | null = null): UserState {
+  let legacy: string[] = [];
+  try {
+    const value: unknown = JSON.parse(legacyFavorites || "[]");
+    if (stringArray(value)) legacy = value;
+  } catch {}
+
+  try {
+    const value: unknown = JSON.parse(raw || "{}");
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      return { ...EMPTY_USER_STATE, favorites: legacy };
+    }
+    const data = value as Record<string, unknown>;
+    const repeatMode = data.repeatMode === "all" || data.repeatMode === "one" ? data.repeatMode : "off";
+    return {
+      favorites: stringArray(data.favorites) ? [...new Set(data.favorites)] : legacy,
+      queue: queueReferences(data.queue),
+      currentQueueIndex: typeof data.currentQueueIndex === "number" && Number.isInteger(data.currentQueueIndex)
+        ? data.currentQueueIndex
+        : -1,
+      repeatMode,
+      preferredRecordingType: typeof data.preferredRecordingType === "string"
+        ? data.preferredRecordingType
+        : undefined,
+      songRecordingPreferences: recordingPreferences(data.songRecordingPreferences),
+    };
+  } catch {
+    return { ...EMPTY_USER_STATE, favorites: legacy };
+  }
+}
+
+export function readUserState(): UserState {
+  try {
+    return parseUserState(localStorage.getItem(USER_STATE_KEY), localStorage.getItem(LEGACY_FAVORITES_KEY));
+  } catch {
+    return { ...EMPTY_USER_STATE };
+  }
+}
+
+export function writeUserState(state: UserState): boolean {
+  try {
+    localStorage.setItem(USER_STATE_KEY, JSON.stringify(state));
+    localStorage.removeItem(LEGACY_FAVORITES_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function readTheme(): Theme {
+  try {
+    const theme = localStorage.getItem(THEME_KEY);
+    return theme === "light" || theme === "system" || theme === "dark" ? theme : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
+export function writeTheme(theme: Theme): void {
+  document.documentElement.dataset.theme = theme;
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {}
 }
