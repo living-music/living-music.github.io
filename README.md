@@ -6,6 +6,8 @@ A static webapp in development for a simpler listening experience with music fro
 
 Base repository initialized. The site is a responsive starting page with a link to the official music library; in-app playback and a music catalog are not implemented yet. Product scope and architecture are proposed in [the app plan](docs/PLAN.md).
 
+The companion catalog API is published at [https://living-music.github.io/musicapi/](https://living-music.github.io/musicapi/).
+
 ## Run locally
 
 Requires Python 3. No package installation or build step is needed.

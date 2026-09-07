@@ -27,7 +27,7 @@ Keep the first release focused. Accounts, cross-device sync, offline audio, lyri
 
 ## Music sources: first investigation
 
-The Church lists collections in its [Music Library](https://www.churchofjesuschrist.org/music/library?country=usa&lang=eng) and offers an [All Music](https://www.churchofjesuschrist.org/media/music/collections/all-music?lang=eng) browsing surface. These are discovery sources, not verified third-party APIs. A reliable machine-readable catalog or supported integration has not been established.
+The Church lists collections in its [Music Library](https://www.churchofjesuschrist.org/music/library?country=usa&lang=eng) and offers an [All Music](https://www.churchofjesuschrist.org/media/music/collections/all-music?lang=eng) browsing surface. These are the upstream discovery sources mirrored by the companion [musicapi](https://github.com/living-music/musicapi) repository. Its optimized, versioned catalog is published at [https://living-music.github.io/musicapi/](https://living-music.github.io/musicapi/).
 
 Before wiring playback:
 
@@ -46,7 +46,7 @@ The checked-in public site is served directly by GitHub Pages. There is no build
 
 As functionality grows, split browser modules into catalog loading/search, player state, and local storage. Keep one `HTMLAudioElement` as the playback source of truth. Derive play/pause/loading/error state from its events and handle rejected `play()` promises. Start audio only following user interaction; evaluate lock-screen controls with the Media Session API after basic playback works.
 
-Publish a versioned JSON catalog alongside the app. Use relative URLs for app assets and catalog fetches so project subpaths work. If we add shareable views, use hash-based routes unless we deliberately generate separate HTML pages; history routes would need a Pages-compatible fallback.
+Load the versioned JSON catalog from the companion API at [https://living-music.github.io/musicapi/](https://living-music.github.io/musicapi/). Use relative URLs for app assets and resolve catalog links against the manifest URL. If we add shareable views, use hash-based routes unless we deliberately generate separate HTML pages; history routes would need a Pages-compatible fallback.
 
 Proposed records (not an implemented schema):
 
@@ -80,7 +80,7 @@ Add queue, next/previous, end-of-track progression, and local favorites. Verify 
 
 ### 4 — Release readiness
 
-Check keyboard navigation, screen-reader labels, visible focus, text enlargement, and narrow screens. Test at a GitHub Pages project subpath. Verify Safari/iOS and Chrome/Android playback, including interruptions and background behavior, and document limitations observed on devices. Publish after the owner chooses the GitHub repository and approves release scope.
+Check keyboard navigation, screen-reader labels, visible focus, text enlargement, and narrow screens. Verify the root deployment at [https://living-music.github.io/](https://living-music.github.io/) and catalog loading from `/musicapi/`. Verify Safari/iOS and Chrome/Android playback, including interruptions and background behavior, and document limitations observed on devices. Publish after the owner chooses the GitHub repository and approves release scope.
 
 ## Decisions to make together
 
