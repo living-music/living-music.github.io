@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { CatalogClient } from "../api";
 import { Icon } from "../Icon";
+import type { PlayerStatus } from "../player";
 import { hrefForCollection } from "../router";
 import type { CollectionPayload, CollectionSummary, Song } from "../types";
 import { Artwork } from "./Artwork";
@@ -63,7 +64,19 @@ function songCredits(song: Song): string {
   return names.length ? names.slice(0, 2).join(", ") : song.section || "Sacred music";
 }
 
-export function CollectionPage({ client, summary }: { client: CatalogClient; summary: CollectionSummary }) {
+export function CollectionPage({
+  client,
+  summary,
+  currentSongId,
+  playerStatus,
+  onPlay,
+}: {
+  client: CatalogClient;
+  summary: CollectionSummary;
+  currentSongId?: string;
+  playerStatus: PlayerStatus;
+  onPlay: (song: Song, songs: Song[], collection: CollectionSummary) => void;
+}) {
   const [request, setRequest] = useState(0);
   const [state, setState] = useState<CollectionState>({ status: "loading" });
 
@@ -132,21 +145,39 @@ export function CollectionPage({ client, summary }: { client: CatalogClient; sum
           </div>
         </div>
         <ol class="song-list">
-          {songs.map((song, index) => (
-            <li class="song-row" key={song.id}>
-              <span class="song-number">{song.number || index + 1}</span>
-              <Artwork url={song.artworkUrl || collection.artworkUrl} alt="" className="song-artwork" />
-              <span class="song-copy">
-                <strong>{song.title}</strong>
-                <small>{songCredits(song)}</small>
-              </span>
-              <span class="recording-count">
-                {song.recordings.length
-                  ? `${song.recordings.length} ${song.recordings.length === 1 ? "recording" : "recordings"}`
-                  : "No audio"}
-              </span>
-            </li>
-          ))}
+          {songs.map((song, index) => {
+            const isCurrent = currentSongId === song.id;
+            const isPlaying = isCurrent && (playerStatus === "playing" || playerStatus === "loading");
+            const unavailable = song.recordings.length === 0;
+            return (
+              <li class={`song-row ${isCurrent ? "is-current" : ""}`} key={song.id}>
+                <button
+                  type="button"
+                  class="song-button"
+                  onClick={() => onPlay(song, songs, collection)}
+                  disabled={unavailable}
+                  aria-label={unavailable
+                    ? `${song.title}, no audio available`
+                    : isPlaying ? `Pause ${song.title}` : `Play ${song.title}`}
+                >
+                  <span class="song-number">{song.number || index + 1}</span>
+                  <Artwork url={song.artworkUrl || collection.artworkUrl} alt="" className="song-artwork" />
+                  <span class="song-copy">
+                    <strong>{song.title}</strong>
+                    <small>{songCredits(song)}</small>
+                  </span>
+                  <span class="recording-count">
+                    {unavailable
+                      ? "No audio"
+                      : `${song.recordings.length} ${song.recordings.length === 1 ? "recording" : "recordings"}`}
+                  </span>
+                  <span class="song-play-icon" aria-hidden="true">
+                    <Icon name={isPlaying ? "pause" : "play"} filled={!isPlaying} size={15} />
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ol>
       </section>
     </div>

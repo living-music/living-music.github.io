@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { CatalogClient } from "./api";
 import { CatalogError, CatalogSkeleton, CollectionGrid, CollectionPage } from "./components/CatalogViews";
 import { Icon, type IconName } from "./Icon";
+import { MiniPlayer } from "./components/Player";
+import { AudioEngine, type PlayerSnapshot } from "./player";
 import { hrefFor, navigationDestination, routeFromHash, type Destination, type Route } from "./router";
 import { readTheme, writeTheme, type Theme } from "./storage";
-import type { CatalogIndex } from "./types";
+import type { CatalogIndex, CollectionSummary, Song } from "./types";
 
 interface NavigationItem {
   id: Destination;
@@ -238,11 +240,17 @@ function MissingCollection() {
 }
 
 export function App() {
+  const engineRef = useRef<AudioEngine | null>(null);
+  if (!engineRef.current) engineRef.current = new AudioEngine();
+  const engine = engineRef.current;
+  const [player, setPlayer] = useState<PlayerSnapshot>(engine.state);
   const [route, setRoute] = useState<Route>(() => routeFromHash(window.location.hash));
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [catalogAttempt, setCatalogAttempt] = useState(0);
   const [catalog, setCatalog] = useState<CatalogState>({ status: "loading" });
   const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => engine.subscribe(setPlayer), [engine]);
 
   useEffect(() => {
     let active = true;
@@ -282,6 +290,10 @@ export function App() {
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", light ? "#f2f2f7" : "#08080a");
   };
 
+  const playSong = (song: Song, songs: Song[], sourceCollection: CollectionSummary) => {
+    engine.playCollection(songs, sourceCollection, song.id);
+  };
+
   const currentDestination = navigationDestination(route);
   const retryCatalog = () => setCatalogAttempt((attempt) => attempt + 1);
   const collection = route.page === "collection" && catalog.status === "ready"
@@ -289,7 +301,7 @@ export function App() {
     : undefined;
 
   return (
-    <div class="app-shell">
+    <div class={`app-shell ${player.track ? "has-player" : ""}`}>
       <a class="skip-link" href="#main-content">Skip to content</a>
 
       <aside class="sidebar">
@@ -325,12 +337,28 @@ export function App() {
           <div class="page"><CatalogError message={catalog.message} onRetry={retryCatalog} /></div>
         )}
         {route.page === "collection" && catalog.status === "ready" && (
-          collection ? <CollectionPage client={catalogClient} summary={collection} /> : <MissingCollection />
+          collection ? (
+            <CollectionPage
+              client={catalogClient}
+              summary={collection}
+              currentSongId={player.track?.song.id}
+              playerStatus={player.status}
+              onPlay={playSong}
+            />
+          ) : <MissingCollection />
         )}
         <footer class="content-footer">
           Living Music is not affiliated with or endorsed by The Church of Jesus Christ of Latter-day Saints.
         </footer>
       </main>
+
+      <MiniPlayer
+        player={player}
+        onToggle={() => engine.toggle()}
+        onPrevious={() => engine.previous()}
+        onNext={() => engine.next()}
+        onSeek={(seconds) => engine.seek(seconds)}
+      />
 
       <Navigation current={currentDestination} mobile />
     </div>

@@ -6,7 +6,7 @@ The companion [musicapi](https://github.com/living-music/musicapi) repository pu
 
 ## Status
 
-Steps 1 through 3 of the first prototype are complete: the project has a typed Preact foundation, a responsive dark-default shell, and live catalog browsing with lazy collection pages. Core playback begins in Step 4. See the [prototype checklist](docs/PROTOTYPE.md) and [implementation plan](docs/PLAN.md).
+Steps 1 through 4 of the first prototype are complete: the project has a typed Preact foundation, a responsive dark-default shell, live catalog browsing, and persistent core playback. Now Playing and queue management begin in Step 5. See the [prototype checklist](docs/PROTOTYPE.md) and [implementation plan](docs/PLAN.md).
 
 ## Requirements
 
@@ -49,10 +49,11 @@ index.html                 Vite document entry and pre-render theme bootstrap
 public/                    Static PWA files copied into dist/
 src/
   App.tsx                  Application shell, catalog state, and top-level views
-  components/               Artwork, collection grids, song lists, and data states
+  components/               Catalog views, artwork, song rows, and mini player
   Icon.tsx                 Project-owned interface icons
   api.ts                   Versioned musicapi client and runtime validation
   audio.ts                 Recording choice and media formatting helpers
+  player.ts                Shared HTMLAudioElement engine and playback state
   storage.ts               Defensive local favorites and theme persistence
   types.ts                 Catalog and player data contracts
   *.test.ts                Focused unit tests
@@ -62,6 +63,12 @@ docs/PROTOTYPE.md          Seven-step delivery checklist and current behavior
 .github/workflows/pages.yml  Tested GitHub Pages build and deployment
 site/                      Retired pre-tooling prototype; removal is deferred
 ```
+
+## Playback
+
+Open a collection and select any song with audio. Living Music chooses a vocal recording when available, begins playback from that user action, and keeps one mini player visible while navigating the app. The mini player provides play/pause, previous, next, elapsed and remaining time, and a seek control. Previous restarts the current song after three seconds and otherwise moves to the preceding playable song. Playback advances through playable songs in the open collection.
+
+Queue editing, alternate recording selection, and the expanded Now Playing view are part of Step 5.
 
 ## Catalog contract
 
