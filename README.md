@@ -78,7 +78,7 @@ The browser Media Session API connects playback to supported lock screens, Contr
 
 Search opens the compact global index only when Search or Library is visited. Queries ignore case and accents, accept multiple non-adjacent words, and match song titles, numbers, artists, and collection names. Selecting a result then downloads only its collection payload before playback. Large result sets show the first 80 entries to keep rendering responsive.
 
-Heart controls in collections, search results, and Now Playing add or remove songs from the on-device Library. Collection pages can save whole albums. Library separates Recently Added, Albums, Songs, and Music Videos; Recently Added merges saved songs and albums by their device-local add timestamps. The compact global index resolves saved song IDs and recording types without requiring an account.
+Heart controls in collections, search results, and Now Playing add or remove songs from the on-device Library. Collection pages can save whole albums. Library exposes Recently Added, Albums, Songs, and Music Videos in the desktop sidebar and a compact mobile view switcher. Recently Added groups saved songs by album and sorts each album by its newest device-local add timestamp; Albums includes both explicitly saved albums and albums containing saved songs. The compact global index resolves saved song IDs and recording types without requiring an account.
 
 ## Catalog contract
 

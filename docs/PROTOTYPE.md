@@ -19,7 +19,10 @@ The shell owns four GitHub Pages-safe hash routes:
 - `#/home`
 - `#/browse`
 - `#/search`
-- `#/library`
+- `#/library/recent`
+- `#/library/albums`
+- `#/library/songs`
+- `#/library/videos`
 
 Desktop layouts use a fixed sidebar. Screens at 760 px and below use a fixed header and labeled bottom navigation. Both account for browser safe-area insets. Route changes update the document title, restore the top scroll position, and focus the main content region.
 
@@ -55,7 +58,7 @@ Each playable song row exposes Play Next and Add to End. Up Next supports immedi
 
 Search fetches the revisioned compact search index only when Search or Library opens. Case- and accent-insensitive terms match titles, song numbers, artists, and collection names; every term may appear separately in the searchable text. The interface reports the full match count and renders at most 80 results at once. Playing a result lazily resolves its full song from the owning collection, so the 5,070-song catalog does not require eager collection downloads.
 
-Heart controls in collection rows, search results, and Now Playing share one saved-song set. Collection pages can also save an album. Library provides Recently Added, Albums, Songs, and Music Videos tabs; Recently Added combines saved songs and albums by the time the listener added them, while Music Videos filters saved songs by recording type. Saved entries resolve through the compact index and support direct playback without an account. Catalog IDs that disappear are ignored safely.
+Heart controls in collection rows, search results, and Now Playing share one saved-song set. Collection pages can also save an album. Library provides Recently Added, Albums, Songs, and Music Videos routes in the desktop sidebar and a compact mobile switcher. Recently Added groups saved songs by album and sorts albums by their newest listener add time. Albums includes explicitly saved albums and albums inferred from saved songs, while Music Videos filters saved songs by recording type. Saved entries resolve through the compact index and support direct playback without an account. Catalog IDs that disappear are ignored safely.
 
 A validated `livingMusic:userState:v1` record stores saved songs and albums with add timestamps, queue references, current queue position, repeat mode, the global preferred recording type, and per-song recording preferences. Legacy favorite IDs migrate automatically. On reload the client resolves valid queue references against the current revisioned catalog and restores the selected track paused, preserving browser autoplay expectations. Malformed storage, unavailable storage, removed songs, and removed recordings degrade to valid defaults.
 

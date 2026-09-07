@@ -8,7 +8,7 @@ import { SearchExperience } from "./components/SearchLibrary";
 import { LibraryViews } from "./components/LibraryViews";
 import { AudioEngine, type PlayerSnapshot, type PlayerTrack } from "./player";
 import { MediaSessionController } from "./media-session";
-import { hrefFor, navigationDestination, routeFromHash, type Destination, type Route } from "./router";
+import { hrefFor, hrefForLibrary, navigationDestination, routeFromHash, type Destination, type LibraryView, type Route } from "./router";
 import { readTheme, readUserState, writeTheme, writeUserState, type Theme, type UserState } from "./storage";
 import type { CatalogIndex, CollectionSummary, SearchSong, Song } from "./types";
 
@@ -29,7 +29,13 @@ const navigation: NavigationItem[] = [
   { id: "home", label: "Home", icon: "home" },
   { id: "browse", label: "Browse", icon: "browse" },
   { id: "search", label: "Search", icon: "search" },
-  { id: "library", label: "Library", icon: "heart" },
+];
+
+const libraryNavigation: { id: LibraryView; label: string }[] = [
+  { id: "recent", label: "Recently Added" },
+  { id: "albums", label: "Albums" },
+  { id: "songs", label: "Songs" },
+  { id: "videos", label: "Music Videos" },
 ];
 
 const pageTitles: Record<Destination, string> = {
@@ -39,10 +45,21 @@ const pageTitles: Record<Destination, string> = {
   library: "Library",
 };
 
-function Navigation({ current, mobile = false }: { current: Destination; mobile?: boolean }) {
+function Navigation({
+  current,
+  libraryView,
+  mobile = false,
+}: {
+  current: Destination;
+  libraryView?: LibraryView;
+  mobile?: boolean;
+}) {
+  const items: NavigationItem[] = mobile
+    ? [...navigation, { id: "library", label: "Library", icon: "heart" }]
+    : navigation;
   return (
     <nav class={mobile ? "mobile-navigation" : "sidebar-navigation"} aria-label="Primary">
-      {navigation.map((item) => (
+      {items.map((item) => (
         <a
           class={`navigation-item ${current === item.id ? "is-current" : ""}`}
           href={hrefFor(item.id)}
@@ -53,6 +70,21 @@ function Navigation({ current, mobile = false }: { current: Destination; mobile?
           <span>{item.label}</span>
         </a>
       ))}
+      {!mobile && (
+        <div class="library-navigation" aria-label="Library">
+          <p class="library-navigation-title">Library</p>
+          {libraryNavigation.map((item) => (
+            <a
+              class={`library-navigation-item ${current === "library" && libraryView === item.id ? "is-current" : ""}`}
+              href={hrefForLibrary(item.id)}
+              aria-current={current === "library" && libraryView === item.id ? "page" : undefined}
+              key={item.id}
+            >
+              {item.label}
+            </a>
+          ))}
+        </div>
+      )}
     </nav>
   );
 }
@@ -134,7 +166,7 @@ function HomePage({ catalog, onRetry }: { catalog: CatalogState; onRetry: () => 
             <span><strong>Search</strong><small>Find a song quickly</small></span>
             <Icon name="chevron" size={18} />
           </a>
-          <a class="shortcut-card violet" href="#/library">
+          <a class="shortcut-card violet" href={hrefFor("library")}>
             <span class="shortcut-icon"><Icon name="heart" /></span>
             <span><strong>Library</strong><small>Your saved songs and albums</small></span>
             <Icon name="chevron" size={18} />
@@ -229,6 +261,7 @@ function ThemeSelector({ theme, onChange }: { theme: Theme; onChange: (theme: Th
 }
 
 function LibraryPage({
+  view,
   theme,
   onThemeChange,
   catalog,
@@ -241,6 +274,7 @@ function LibraryPage({
   onToggleFavorite,
   onPlay,
 }: {
+  view: LibraryView;
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
   catalog: CatalogState;
@@ -253,18 +287,38 @@ function LibraryPage({
   onToggleFavorite: (songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
+  const viewCopy: Record<LibraryView, { title: string; description: string }> = {
+    recent: { title: "Recently Added", description: "Your saved music grouped by album and ordered by when you added it." },
+    albums: { title: "Albums", description: "Albums you saved and albums containing songs you love." },
+    songs: { title: "Songs", description: "Every song you saved, arranged alphabetically." },
+    videos: { title: "Music Videos", description: "Your saved video performances in one place." },
+  };
+  const copy = viewCopy[view];
   return (
     <div class="page">
       <PageHeader
-        eyebrow="Your music"
-        title="Library"
-        description="Recently added music, albums, songs, and music videos saved privately on this device."
+        eyebrow="Library"
+        title={copy.title}
+        description={copy.description}
       />
+      <nav class="library-mobile-navigation" aria-label="Library views">
+        {libraryNavigation.map((item) => (
+          <a
+            class={view === item.id ? "is-current" : ""}
+            href={hrefForLibrary(item.id)}
+            aria-current={view === item.id ? "page" : undefined}
+            key={item.id}
+          >
+            {item.label}
+          </a>
+        ))}
+      </nav>
       <div class="library-content">
         {catalog.status === "loading" && <CatalogSkeleton count={5} />}
         {catalog.status === "error" && <CatalogError message={catalog.message} onRetry={onRetry} />}
         {catalog.status === "ready" && (
           <LibraryViews
+            view={view}
             client={catalogClient}
             catalog={catalog.index}
             favorites={favorites}
@@ -499,6 +553,7 @@ export function App() {
   };
 
   const currentDestination = navigationDestination(route);
+  const currentLibraryView = route.page === "library" ? route.view : undefined;
   const retryCatalog = () => setCatalogAttempt((attempt) => attempt + 1);
   const collection = route.page === "collection" && catalog.status === "ready"
     ? catalog.index.collections.find((entry) => entry.id === route.collectionId)
@@ -513,7 +568,7 @@ export function App() {
           <img src="/app-icon-192.png" alt="" />
           <span>Living Music</span>
         </a>
-        <Navigation current={currentDestination} />
+        <Navigation current={currentDestination} libraryView={currentLibraryView} />
         <div class="sidebar-footer">
           <p>Independent project</p>
           <a href="https://www.churchofjesuschrist.org/media/music/collections/all-music?lang=eng">
@@ -544,6 +599,7 @@ export function App() {
         )}
         {route.page === "library" && (
           <LibraryPage
+            view={route.view}
             theme={theme}
             onThemeChange={changeTheme}
             catalog={catalog}
@@ -612,7 +668,7 @@ export function App() {
         onToggleFavorite={() => player.track && toggleFavorite(player.track.song.id)}
       />
 
-      <Navigation current={currentDestination} mobile />
+      <Navigation current={currentDestination} libraryView={currentLibraryView} mobile />
     </div>
   );
 }

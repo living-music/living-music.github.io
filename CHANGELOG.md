@@ -4,7 +4,8 @@ All notable user-visible changes to Living Music are recorded here.
 
 ## Unreleased
 
-- Added Recently Added, Albums, Songs, and Music Videos views to Library.
+- Moved Recently Added, Albums, Songs, and Music Videos into the Library sidebar and added a compact mobile switcher.
+- Grouped saved songs by album in Recently Added and Albums.
 - Added album saving and device-local add dates for saved songs and albums.
 
 ## 0.1.0 — 2026-09-07
