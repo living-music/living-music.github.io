@@ -10,6 +10,11 @@ describe("parseUserState", () => {
       librarySongAddedAt: { "song:two": "2026-09-03T12:00:00.000Z" },
       albums: ["album:one", "album:one"],
       albumAddedAt: { "album:one": "2026-09-02T12:00:00.000Z" },
+      playlists: [
+        { id: "playlist:one", name: "  Sunday  ", createdAt: "2026-09-01T12:00:00.000Z", updatedAt: "invalid", songIds: ["song:one", "song:one"] },
+        { id: "playlist:one", name: "Duplicate", createdAt: "2026-09-01T12:00:00.000Z", updatedAt: "2026-09-01T12:00:00.000Z", songIds: [] },
+        { id: "", name: "Broken", songIds: [] },
+      ],
       queue: [
         { songId: "song:one", collectionId: "hymns", recordingId: "vocal" },
         { songId: 3, collectionId: "broken", recordingId: "broken" },
@@ -29,6 +34,13 @@ describe("parseUserState", () => {
     expect(state.librarySongAddedAt).toEqual({ "song:two": "2026-09-03T12:00:00.000Z" });
     expect(state.albums).toEqual(["album:one"]);
     expect(state.albumAddedAt).toEqual({ "album:one": "2026-09-02T12:00:00.000Z" });
+    expect(state.playlists).toEqual([{
+      id: "playlist:one",
+      name: "Sunday",
+      createdAt: "2026-09-01T12:00:00.000Z",
+      updatedAt: "2026-09-01T12:00:00.000Z",
+      songIds: ["song:one"],
+    }]);
     expect(state.queue).toEqual([
       { songId: "song:one", collectionId: "hymns", recordingId: "vocal" },
     ]);

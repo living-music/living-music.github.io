@@ -12,6 +12,14 @@ export interface QueueReference {
   recordingId: string;
 }
 
+export interface Playlist {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  songIds: string[];
+}
+
 export interface UserState {
   favorites: string[];
   favoriteAddedAt: Record<string, string>;
@@ -19,6 +27,7 @@ export interface UserState {
   librarySongAddedAt: Record<string, string>;
   albums: string[];
   albumAddedAt: Record<string, string>;
+  playlists: Playlist[];
   queue: QueueReference[];
   currentQueueIndex: number;
   repeatMode: RepeatMode;
@@ -33,6 +42,7 @@ export const EMPTY_USER_STATE: UserState = {
   librarySongAddedAt: {},
   albums: [],
   albumAddedAt: {},
+  playlists: [],
   queue: [],
   currentQueueIndex: -1,
   repeatMode: "off",
@@ -52,6 +62,27 @@ function queueReferences(value: unknown): QueueReference[] {
       typeof (entry as QueueReference).collectionId === "string" &&
       typeof (entry as QueueReference).recordingId === "string")
     : [];
+}
+
+function playlists(value: unknown): Playlist[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  return value.flatMap((entry) => {
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) return [];
+    const candidate = entry as Record<string, unknown>;
+    const id = typeof candidate.id === "string" ? candidate.id.trim() : "";
+    const name = typeof candidate.name === "string" ? candidate.name.trim() : "";
+    if (!id || !name || seen.has(id)) return [];
+    const createdAt = typeof candidate.createdAt === "string" && Number.isFinite(Date.parse(candidate.createdAt))
+      ? candidate.createdAt
+      : new Date(0).toISOString();
+    const updatedAt = typeof candidate.updatedAt === "string" && Number.isFinite(Date.parse(candidate.updatedAt))
+      ? candidate.updatedAt
+      : createdAt;
+    const songIds = stringArray(candidate.songIds) ? [...new Set(candidate.songIds)] : [];
+    seen.add(id);
+    return [{ id, name, createdAt, updatedAt, songIds }];
+  });
 }
 
 function recordingPreferences(value: unknown): Record<string, string> {
@@ -113,6 +144,7 @@ export function parseUserState(
       ),
       albums,
       albumAddedAt: addedAtValues(data.albumAddedAt, albums, migrationTime),
+      playlists: playlists(data.playlists),
       queue: queueReferences(data.queue),
       currentQueueIndex: typeof data.currentQueueIndex === "number" && Number.isInteger(data.currentQueueIndex)
         ? data.currentQueueIndex

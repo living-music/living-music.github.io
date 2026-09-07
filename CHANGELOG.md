@@ -4,6 +4,9 @@ All notable user-visible changes to Living Music are recorded here.
 
 ## Unreleased
 
+- Replaced Music Videos in Library navigation with a Playlists sidebar section.
+- Added persistent playlist creation, rename, deletion, index, and detail routes.
+
 - Separated Favorites from per-song Library membership with distinct heart and add/check controls.
 - Added Favorites above Recently Added in Library navigation.
 - Limited partial albums opened from Library to their individually added songs.

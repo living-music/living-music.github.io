@@ -6,10 +6,12 @@ import { Icon, type IconName } from "./Icon";
 import { MiniPlayer, NowPlaying } from "./components/Player";
 import { SearchExperience } from "./components/SearchLibrary";
 import { LibraryViews } from "./components/LibraryViews";
+import { PlaylistDialog, PlaylistPage, PlaylistsPage, type PlaylistDialogState } from "./components/Playlists";
 import { AudioEngine, type PlayerSnapshot, type PlayerTrack } from "./player";
 import { MediaSessionController } from "./media-session";
-import { hrefFor, hrefForLibrary, navigationDestination, routeFromHash, type Destination, type LibraryView, type Route } from "./router";
-import { readTheme, readUserState, writeTheme, writeUserState, type Theme, type UserState } from "./storage";
+import { createPlaylist as createPlaylistRecord, deletePlaylist as deletePlaylistRecord, renamePlaylist as renamePlaylistRecord } from "./playlists";
+import { hrefFor, hrefForLibrary, hrefForPlaylist, navigationDestination, routeFromHash, type Destination, type LibraryView, type Route } from "./router";
+import { readTheme, readUserState, writeTheme, writeUserState, type Playlist, type Theme, type UserState } from "./storage";
 import type { CatalogIndex, CollectionSummary, SearchSong, Song } from "./types";
 
 interface NavigationItem {
@@ -36,7 +38,6 @@ const libraryNavigation: { id: LibraryView; label: string }[] = [
   { id: "recent", label: "Recently Added" },
   { id: "albums", label: "Albums" },
   { id: "songs", label: "Songs" },
-  { id: "videos", label: "Music Videos" },
 ];
 
 const pageTitles: Record<Destination, string> = {
@@ -49,12 +50,23 @@ const pageTitles: Record<Destination, string> = {
 function Navigation({
   current,
   libraryView,
+  playlists,
+  currentPlaylistId,
+  onCreatePlaylist,
+  onRenamePlaylist,
+  onDeletePlaylist,
   mobile = false,
 }: {
   current: Destination;
   libraryView?: LibraryView;
+  playlists: Playlist[];
+  currentPlaylistId?: string;
+  onCreatePlaylist: () => void;
+  onRenamePlaylist: (playlist: Playlist) => void;
+  onDeletePlaylist: (playlist: Playlist) => void;
   mobile?: boolean;
 }) {
+  const [openPlaylistMenu, setOpenPlaylistMenu] = useState<string>();
   const items: NavigationItem[] = mobile
     ? [...navigation, { id: "library", label: "Library", icon: "heart" }]
     : navigation;
@@ -83,6 +95,41 @@ function Navigation({
             >
               {item.label}
             </a>
+          ))}
+        </div>
+      )}
+      {!mobile && (
+        <div class="playlist-navigation" aria-label="Playlists">
+          <div class="playlist-navigation-heading">
+            <a href="#/playlists">Playlists</a>
+            <button type="button" onClick={onCreatePlaylist} aria-label="Create playlist"><Icon name="add" size={16} /></button>
+          </div>
+          {playlists.map((playlist) => (
+            <div class="playlist-navigation-row" key={playlist.id}>
+              <a
+                class={currentPlaylistId === playlist.id ? "is-current" : ""}
+                href={hrefForPlaylist(playlist.id)}
+                aria-current={currentPlaylistId === playlist.id ? "page" : undefined}
+              >
+                <Icon name="music" size={16} />
+                <span>{playlist.name}</span>
+              </a>
+              <button
+                type="button"
+                class="playlist-more-button"
+                onClick={() => setOpenPlaylistMenu(openPlaylistMenu === playlist.id ? undefined : playlist.id)}
+                aria-label={`Options for ${playlist.name}`}
+                aria-expanded={openPlaylistMenu === playlist.id}
+              >
+                <Icon name="more" size={17} />
+              </button>
+              {openPlaylistMenu === playlist.id && (
+                <div class="playlist-navigation-menu">
+                  <button type="button" onClick={() => { setOpenPlaylistMenu(undefined); onRenamePlaylist(playlist); }}>Rename</button>
+                  <button type="button" class="is-destructive" onClick={() => { setOpenPlaylistMenu(undefined); onDeletePlaylist(playlist); }}>Delete</button>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -324,6 +371,7 @@ function LibraryPage({
             {item.label}
           </a>
         ))}
+        <a href="#/playlists">Playlists</a>
       </nav>
       <div class="library-content">
         {catalog.status === "loading" && <CatalogSkeleton count={5} />}
@@ -376,6 +424,7 @@ export function App() {
   const [player, setPlayer] = useState<PlayerSnapshot>(engine.state);
   const [userState, setUserState] = useState<UserState>(readUserState);
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
+  const [playlistDialog, setPlaylistDialog] = useState<PlaylistDialogState>();
   const [route, setRoute] = useState<Route>(() => routeFromHash(window.location.hash));
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [catalogAttempt, setCatalogAttempt] = useState(0);
@@ -491,10 +540,18 @@ export function App() {
     const collectionTitle = isCollection && catalog.status === "ready"
       ? catalog.index.collections.find((entry) => entry.id === route.collectionId)?.title
       : undefined;
-    const fallbackTitle = route.page === "library-album" ? "Library Album" : route.page === "collection" ? "Collection" : pageTitles[route.page];
+    const fallbackTitle = route.page === "library-album"
+      ? "Library Album"
+      : route.page === "collection"
+        ? "Collection"
+        : route.page === "playlist"
+          ? userState.playlists.find((playlist) => playlist.id === route.playlistId)?.name || "Playlist"
+          : route.page === "playlists"
+            ? "Playlists"
+            : pageTitles[route.page];
     document.title = `${collectionTitle || fallbackTitle} · Living Music`;
     window.scrollTo({ top: 0, behavior: "instant" });
-  }, [route, catalog]);
+  }, [route, catalog, userState.playlists]);
 
   const changeTheme = (nextTheme: Theme) => {
     setTheme(nextTheme);
@@ -584,8 +641,36 @@ export function App() {
     }
   };
 
+  const createPlaylist = (name: string) => {
+    const now = new Date().toISOString();
+    const playlist = createPlaylistRecord(name, crypto.randomUUID(), now);
+    setUserState((current) => ({ ...current, playlists: [...current.playlists, playlist] }));
+    setPlaylistDialog(undefined);
+    window.location.hash = hrefForPlaylist(playlist.id);
+  };
+
+  const renamePlaylist = (playlistId: string, name: string) => {
+    const now = new Date().toISOString();
+    setUserState((current) => ({
+      ...current,
+      playlists: renamePlaylistRecord(current.playlists, playlistId, name, now),
+    }));
+    setPlaylistDialog(undefined);
+  };
+
+  const deletePlaylist = (playlistId: string) => {
+    setUserState((current) => ({
+      ...current,
+      playlists: deletePlaylistRecord(current.playlists, playlistId),
+    }));
+    setPlaylistDialog(undefined);
+    if (route.page === "playlist" && route.playlistId === playlistId) window.location.hash = "#/playlists";
+  };
+
   const currentDestination = navigationDestination(route);
   const currentLibraryView = route.page === "library" ? route.view : route.page === "library-album" ? "albums" : undefined;
+  const currentPlaylistId = route.page === "playlist" ? route.playlistId : undefined;
+  const currentPlaylist = currentPlaylistId ? userState.playlists.find((playlist) => playlist.id === currentPlaylistId) : undefined;
   const retryCatalog = () => setCatalogAttempt((attempt) => attempt + 1);
   const collectionRoute = route.page === "collection" || route.page === "library-album";
   const collection = collectionRoute && catalog.status === "ready"
@@ -601,7 +686,15 @@ export function App() {
           <img src="/app-icon-192.png" alt="" />
           <span>Living Music</span>
         </a>
-        <Navigation current={currentDestination} libraryView={currentLibraryView} />
+        <Navigation
+          current={currentDestination}
+          libraryView={currentLibraryView}
+          playlists={userState.playlists}
+          currentPlaylistId={currentPlaylistId}
+          onCreatePlaylist={() => setPlaylistDialog({ mode: "create" })}
+          onRenamePlaylist={(playlist) => setPlaylistDialog({ mode: "rename", playlist })}
+          onDeletePlaylist={(playlist) => setPlaylistDialog({ mode: "delete", playlist })}
+        />
         <div class="sidebar-footer">
           <p>Independent project</p>
           <a href="https://www.churchofjesuschrist.org/media/music/collections/all-music?lang=eng">
@@ -649,6 +742,18 @@ export function App() {
             onToggleLibrarySong={toggleLibrarySong}
             onPlay={playSearchSong}
           />
+        )}
+        {route.page === "playlists" && (
+          <PlaylistsPage playlists={userState.playlists} onCreate={() => setPlaylistDialog({ mode: "create" })} />
+        )}
+        {route.page === "playlist" && (
+          currentPlaylist
+            ? <PlaylistPage
+                playlist={currentPlaylist}
+                onRename={() => setPlaylistDialog({ mode: "rename", playlist: currentPlaylist })}
+                onDelete={() => setPlaylistDialog({ mode: "delete", playlist: currentPlaylist })}
+              />
+            : <PlaylistsPage playlists={userState.playlists} onCreate={() => setPlaylistDialog({ mode: "create" })} />
         )}
         {collectionRoute && catalog.status === "loading" && (
           <div class="page"><CatalogSkeleton count={8} /></div>
@@ -712,7 +817,27 @@ export function App() {
         libraryActionDisabled={player.track ? albums.has(player.track.collectionId) : false}
       />
 
-      <Navigation current={currentDestination} libraryView={currentLibraryView} mobile />
+      {playlistDialog && (
+        <PlaylistDialog
+          key={playlistDialog.mode === "create" ? "create" : `${playlistDialog.mode}:${playlistDialog.playlist.id}`}
+          state={playlistDialog}
+          onCancel={() => setPlaylistDialog(undefined)}
+          onCreate={createPlaylist}
+          onRename={renamePlaylist}
+          onDelete={deletePlaylist}
+        />
+      )}
+
+      <Navigation
+        current={currentDestination}
+        libraryView={currentLibraryView}
+        playlists={userState.playlists}
+        currentPlaylistId={currentPlaylistId}
+        onCreatePlaylist={() => setPlaylistDialog({ mode: "create" })}
+        onRenamePlaylist={(playlist) => setPlaylistDialog({ mode: "rename", playlist })}
+        onDeletePlaylist={(playlist) => setPlaylistDialog({ mode: "delete", playlist })}
+        mobile
+      />
     </div>
   );
 }

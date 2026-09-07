@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hrefFor, hrefForCollection, hrefForLibrary, hrefForLibraryAlbum, navigationDestination, routeFromHash } from "./router";
+import { hrefFor, hrefForCollection, hrefForLibrary, hrefForLibraryAlbum, hrefForPlaylist, navigationDestination, routeFromHash } from "./router";
 
 describe("routeFromHash", () => {
   it("reads supported top-level routes", () => {
@@ -22,6 +22,12 @@ describe("routeFromHash", () => {
     expect(navigationDestination(routeFromHash("#/library/album/hymns"))).toBe("library");
   });
 
+  it("reads playlist routes", () => {
+    expect(routeFromHash("#/playlists")).toEqual({ page: "playlists" });
+    expect(routeFromHash("#/playlist/sunday%20morning")).toEqual({ page: "playlist", playlistId: "sunday morning" });
+    expect(navigationDestination(routeFromHash("#/playlist/one"))).toBe("library");
+  });
+
   it("reads and decodes collection routes", () => {
     expect(routeFromHash("#/collection/hymns%20for%20home")).toEqual({
       page: "collection",
@@ -42,6 +48,7 @@ describe("route hrefs", () => {
     expect(hrefFor("library")).toBe("#/library/recent");
     expect(hrefForLibrary("videos")).toBe("#/library/videos");
     expect(hrefForLibraryAlbum("hymns & songs")).toBe("#/library/album/hymns%20%26%20songs");
+    expect(hrefForPlaylist("Sunday & evening")).toBe("#/playlist/Sunday%20%26%20evening");
     expect(hrefForCollection("hymns & songs")).toBe("#/collection/hymns%20%26%20songs");
   });
 });
