@@ -8,8 +8,8 @@ The first Living Music prototype is split into seven independently reviewable st
 | 2. Dark Apple-native shell | Complete | Responsive navigation, destination layouts, appearance control, safe areas, and motion/accessibility foundations |
 | 3. Live catalog browsing | Complete | Catalog index, collection artwork, lazy collection pages, and API error states |
 | 4. Core playback | Complete | Shared audio engine, vocal-first selection, transport controls, seeking, and mini player |
-| 5. Now Playing and queue | Next | Expanded player, recording choices, Up Next, and track advancement |
-| 6. Search, favorites, and Library | Planned | Global search, local favorites, and populated Library |
+| 5. Now Playing and queue | Complete | Expanded player, recording choices, Up Next, and track advancement |
+| 6. Search, favorites, and Library | Next | Global search, local favorites, and populated Library |
 | 7. Polish, documentation, and deployment | Planned | Media Session, cross-browser QA, cleanup, and release documentation |
 
 ## Step 2 behavior
@@ -42,3 +42,11 @@ Selecting a playable song creates an in-memory sequence from the playable songs 
 The persistent mini player shows artwork, song and recording labels, elapsed and remaining time, a keyboard-accessible seek control, and previous, play/pause, and next actions. On phones it sits above the labeled navigation bar and keeps the primary controls reachable at 390 px without horizontal overflow. Playback automatically advances to the next playable song. The previous action restarts after three seconds or moves back near the beginning of a track.
 
 Unavailable song rows are disabled and labeled. Media errors stay visible in the player and selecting another playable song recovers. Playback always starts from a listener action; a reload does not automatically resume audio. Queue editing, recording choices, and the expanded Now Playing surface remain Step 5 work.
+
+## Step 5 behavior
+
+Selecting the song and recording details in the mini player opens an accessible Now Playing dialog. Desktop uses a centered two-region sheet for playback and Up Next; phones use a full-screen, safe-area-aware surface. Escape and the close control dismiss it, keyboard focus remains inside while open, and focus returns to the mini player.
+
+Now Playing offers large artwork, a native alternate-recording selector, a larger seek control, transport controls, and repeat off, all, and one. Changing recordings keeps the same song selected and starts the chosen version. Repeat state and next-button availability stay synchronized.
+
+Each playable song row exposes Play Next and Add to End. Up Next supports immediate playback, move up, move down, remove, and clear actions. Queue edits never interrupt the current recording, and unavailable songs cannot enter the queue. The queue and recording selection are intentionally session-only until user-state persistence is added in Step 6.

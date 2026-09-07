@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-export type IconName="home"|"browse"|"search"|"heart"|"play"|"pause"|"previous"|"next"|"queue"|"close"|"chevron"|"music"|"back";
+export type IconName="home"|"browse"|"search"|"heart"|"play"|"pause"|"previous"|"next"|"queue"|"close"|"chevron"|"music"|"back"|"more"|"up"|"down"|"repeat"|"trash";
 const paths:Record<IconName,JSX.Element>={
 home:<><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10M9.5 20v-6h5v6"/></>,
 browse:<><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,
@@ -10,7 +10,11 @@ previous:<><path d="M6 5v14M19 6l-9 6 9 6Z"/></>,next:<><path d="M18 5v14M5 6l9 
 queue:<><path d="M4 6h11M4 12h11M4 18h7"/><path d="m17 15 4 3-4 3Z"/></>,
 close:<path d="m6 6 12 12M18 6 6 18"/>,chevron:<path d="m9 5 7 7-7 7"/>,
 music:<><path d="M9 18V6l10-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></>,
-back:<path d="m15 5-7 7 7 7"/>
+back:<path d="m15 5-7 7 7 7"/>,
+more:<><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none"/></>,
+up:<path d="m6 15 6-6 6 6"/>,down:<path d="m6 9 6 6 6-6"/>,
+repeat:<><path d="m17 2 4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></>,
+trash:<><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></>
 };
 export function Icon({name,filled=false,size=22}:{name:IconName;filled?:boolean;size?:number}){
 return <svg aria-hidden="true" class="icon" width={size} height={size} viewBox="0 0 24 24" fill={filled?"currentColor":"none"} stroke="currentColor" stroke-width={filled?1.4:1.8} stroke-linecap="round" stroke-linejoin="round">{paths[name]}</svg>

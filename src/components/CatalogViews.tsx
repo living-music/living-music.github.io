@@ -70,15 +70,27 @@ export function CollectionPage({
   currentSongId,
   playerStatus,
   onPlay,
+  onPlayNext,
+  onAddToQueue,
 }: {
   client: CatalogClient;
   summary: CollectionSummary;
   currentSongId?: string;
   playerStatus: PlayerStatus;
   onPlay: (song: Song, songs: Song[], collection: CollectionSummary) => void;
+  onPlayNext: (song: Song, collection: CollectionSummary) => void;
+  onAddToQueue: (song: Song, collection: CollectionSummary) => void;
 }) {
   const [request, setRequest] = useState(0);
+  const [menuSongId, setMenuSongId] = useState<string>();
   const [state, setState] = useState<CollectionState>({ status: "loading" });
+
+  useEffect(() => {
+    if (!menuSongId) return;
+    const closeMenu = (event: KeyboardEvent) => { if (event.key === "Escape") setMenuSongId(undefined); };
+    window.addEventListener("keydown", closeMenu);
+    return () => window.removeEventListener("keydown", closeMenu);
+  }, [menuSongId]);
 
   useEffect(() => {
     let active = true;
@@ -171,10 +183,28 @@ export function CollectionPage({
                       ? "No audio"
                       : `${song.recordings.length} ${song.recordings.length === 1 ? "recording" : "recordings"}`}
                   </span>
-                  <span class="song-play-icon" aria-hidden="true">
-                    <Icon name={isPlaying ? "pause" : "play"} filled={!isPlaying} size={15} />
-                  </span>
                 </button>
+                {!unavailable && (
+                  <button
+                    type="button"
+                    class="song-more-button"
+                    onClick={() => setMenuSongId(menuSongId === song.id ? undefined : song.id)}
+                    aria-label={`Queue options for ${song.title}`}
+                    aria-expanded={menuSongId === song.id}
+                  >
+                    <Icon name="more" size={20} />
+                  </button>
+                )}
+                {menuSongId === song.id && (
+                  <div class="song-queue-menu">
+                    <button type="button" onClick={() => { onPlayNext(song, collection); setMenuSongId(undefined); }}>
+                      <Icon name="next" size={17} /> Play Next
+                    </button>
+                    <button type="button" onClick={() => { onAddToQueue(song, collection); setMenuSongId(undefined); }}>
+                      <Icon name="queue" size={17} /> Add to End
+                    </button>
+                  </div>
+                )}
               </li>
             );
           })}

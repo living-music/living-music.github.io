@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { CatalogClient } from "./api";
 import { CatalogError, CatalogSkeleton, CollectionGrid, CollectionPage } from "./components/CatalogViews";
 import { Icon, type IconName } from "./Icon";
-import { MiniPlayer } from "./components/Player";
+import { MiniPlayer, NowPlaying } from "./components/Player";
 import { AudioEngine, type PlayerSnapshot } from "./player";
 import { hrefFor, navigationDestination, routeFromHash, type Destination, type Route } from "./router";
 import { readTheme, writeTheme, type Theme } from "./storage";
@@ -244,6 +244,7 @@ export function App() {
   if (!engineRef.current) engineRef.current = new AudioEngine();
   const engine = engineRef.current;
   const [player, setPlayer] = useState<PlayerSnapshot>(engine.state);
+  const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [route, setRoute] = useState<Route>(() => routeFromHash(window.location.hash));
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [catalogAttempt, setCatalogAttempt] = useState(0);
@@ -289,6 +290,11 @@ export function App() {
       (nextTheme === "system" && window.matchMedia("(prefers-color-scheme: light)").matches);
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", light ? "#f2f2f7" : "#08080a");
   };
+
+  const closeNowPlaying = useCallback(() => {
+    setNowPlayingOpen(false);
+    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>("#now-playing-trigger")?.focus());
+  }, []);
 
   const playSong = (song: Song, songs: Song[], sourceCollection: CollectionSummary) => {
     engine.playCollection(songs, sourceCollection, song.id);
@@ -344,6 +350,8 @@ export function App() {
               currentSongId={player.track?.song.id}
               playerStatus={player.status}
               onPlay={playSong}
+              onPlayNext={(song, sourceCollection) => engine.playNext(song, sourceCollection)}
+              onAddToQueue={(song, sourceCollection) => engine.addToQueue(song, sourceCollection)}
             />
           ) : <MissingCollection />
         )}
@@ -358,6 +366,23 @@ export function App() {
         onPrevious={() => engine.previous()}
         onNext={() => engine.next()}
         onSeek={(seconds) => engine.seek(seconds)}
+        onOpen={() => setNowPlayingOpen(true)}
+      />
+
+      <NowPlaying
+        open={nowPlayingOpen}
+        player={player}
+        onClose={closeNowPlaying}
+        onToggle={() => engine.toggle()}
+        onPrevious={() => engine.previous()}
+        onNext={() => engine.next()}
+        onSeek={(seconds) => engine.seek(seconds)}
+        onRecordingChange={(recordingId) => engine.changeRecording(recordingId)}
+        onCycleRepeat={() => engine.cycleRepeat()}
+        onPlayQueueItem={(index) => engine.playQueueItem(index)}
+        onMoveQueueItem={(index, direction) => engine.moveQueueItem(index, direction)}
+        onRemoveQueueItem={(index) => engine.removeQueueItem(index)}
+        onClearUpNext={() => engine.clearUpNext()}
       />
 
       <Navigation current={currentDestination} mobile />

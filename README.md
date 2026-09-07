@@ -6,7 +6,7 @@ The companion [musicapi](https://github.com/living-music/musicapi) repository pu
 
 ## Status
 
-Steps 1 through 4 of the first prototype are complete: the project has a typed Preact foundation, a responsive dark-default shell, live catalog browsing, and persistent core playback. Now Playing and queue management begin in Step 5. See the [prototype checklist](docs/PROTOTYPE.md) and [implementation plan](docs/PLAN.md).
+Steps 1 through 5 of the first prototype are complete: the project has a typed Preact foundation, a responsive dark-default shell, live catalog browsing, persistent playback, expanded Now Playing, recording choices, and an editable queue. Search, favorites, and Library population begin in Step 6. See the [prototype checklist](docs/PROTOTYPE.md) and [implementation plan](docs/PLAN.md).
 
 ## Requirements
 
@@ -66,9 +66,11 @@ site/                      Retired pre-tooling prototype; removal is deferred
 
 ## Playback
 
-Open a collection and select any song with audio. Living Music chooses a vocal recording when available, begins playback from that user action, and keeps one mini player visible while navigating the app. The mini player provides play/pause, previous, next, elapsed and remaining time, and a seek control. Previous restarts the current song after three seconds and otherwise moves to the preceding playable song. Playback advances through playable songs in the open collection.
+Open a collection and select any song with audio. Living Music chooses a vocal recording when available, begins playback from that user action, and keeps one mini player visible while navigating the app. The mini player provides play/pause, previous, next, elapsed and remaining time, and a seek control. Previous restarts the current song after three seconds and otherwise moves to the preceding playable song.
 
-Queue editing, alternate recording selection, and the expanded Now Playing view are part of Step 5.
+Select the song details in the mini player to open Now Playing. This view offers large artwork, alternate recording selection, full transport controls, repeat off/all/one, and the Up Next queue. A song row’s options menu can place that song next or at the end. Queue items can play immediately, move up or down, be removed, or be cleared together.
+
+The queue and recording choice remain in memory for the current tab. Step 6 adds durable user-owned library state.
 
 ## Catalog contract
 

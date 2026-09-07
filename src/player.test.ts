@@ -106,3 +106,73 @@ describe("AudioEngine", () => {
     expect(engine.state.error).toContain("could not be played");
   });
 });
+
+
+describe("queue editing", () => {
+  it("inserts, appends, reorders, removes, and clears upcoming songs", () => {
+    const media = new FakeAudio();
+    const engine = new AudioEngine(media as unknown as HTMLAudioElement);
+    engine.playCollection([song("one"), song("two")], collection, "one");
+
+    engine.playNext(song("next"), collection);
+    engine.addToQueue(song("end"), collection);
+    expect(engine.state.queue.map((track) => track.song.id)).toEqual(["one", "next", "two", "end"]);
+
+    engine.moveQueueItem(3, -1);
+    expect(engine.state.queue.map((track) => track.song.id)).toEqual(["one", "next", "end", "two"]);
+
+    engine.removeQueueItem(1);
+    expect(engine.state.queue.map((track) => track.song.id)).toEqual(["one", "end", "two"]);
+
+    engine.clearUpNext();
+    expect(engine.state.queue.map((track) => track.song.id)).toEqual(["one"]);
+    expect(engine.state.hasNext).toBe(false);
+  });
+
+  it("switches the current recording and keeps the song in place", () => {
+    const media = new FakeAudio();
+    const engine = new AudioEngine(media as unknown as HTMLAudioElement);
+    const versions = song("one", [
+      { id: "vocal", type: "AUDIO_VOCAL", label: "Vocal", url: "https://example.test/vocal.mp3", language: "eng" },
+      { id: "piano", type: "AUDIO_INSTRUMENTAL", label: "Piano", url: "https://example.test/piano.mp3", language: "eng" },
+    ]);
+    engine.playCollection([versions], collection, "one");
+
+    engine.changeRecording("piano");
+
+    expect(engine.state.track?.song.id).toBe("one");
+    expect(engine.state.track?.recording.id).toBe("piano");
+    expect(media.src).toBe("https://example.test/piano.mp3");
+  });
+
+  it("repeats the current song when repeat one is selected", async () => {
+    const media = new FakeAudio();
+    const engine = new AudioEngine(media as unknown as HTMLAudioElement);
+    engine.playCollection([song("one")], collection, "one");
+    engine.cycleRepeat();
+    engine.cycleRepeat();
+
+    media.currentTime = 200;
+    media.dispatchEvent(new Event("ended"));
+    await Promise.resolve();
+
+    expect(engine.state.repeatMode).toBe("one");
+    expect(media.currentTime).toBe(0);
+    expect(engine.state.track?.song.id).toBe("one");
+  });
+});
+
+
+it("wraps to the first queued song in repeat-all mode", async () => {
+  const media = new FakeAudio();
+  const engine = new AudioEngine(media as unknown as HTMLAudioElement);
+  engine.playCollection([song("one"), song("two")], collection, "two");
+  engine.cycleRepeat();
+
+  expect(engine.state.repeatMode).toBe("all");
+  expect(engine.state.hasNext).toBe(true);
+  media.dispatchEvent(new Event("ended"));
+  await Promise.resolve();
+
+  expect(engine.state.track?.song.id).toBe("one");
+});

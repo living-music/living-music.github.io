@@ -2,6 +2,7 @@ import { chooseRecording } from "./audio";
 import type { CollectionSummary, Recording, Song } from "./types";
 
 export type PlayerStatus = "idle" | "loading" | "playing" | "paused" | "error";
+export type RepeatMode = "off" | "all" | "one";
 
 export interface PlayerTrack {
   song: Song;
@@ -19,9 +20,27 @@ export interface PlayerSnapshot {
   error?: string;
   hasPrevious: boolean;
   hasNext: boolean;
+  queue: PlayerTrack[];
+  currentIndex: number;
+  repeatMode: RepeatMode;
 }
 
 type Listener = (snapshot: PlayerSnapshot) => void;
+
+export function trackForSong(
+  song: Song,
+  collection: CollectionSummary,
+  preferredType?: string,
+): PlayerTrack | undefined {
+  const recording = chooseRecording(song, preferredType);
+  return recording ? {
+    song,
+    recording,
+    collectionId: collection.id,
+    collectionTitle: collection.title,
+    artworkUrl: recording.artworkUrl || song.artworkUrl || collection.artworkUrl,
+  } : undefined;
+}
 
 export function collectionTracks(
   songs: Song[],
@@ -29,14 +48,8 @@ export function collectionTracks(
   preferredType?: string,
 ): PlayerTrack[] {
   return songs.flatMap((song) => {
-    const recording = chooseRecording(song, preferredType);
-    return recording ? [{
-      song,
-      recording,
-      collectionId: collection.id,
-      collectionTitle: collection.title,
-      artworkUrl: recording.artworkUrl || song.artworkUrl || collection.artworkUrl,
-    }] : [];
+    const track = trackForSong(song, collection, preferredType);
+    return track ? [track] : [];
   });
 }
 
@@ -46,12 +59,16 @@ export class AudioEngine {
   private tracks: PlayerTrack[] = [];
   private index = -1;
   private playRequest = 0;
+  private repeatMode: RepeatMode = "off";
   private snapshot: PlayerSnapshot = {
     status: "idle",
     currentTime: 0,
     duration: 0,
     hasPrevious: false,
     hasNext: false,
+    queue: [],
+    currentIndex: -1,
+    repeatMode: "off",
   };
 
   constructor(media: HTMLAudioElement = new Audio()) {
@@ -101,6 +118,81 @@ export class AudioEngine {
     this.loadCurrent(true);
   }
 
+  playNext(song: Song, collection: CollectionSummary, preferredType?: string): void {
+    const track = trackForSong(song, collection, preferredType);
+    if (!track) return;
+    if (this.index < 0) {
+      this.tracks = [track];
+      this.index = 0;
+      this.loadCurrent(true);
+      return;
+    }
+    this.tracks.splice(this.index + 1, 0, track);
+    this.refreshQueue();
+  }
+
+  addToQueue(song: Song, collection: CollectionSummary, preferredType?: string): void {
+    const track = trackForSong(song, collection, preferredType);
+    if (!track) return;
+    if (this.index < 0) {
+      this.tracks = [track];
+      this.index = 0;
+      this.loadCurrent(false);
+      return;
+    }
+    this.tracks.push(track);
+    this.refreshQueue();
+  }
+
+  removeQueueItem(queueIndex: number): void {
+    if (queueIndex <= this.index || queueIndex >= this.tracks.length) return;
+    this.tracks.splice(queueIndex, 1);
+    this.refreshQueue();
+  }
+
+  moveQueueItem(queueIndex: number, direction: -1 | 1): void {
+    const target = queueIndex + direction;
+    if (queueIndex <= this.index || target <= this.index || queueIndex >= this.tracks.length || target >= this.tracks.length) {
+      return;
+    }
+    [this.tracks[queueIndex], this.tracks[target]] = [this.tracks[target], this.tracks[queueIndex]];
+    this.refreshQueue();
+  }
+
+  clearUpNext(): void {
+    if (this.index < 0) return;
+    this.tracks.splice(this.index + 1);
+    this.refreshQueue();
+  }
+
+  playQueueItem(queueIndex: number): void {
+    if (queueIndex < 0 || queueIndex >= this.tracks.length) return;
+    if (queueIndex === this.index) {
+      this.toggle();
+      return;
+    }
+    this.index = queueIndex;
+    this.loadCurrent(true);
+  }
+
+  changeRecording(recordingId: string): void {
+    const current = this.tracks[this.index];
+    const recording = current?.song.recordings.find((entry) => entry.id === recordingId);
+    if (!current || !recording || recording.id === current.recording.id) return;
+    this.tracks[this.index] = {
+      ...current,
+      recording,
+      artworkUrl: recording.artworkUrl || current.song.artworkUrl || current.artworkUrl,
+    };
+    this.loadCurrent(true);
+  }
+
+  cycleRepeat(): void {
+    const modes: RepeatMode[] = ["off", "all", "one"];
+    this.repeatMode = modes[(modes.indexOf(this.repeatMode) + 1) % modes.length];
+    this.refreshQueue();
+  }
+
   toggle(): void {
     if (!this.snapshot.track) return;
     if (this.snapshot.status === "playing" || this.snapshot.status === "loading") {
@@ -113,9 +205,14 @@ export class AudioEngine {
   }
 
   next(): void {
-    if (this.index < 0 || this.index >= this.tracks.length - 1) return;
-    this.index += 1;
-    this.loadCurrent(true);
+    if (this.index < 0) return;
+    if (this.index < this.tracks.length - 1) {
+      this.index += 1;
+      this.loadCurrent(true);
+    } else if (this.repeatMode === "all" && this.tracks.length) {
+      this.index = 0;
+      this.loadCurrent(true);
+    }
   }
 
   previous(): void {
@@ -164,7 +261,10 @@ export class AudioEngine {
       currentTime: 0,
       duration: track.recording.durationMs ? track.recording.durationMs / 1000 : 0,
       hasPrevious: this.index > 0,
-      hasNext: this.index < this.tracks.length - 1,
+      hasNext: this.index < this.tracks.length - 1 || (this.repeatMode === "all" && this.tracks.length > 1),
+      queue: [...this.tracks],
+      currentIndex: this.index,
+      repeatMode: this.repeatMode,
     };
     this.emit();
     if (autoplay) void this.requestPlay();
@@ -187,6 +287,16 @@ export class AudioEngine {
     return Number.isFinite(this.media.duration) && this.media.duration > 0
       ? this.media.duration
       : this.snapshot.duration;
+  }
+
+  private refreshQueue(): void {
+    this.setState({
+      queue: [...this.tracks],
+      currentIndex: this.index,
+      hasPrevious: this.index > 0,
+      hasNext: this.index < this.tracks.length - 1 || (this.repeatMode === "all" && this.tracks.length > 1),
+      repeatMode: this.repeatMode,
+    });
   }
 
   private setState(update: Partial<PlayerSnapshot>): void {
@@ -222,8 +332,14 @@ export class AudioEngine {
   });
 
   private handleEnded = () => {
-    if (this.index < this.tracks.length - 1) {
+    if (this.repeatMode === "one") {
+      this.seek(0);
+      void this.requestPlay();
+    } else if (this.index < this.tracks.length - 1) {
       this.index += 1;
+      this.loadCurrent(true);
+    } else if (this.repeatMode === "all" && this.tracks.length) {
+      this.index = 0;
       this.loadCurrent(true);
     } else {
       this.setState({ status: "paused", currentTime: this.duration() });
