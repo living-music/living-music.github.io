@@ -6,7 +6,7 @@ The companion [musicapi](https://github.com/living-music/musicapi) repository pu
 
 ## Status
 
-Steps 1 and 2 of the first prototype are complete: the project has a typed Preact foundation and a responsive, dark-default application shell with Home, Browse, Search, and Library navigation. Live catalog browsing begins in Step 3; playback follows in Step 4. See the [prototype checklist](docs/PROTOTYPE.md) and [implementation plan](docs/PLAN.md).
+Steps 1 through 3 of the first prototype are complete: the project has a typed Preact foundation, a responsive dark-default shell, and live catalog browsing with lazy collection pages. Core playback begins in Step 4. See the [prototype checklist](docs/PROTOTYPE.md) and [implementation plan](docs/PLAN.md).
 
 ## Requirements
 
@@ -48,7 +48,8 @@ npm run preview    # Serve the production build locally
 index.html                 Vite document entry and pre-render theme bootstrap
 public/                    Static PWA files copied into dist/
 src/
-  App.tsx                  Current application entry screen
+  App.tsx                  Application shell, catalog state, and top-level views
+  components/               Artwork, collection grids, song lists, and data states
   Icon.tsx                 Project-owned interface icons
   api.ts                   Versioned musicapi client and runtime validation
   audio.ts                 Recording choice and media formatting helpers
@@ -66,7 +67,7 @@ site/                      Retired pre-tooling prototype; removal is deferred
 
 Production loads the same-origin catalog from `/musicapi/`. Local development defaults to the published API. The client first requests `index.json`, rejects unsupported schema versions, resolves the advertised version index, and resolves collection and search links against the document that declared them.
 
-Catalog payloads are untrusted network input. Required envelope fields receive runtime checks, and rendering code must continue to treat all catalog strings as text.
+Catalog payloads are untrusted network input. The client validates collection summaries, songs, and recordings before rendering them, and all catalog strings are rendered as text. Null artwork fields may be omitted by the compact API; the interface provides a local fallback. Collection payloads are fetched only when their revisioned hash route is opened.
 
 ## Deployment
 

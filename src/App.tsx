@@ -1,13 +1,23 @@
 import { useEffect, useRef, useState } from "preact/hooks";
+import { CatalogClient } from "./api";
+import { CatalogError, CatalogSkeleton, CollectionGrid, CollectionPage } from "./components/CatalogViews";
 import { Icon, type IconName } from "./Icon";
-import { hrefFor, routeFromHash, type Destination } from "./router";
+import { hrefFor, navigationDestination, routeFromHash, type Destination, type Route } from "./router";
 import { readTheme, writeTheme, type Theme } from "./storage";
+import type { CatalogIndex } from "./types";
 
 interface NavigationItem {
   id: Destination;
   label: string;
   icon: IconName;
 }
+
+type CatalogState =
+  | { status: "loading" }
+  | { status: "ready"; index: CatalogIndex }
+  | { status: "error"; message: string };
+
+const catalogClient = new CatalogClient();
 
 const navigation: NavigationItem[] = [
   { id: "home", label: "Home", icon: "home" },
@@ -31,6 +41,7 @@ function Navigation({ current, mobile = false }: { current: Destination; mobile?
           class={`navigation-item ${current === item.id ? "is-current" : ""}`}
           href={hrefFor(item.id)}
           aria-current={current === item.id ? "page" : undefined}
+          key={item.id}
         >
           <Icon name={item.icon} filled={current === item.id && item.id === "library"} />
           <span>{item.label}</span>
@@ -50,7 +61,23 @@ function PageHeader({ eyebrow, title, description }: { eyebrow: string; title: s
   );
 }
 
-function HomePage() {
+function CatalogSection({
+  state,
+  onRetry,
+  featured = false,
+}: {
+  state: CatalogState;
+  onRetry: () => void;
+  featured?: boolean;
+}) {
+  if (state.status === "loading") return <CatalogSkeleton count={featured ? 6 : 10} />;
+  if (state.status === "error") return <CatalogError message={state.message} onRetry={onRetry} />;
+
+  const collections = featured ? state.index.collections.slice(0, 6) : state.index.collections;
+  return <CollectionGrid collections={collections} label={featured ? "Featured collections" : "All collections"} />;
+}
+
+function HomePage({ catalog, onRetry }: { catalog: CatalogState; onRetry: () => void }) {
   return (
     <div class="page page-home">
       <PageHeader
@@ -61,9 +88,9 @@ function HomePage() {
 
       <section class="hero-card" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="section-kicker">Your library, made calmer</p>
+          <p class="section-kicker">The complete catalog</p>
           <h2 id="hero-title">Find the music you need, then keep listening.</h2>
-          <p>Collections, search, favorites, and an always-available player are being connected one careful step at a time.</p>
+          <p>Explore collections from the Church music library through a calm, focused interface.</p>
           <a class="primary-action" href="#/browse">
             Explore the library
             <Icon name="chevron" size={18} />
@@ -72,10 +99,21 @@ function HomePage() {
         <img class="hero-icon" src="/app-icon-512.png" alt="" />
       </section>
 
+      <section class="section-block" aria-labelledby="featured-title">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Start listening</p>
+            <h2 id="featured-title">Featured collections</h2>
+          </div>
+          <a class="section-link" href="#/browse">See all <Icon name="chevron" size={16} /></a>
+        </div>
+        <CatalogSection state={catalog} onRetry={onRetry} featured />
+      </section>
+
       <section class="section-block" aria-labelledby="shortcuts-title">
         <div class="section-heading">
           <div>
-            <p class="section-kicker">Start here</p>
+            <p class="section-kicker">More ways to listen</p>
             <h2 id="shortcuts-title">A place for every kind of listening</h2>
           </div>
         </div>
@@ -101,23 +139,18 @@ function HomePage() {
   );
 }
 
-function BrowsePage() {
+function BrowsePage({ catalog, onRetry }: { catalog: CatalogState; onRetry: () => void }) {
+  const stats = catalog.status === "ready" ? catalog.index.stats : undefined;
   return (
     <div class="page">
       <PageHeader
         eyebrow="All music"
         title="Browse"
-        description="Collections will appear here directly from the Living Music catalog."
+        description={stats
+          ? `${stats.collectionCount.toLocaleString()} collections and ${stats.songCount.toLocaleString()} songs from the Living Music catalog.`
+          : "Explore every collection in the Living Music catalog."}
       />
-      <section class="empty-state" aria-labelledby="browse-empty-title">
-        <div class="empty-icon"><Icon name="browse" size={30} /></div>
-        <h2 id="browse-empty-title">The shelves are ready.</h2>
-        <p>Live collection artwork and song lists arrive in Step 3. The navigation and responsive layout are ready now.</p>
-        <a class="secondary-action" href="https://living-music.github.io/musicapi/">
-          View the catalog API
-          <Icon name="chevron" size={17} />
-        </a>
-      </section>
+      <CatalogSection state={catalog} onRetry={onRetry} />
     </div>
   );
 }
@@ -128,15 +161,15 @@ function SearchPage() {
       <PageHeader
         eyebrow="Find a song"
         title="Search"
-        description="Search will use the global 5,070-song index without downloading every collection."
+        description="Search will use the global song index without downloading every collection."
       />
       <div class="search-field is-preview">
         <Icon name="search" size={20} />
         <input aria-label="Search music" placeholder="Search songs" disabled />
       </div>
       <section class="empty-state compact" aria-labelledby="search-empty-title">
-        <h2 id="search-empty-title">Search is the next listening tool.</h2>
-        <p>The field is shown in its final location. It becomes interactive when the global search step is connected.</p>
+        <h2 id="search-empty-title">Search is coming soon.</h2>
+        <p>The live catalog is connected. Global search becomes interactive with favorites and Library in Step 6.</p>
       </section>
     </div>
   );
@@ -160,6 +193,7 @@ function ThemeSelector({ theme, onChange }: { theme: Theme; onChange: (theme: Th
             class={theme === choice.id ? "is-selected" : ""}
             aria-pressed={theme === choice.id}
             onClick={() => onChange(choice.id)}
+            key={choice.id}
           >
             {choice.label}
           </button>
@@ -181,7 +215,7 @@ function LibraryPage({ theme, onThemeChange }: { theme: Theme; onThemeChange: (t
         <section class="empty-state compact" aria-labelledby="favorites-title">
           <div class="empty-icon"><Icon name="heart" size={28} /></div>
           <h2 id="favorites-title">Favorites will live here.</h2>
-          <p>Favorite songs become available when live browsing and playback are connected.</p>
+          <p>Favorite songs become available after playback is connected.</p>
         </section>
         <ThemeSelector theme={theme} onChange={onThemeChange} />
       </div>
@@ -189,14 +223,43 @@ function LibraryPage({ theme, onThemeChange }: { theme: Theme; onThemeChange: (t
   );
 }
 
+function MissingCollection() {
+  return (
+    <div class="page">
+      <a class="back-link" href="#/browse"><Icon name="back" size={18} /> Browse</a>
+      <section class="empty-state" role="alert">
+        <div class="empty-icon"><Icon name="music" size={28} /></div>
+        <h1 class="empty-title">Collection not found.</h1>
+        <p>This collection is not part of the current catalog. It may have moved after the catalog was refreshed.</p>
+        <a class="primary-action" href="#/browse">Browse all collections</a>
+      </section>
+    </div>
+  );
+}
+
 export function App() {
-  const [destination, setDestination] = useState<Destination>(() => routeFromHash(window.location.hash));
+  const [route, setRoute] = useState<Route>(() => routeFromHash(window.location.hash));
   const [theme, setTheme] = useState<Theme>(readTheme);
+  const [catalogAttempt, setCatalogAttempt] = useState(0);
+  const [catalog, setCatalog] = useState<CatalogState>({ status: "loading" });
   const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
+    let active = true;
+    setCatalog({ status: "loading" });
+    catalogClient.loadIndex().then(
+      (index) => active && setCatalog({ status: "ready", index }),
+      (error: unknown) => active && setCatalog({
+        status: "error",
+        message: error instanceof Error ? error.message : "An unexpected catalog error occurred.",
+      }),
+    );
+    return () => { active = false; };
+  }, [catalogAttempt]);
+
+  useEffect(() => {
     const handleHashChange = () => {
-      setDestination(routeFromHash(window.location.hash));
+      setRoute(routeFromHash(window.location.hash));
       requestAnimationFrame(() => mainRef.current?.focus());
     };
     window.addEventListener("hashchange", handleHashChange);
@@ -204,9 +267,12 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    document.title = `${pageTitles[destination]} · Living Music`;
+    const collectionTitle = route.page === "collection" && catalog.status === "ready"
+      ? catalog.index.collections.find((entry) => entry.id === route.collectionId)?.title
+      : undefined;
+    document.title = `${collectionTitle || (route.page === "collection" ? "Collection" : pageTitles[route.page])} · Living Music`;
     window.scrollTo({ top: 0, behavior: "instant" });
-  }, [destination]);
+  }, [route, catalog]);
 
   const changeTheme = (nextTheme: Theme) => {
     setTheme(nextTheme);
@@ -215,6 +281,12 @@ export function App() {
       (nextTheme === "system" && window.matchMedia("(prefers-color-scheme: light)").matches);
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", light ? "#f2f2f7" : "#08080a");
   };
+
+  const currentDestination = navigationDestination(route);
+  const retryCatalog = () => setCatalogAttempt((attempt) => attempt + 1);
+  const collection = route.page === "collection" && catalog.status === "ready"
+    ? catalog.index.collections.find((entry) => entry.id === route.collectionId)
+    : undefined;
 
   return (
     <div class="app-shell">
@@ -225,7 +297,7 @@ export function App() {
           <img src="/app-icon-192.png" alt="" />
           <span>Living Music</span>
         </a>
-        <Navigation current={destination} />
+        <Navigation current={currentDestination} />
         <div class="sidebar-footer">
           <p>Independent project</p>
           <a href="https://www.churchofjesuschrist.org/media/music/collections/all-music?lang=eng">
@@ -242,16 +314,25 @@ export function App() {
       </header>
 
       <main id="main-content" class="content" ref={mainRef} tabIndex={-1}>
-        {destination === "home" && <HomePage />}
-        {destination === "browse" && <BrowsePage />}
-        {destination === "search" && <SearchPage />}
-        {destination === "library" && <LibraryPage theme={theme} onThemeChange={changeTheme} />}
+        {route.page === "home" && <HomePage catalog={catalog} onRetry={retryCatalog} />}
+        {route.page === "browse" && <BrowsePage catalog={catalog} onRetry={retryCatalog} />}
+        {route.page === "search" && <SearchPage />}
+        {route.page === "library" && <LibraryPage theme={theme} onThemeChange={changeTheme} />}
+        {route.page === "collection" && catalog.status === "loading" && (
+          <div class="page"><CatalogSkeleton count={8} /></div>
+        )}
+        {route.page === "collection" && catalog.status === "error" && (
+          <div class="page"><CatalogError message={catalog.message} onRetry={retryCatalog} /></div>
+        )}
+        {route.page === "collection" && catalog.status === "ready" && (
+          collection ? <CollectionPage client={catalogClient} summary={collection} /> : <MissingCollection />
+        )}
         <footer class="content-footer">
           Living Music is not affiliated with or endorsed by The Church of Jesus Christ of Latter-day Saints.
         </footer>
       </main>
 
-      <Navigation current={destination} mobile />
+      <Navigation current={currentDestination} mobile />
     </div>
   );
 }
