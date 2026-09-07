@@ -56,6 +56,7 @@ src/
   types.ts                 Catalog and player data contracts
   *.test.ts                Focused unit tests
 docs/PLAN.md               Product and implementation plan
+docs/BRAND.md              App icon concept, assets, and usage rules
 .github/workflows/pages.yml  Tested GitHub Pages build and deployment
 site/                      Retired pre-tooling prototype; removal is deferred
 ```

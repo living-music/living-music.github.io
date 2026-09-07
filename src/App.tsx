@@ -1,11 +1,9 @@
-import { Icon } from "./Icon";
-
 export function App() {
   return (
     <main class="foundation">
       <section class="foundation-card" aria-labelledby="page-title">
         <div class="app-mark" aria-hidden="true">
-          <Icon name="music" size={34} />
+          <img src="/app-icon-192.png" alt="" />
         </div>
         <p class="eyebrow">Living Music</p>
         <h1 id="page-title">A calmer way to listen.</h1>
