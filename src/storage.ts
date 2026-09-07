@@ -14,6 +14,9 @@ export interface QueueReference {
 
 export interface UserState {
   favorites: string[];
+  favoriteAddedAt: Record<string, string>;
+  albums: string[];
+  albumAddedAt: Record<string, string>;
   queue: QueueReference[];
   currentQueueIndex: number;
   repeatMode: RepeatMode;
@@ -23,6 +26,9 @@ export interface UserState {
 
 export const EMPTY_USER_STATE: UserState = {
   favorites: [],
+  favoriteAddedAt: {},
+  albums: [],
+  albumAddedAt: {},
   queue: [],
   currentQueueIndex: -1,
   repeatMode: "off",
@@ -51,7 +57,21 @@ function recordingPreferences(value: unknown): Record<string, string> {
   );
 }
 
-export function parseUserState(raw: string | null, legacyFavorites: string | null = null): UserState {
+function addedAtValues(value: unknown, ids: string[], fallback: string): Record<string, string> {
+  const source = typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+  return Object.fromEntries(ids.map((id) => {
+    const timestamp = source[id];
+    return [id, typeof timestamp === "string" && Number.isFinite(Date.parse(timestamp)) ? timestamp : fallback];
+  }));
+}
+
+export function parseUserState(
+  raw: string | null,
+  legacyFavorites: string | null = null,
+  migrationTime = new Date().toISOString(),
+): UserState {
   let legacy: string[] = [];
   try {
     const value: unknown = JSON.parse(legacyFavorites || "[]");
@@ -61,12 +81,21 @@ export function parseUserState(raw: string | null, legacyFavorites: string | nul
   try {
     const value: unknown = JSON.parse(raw || "{}");
     if (typeof value !== "object" || value === null || Array.isArray(value)) {
-      return { ...EMPTY_USER_STATE, favorites: legacy };
+      return {
+        ...EMPTY_USER_STATE,
+        favorites: legacy,
+        favoriteAddedAt: addedAtValues({}, legacy, migrationTime),
+      };
     }
     const data = value as Record<string, unknown>;
     const repeatMode = data.repeatMode === "all" || data.repeatMode === "one" ? data.repeatMode : "off";
+    const favorites = stringArray(data.favorites) ? [...new Set(data.favorites)] : legacy;
+    const albums = stringArray(data.albums) ? [...new Set(data.albums)] : [];
     return {
-      favorites: stringArray(data.favorites) ? [...new Set(data.favorites)] : legacy,
+      favorites,
+      favoriteAddedAt: addedAtValues(data.favoriteAddedAt, favorites, migrationTime),
+      albums,
+      albumAddedAt: addedAtValues(data.albumAddedAt, albums, migrationTime),
       queue: queueReferences(data.queue),
       currentQueueIndex: typeof data.currentQueueIndex === "number" && Number.isInteger(data.currentQueueIndex)
         ? data.currentQueueIndex
@@ -78,7 +107,11 @@ export function parseUserState(raw: string | null, legacyFavorites: string | nul
       songRecordingPreferences: recordingPreferences(data.songRecordingPreferences),
     };
   } catch {
-    return { ...EMPTY_USER_STATE, favorites: legacy };
+    return {
+      ...EMPTY_USER_STATE,
+      favorites: legacy,
+      favoriteAddedAt: addedAtValues({}, legacy, migrationTime),
+    };
   }
 }
 

@@ -4,7 +4,8 @@ import { chooseRecording } from "./audio";
 import { CatalogError, CatalogSkeleton, CollectionGrid, CollectionPage } from "./components/CatalogViews";
 import { Icon, type IconName } from "./Icon";
 import { MiniPlayer, NowPlaying } from "./components/Player";
-import { FavoriteSongs, SearchExperience } from "./components/SearchLibrary";
+import { SearchExperience } from "./components/SearchLibrary";
+import { LibraryViews } from "./components/LibraryViews";
 import { AudioEngine, type PlayerSnapshot, type PlayerTrack } from "./player";
 import { MediaSessionController } from "./media-session";
 import { hrefFor, navigationDestination, routeFromHash, type Destination, type Route } from "./router";
@@ -135,7 +136,7 @@ function HomePage({ catalog, onRetry }: { catalog: CatalogState; onRetry: () => 
           </a>
           <a class="shortcut-card violet" href="#/library">
             <span class="shortcut-icon"><Icon name="heart" /></span>
-            <span><strong>Library</strong><small>Return to your favorites</small></span>
+            <span><strong>Library</strong><small>Your saved songs and albums</small></span>
             <Icon name="chevron" size={18} />
           </a>
         </div>
@@ -232,6 +233,9 @@ function LibraryPage({
   onThemeChange,
   catalog,
   favorites,
+  favoriteAddedAt,
+  albums,
+  albumAddedAt,
   player,
   onRetry,
   onToggleFavorite,
@@ -241,6 +245,9 @@ function LibraryPage({
   onThemeChange: (theme: Theme) => void;
   catalog: CatalogState;
   favorites: Set<string>;
+  favoriteAddedAt: Record<string, string>;
+  albums: Set<string>;
+  albumAddedAt: Record<string, string>;
   player: PlayerSnapshot;
   onRetry: () => void;
   onToggleFavorite: (songId: string) => void;
@@ -251,23 +258,28 @@ function LibraryPage({
       <PageHeader
         eyebrow="Your music"
         title="Library"
-        description="Favorites and listening preferences stay privately on this device."
+        description="Recently added music, albums, songs, and music videos saved privately on this device."
       />
       <div class="library-content">
         {catalog.status === "loading" && <CatalogSkeleton count={5} />}
         {catalog.status === "error" && <CatalogError message={catalog.message} onRetry={onRetry} />}
         {catalog.status === "ready" && (
-          <FavoriteSongs
+          <LibraryViews
             client={catalogClient}
             catalog={catalog.index}
             favorites={favorites}
+            favoriteAddedAt={favoriteAddedAt}
+            albums={albums}
+            albumAddedAt={albumAddedAt}
             currentSongId={player.track?.song.id}
             playerStatus={player.status}
             onToggleFavorite={onToggleFavorite}
             onPlay={onPlay}
           />
         )}
-        <ThemeSelector theme={theme} onChange={onThemeChange} />
+        <div class="library-settings">
+          <ThemeSelector theme={theme} onChange={onThemeChange} />
+        </div>
       </div>
     </div>
   );
@@ -303,6 +315,7 @@ export function App() {
   const mainRef = useRef<HTMLElement>(null);
   const restoredQueue = useRef(false);
   const favorites = useMemo(() => new Set(userState.favorites), [userState.favorites]);
+  const albums = useMemo(() => new Set(userState.albums), [userState.albums]);
 
   useEffect(() => engine.subscribe(setPlayer), [engine]);
 
@@ -431,8 +444,30 @@ export function App() {
   const toggleFavorite = (songId: string) => {
     setUserState((current) => {
       const next = new Set(current.favorites);
-      next.has(songId) ? next.delete(songId) : next.add(songId);
-      return { ...current, favorites: [...next] };
+      const favoriteAddedAt = { ...current.favoriteAddedAt };
+      if (next.has(songId)) {
+        next.delete(songId);
+        delete favoriteAddedAt[songId];
+      } else {
+        next.add(songId);
+        favoriteAddedAt[songId] = new Date().toISOString();
+      }
+      return { ...current, favorites: [...next], favoriteAddedAt };
+    });
+  };
+
+  const toggleAlbum = (albumId: string) => {
+    setUserState((current) => {
+      const next = new Set(current.albums);
+      const albumAddedAt = { ...current.albumAddedAt };
+      if (next.has(albumId)) {
+        next.delete(albumId);
+        delete albumAddedAt[albumId];
+      } else {
+        next.add(albumId);
+        albumAddedAt[albumId] = new Date().toISOString();
+      }
+      return { ...current, albums: [...next], albumAddedAt };
     });
   };
 
@@ -513,6 +548,9 @@ export function App() {
             onThemeChange={changeTheme}
             catalog={catalog}
             favorites={favorites}
+            favoriteAddedAt={userState.favoriteAddedAt}
+            albums={albums}
+            albumAddedAt={userState.albumAddedAt}
             player={player}
             onRetry={retryCatalog}
             onToggleFavorite={toggleFavorite}
@@ -537,6 +575,8 @@ export function App() {
               onAddToQueue={(song, sourceCollection) => engine.addToQueue(song, sourceCollection, preferredRecording(song.id))}
               favorites={favorites}
               onToggleFavorite={toggleFavorite}
+              savedAlbum={albums.has(collection.id)}
+              onToggleAlbum={() => toggleAlbum(collection.id)}
             />
           ) : <MissingCollection />
         )}

@@ -74,6 +74,8 @@ export function CollectionPage({
   onAddToQueue,
   favorites,
   onToggleFavorite,
+  savedAlbum,
+  onToggleAlbum,
 }: {
   client: CatalogClient;
   summary: CollectionSummary;
@@ -84,6 +86,8 @@ export function CollectionPage({
   onAddToQueue: (song: Song, collection: CollectionSummary) => void;
   favorites: Set<string>;
   onToggleFavorite: (songId: string) => void;
+  savedAlbum: boolean;
+  onToggleAlbum: () => void;
 }) {
   const [request, setRequest] = useState(0);
   const [menuSongId, setMenuSongId] = useState<string>();
@@ -147,9 +151,20 @@ export function CollectionPage({
           <p>
             {collection.songCount.toLocaleString()} songs · {collection.playableSongCount.toLocaleString()} with audio
           </p>
-          <a class="source-link" href={collection.sourceUrl}>
-            View in the official music library <Icon name="chevron" size={16} />
-          </a>
+          <div class="collection-header-actions">
+            <button
+              type="button"
+              class={`album-library-button ${savedAlbum ? "is-saved" : ""}`}
+              onClick={onToggleAlbum}
+              aria-pressed={savedAlbum}
+            >
+              <Icon name="heart" filled={savedAlbum} size={17} />
+              {savedAlbum ? "Added to Library" : "Add Album to Library"}
+            </button>
+            <a class="source-link" href={collection.sourceUrl}>
+              View in the official music library <Icon name="chevron" size={16} />
+            </a>
+          </div>
         </div>
       </header>
 

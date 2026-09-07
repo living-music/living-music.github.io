@@ -72,13 +72,13 @@ Open a collection and select any song with audio. Living Music chooses a vocal r
 
 Select the song details in the mini player to open Now Playing. This view offers large artwork, alternate recording selection, full transport controls, repeat off/all/one, and the Up Next queue. A song row’s options menu can place that song next or at the end. Queue items can play immediately, move up or down, be removed, or be cleared together.
 
-The browser Media Session API connects playback to supported lock screens, Control Center surfaces, keyboards, and headset controls. When focus is outside an interactive control, Space toggles playback. Favorites, the queue, repeat mode, and recording preferences are stored under the versioned `livingMusic:userState:v1` key. On reload, valid catalog entries are restored in a paused state; removed songs or recordings are discarded or replaced safely.
+The browser Media Session API connects playback to supported lock screens, Control Center surfaces, keyboards, and headset controls. When focus is outside an interactive control, Space toggles playback. Saved songs and albums with their add timestamps, the queue, repeat mode, and recording preferences are stored under the versioned `livingMusic:userState:v1` key. On reload, valid catalog entries are restored in a paused state; removed songs or recordings are discarded or replaced safely.
 
 ## Search and Library
 
 Search opens the compact global index only when Search or Library is visited. Queries ignore case and accents, accept multiple non-adjacent words, and match song titles, numbers, artists, and collection names. Selecting a result then downloads only its collection payload before playback. Large result sets show the first 80 entries to keep rendering responsive.
 
-Heart controls in collections, search results, and Now Playing update the same on-device favorites list. Library resolves those IDs through the global index and provides direct playback without requiring an account.
+Heart controls in collections, search results, and Now Playing add or remove songs from the on-device Library. Collection pages can save whole albums. Library separates Recently Added, Albums, Songs, and Music Videos; Recently Added merges saved songs and albums by their device-local add timestamps. The compact global index resolves saved song IDs and recording types without requiring an account.
 
 ## Catalog contract
 

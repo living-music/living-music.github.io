@@ -5,12 +5,12 @@ import type { PlayerStatus } from "../player";
 import type { CatalogIndex, SearchIndex, SearchSong } from "../types";
 import { Artwork } from "./Artwork";
 
-type SearchState =
+export type SearchState =
   | { status: "loading" }
   | { status: "ready"; index: SearchIndex }
   | { status: "error"; message: string };
 
-function useSearchIndex(client: CatalogClient, enabled = true): SearchState {
+export function useSearchIndex(client: CatalogClient, enabled = true): SearchState {
   const [state, setState] = useState<SearchState>({ status: "loading" });
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export function filterSearchSongs(
   });
 }
 
-function ResultsError({ message }: { message: string }) {
+export function ResultsError({ message }: { message: string }) {
   return (
     <section class="results-message" role="alert">
       <Icon name="search" size={25} />
@@ -62,7 +62,7 @@ function ResultsError({ message }: { message: string }) {
   );
 }
 
-function ResultsSkeleton() {
+export function ResultsSkeleton() {
   return (
     <div class="results-skeleton" aria-busy="true" aria-label="Loading songs">
       {Array.from({ length: 7 }, (_, index) => (
@@ -78,7 +78,7 @@ function ResultsSkeleton() {
   );
 }
 
-function SongResults({
+export function SongResults({
   songs,
   catalog,
   favorites,
@@ -243,67 +243,5 @@ export function SearchExperience({
         </section>
       )}
     </>
-  );
-}
-
-export function FavoriteSongs({
-  client,
-  catalog,
-  favorites,
-  currentSongId,
-  playerStatus,
-  onToggleFavorite,
-  onPlay,
-}: {
-  client: CatalogClient;
-  catalog: CatalogIndex;
-  favorites: Set<string>;
-  currentSongId?: string;
-  playerStatus: PlayerStatus;
-  onToggleFavorite: (songId: string) => void;
-  onPlay: (song: SearchSong) => Promise<void>;
-}) {
-  const search = useSearchIndex(client, favorites.size > 0);
-
-  if (!favorites.size) {
-    return (
-      <section class="empty-state compact library-empty" aria-labelledby="favorites-title">
-        <div class="empty-icon"><Icon name="heart" size={28} /></div>
-        <h2 id="favorites-title">Save songs you love.</h2>
-        <p>Select the heart beside a song in a collection or search result, and it will appear here.</p>
-        <a class="primary-action" href="#/search">Find music</a>
-      </section>
-    );
-  }
-
-  if (search.status === "loading") return <ResultsSkeleton />;
-  if (search.status === "error") return <ResultsError message={search.message} />;
-
-  const byId = new Map(search.index.songs.map((song) => [song.id, song]));
-  const songs = [...favorites].flatMap((id) => {
-    const song = byId.get(id);
-    return song ? [song] : [];
-  });
-
-  return (
-    <section class="favorite-songs" aria-labelledby="favorites-title">
-      <div class="results-heading">
-        <h2 id="favorites-title">Favorite Songs</h2>
-        <p>{songs.length.toLocaleString()} saved on this device</p>
-      </div>
-      {songs.length ? (
-        <SongResults
-          songs={songs}
-          catalog={catalog}
-          favorites={favorites}
-          currentSongId={currentSongId}
-          playerStatus={playerStatus}
-          onToggleFavorite={onToggleFavorite}
-          onPlay={onPlay}
-        />
-      ) : (
-        <ResultsError message="Your saved song IDs are no longer present in the current catalog." />
-      )}
-    </section>
   );
 }
