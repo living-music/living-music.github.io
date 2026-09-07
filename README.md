@@ -29,13 +29,11 @@ docs/PLAN.md             Product scope, architecture, milestones, open decisions
 
 ## GitHub Pages
 
-1. Create a GitHub repository and push this local repository to its `main` branch.
-2. In the repository’s **Settings → Pages**, select **GitHub Actions** as the source.
-3. Run the **Deploy static site to GitHub Pages** workflow, or push a change to `main`.
+This repository is the organization site for the `living-music` GitHub organization. Its canonical URL is [https://living-music.github.io/](https://living-music.github.io/).
 
-The workflow uploads only `site/`. It follows [GitHub’s custom workflow guidance](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages). Relative asset paths support both a root site and a project URL such as `https://USERNAME.github.io/living-music/`. No remote repository or deployed site has been created by this initialization.
+The deployment workflow uploads `site/`, placing `site/index.html` at the domain root. In **Settings → Pages**, the publishing source is **GitHub Actions**. Relative asset paths keep styles, scripts, and navigation rooted correctly at `/`.
 
-Keep credentials out of public files: everything in `site/` is downloadable. GitHub Pages supplies static hosting, so any catalog maintenance will happen before deployment, not on a server at runtime.
+Keep credentials out of public files: everything in `site/` is downloadable. GitHub Pages supplies static hosting, so catalog maintenance happens before deployment rather than on a server at runtime.
 
 ## Development direction
 
