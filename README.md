@@ -6,7 +6,7 @@ The companion [musicapi](https://github.com/living-music/musicapi) repository pu
 
 ## Status
 
-Steps 1 through 6 of the first prototype are complete: the project now supports live browsing, playback, Now Playing, an editable queue, global search, favorites, a populated Library, and durable on-device listening state. Step 7 covers final polish, browser QA, cleanup, and release documentation. See the [prototype checklist](docs/PROTOTYPE.md) and [implementation plan](docs/PLAN.md).
+The first seven-step prototype is complete. It supports live browsing, playback, Now Playing, an editable queue, global search, favorites, a populated Library, durable on-device listening state, and system media controls. See the [release notes](docs/RELEASE.md), [prototype checklist](docs/PROTOTYPE.md), and [implementation plan](docs/PLAN.md).
 
 ## Requirements
 
@@ -54,14 +54,16 @@ src/
   api.ts                   Versioned musicapi client and runtime validation
   audio.ts                 Recording choice and media formatting helpers
   player.ts                Shared HTMLAudioElement engine and playback state
+  media-session.ts          Lock-screen and hardware media-control integration
   storage.ts               Defensive local user-state and theme persistence
   types.ts                 Catalog and player data contracts
   *.test.ts                Focused unit tests
 docs/PLAN.md               Product and implementation plan
 docs/BRAND.md              App icon concept, assets, and usage rules
 docs/PROTOTYPE.md          Seven-step delivery checklist and current behavior
+docs/RELEASE.md            Prototype scope, QA record, limits, and release process
+CHANGELOG.md               User-visible release history
 .github/workflows/pages.yml  Tested GitHub Pages build and deployment
-site/                      Retired pre-tooling prototype; removal is deferred
 ```
 
 ## Playback
@@ -70,7 +72,7 @@ Open a collection and select any song with audio. Living Music chooses a vocal r
 
 Select the song details in the mini player to open Now Playing. This view offers large artwork, alternate recording selection, full transport controls, repeat off/all/one, and the Up Next queue. A song row’s options menu can place that song next or at the end. Queue items can play immediately, move up or down, be removed, or be cleared together.
 
-Favorites, the queue, repeat mode, and recording preferences are stored under the versioned `livingMusic:userState:v1` key. On reload, valid catalog entries are restored in a paused state; removed songs or recordings are discarded or replaced safely.
+The browser Media Session API connects playback to supported lock screens, Control Center surfaces, keyboards, and headset controls. When focus is outside an interactive control, Space toggles playback. Favorites, the queue, repeat mode, and recording preferences are stored under the versioned `livingMusic:userState:v1` key. On reload, valid catalog entries are restored in a paused state; removed songs or recordings are discarded or replaced safely.
 
 ## Search and Library
 

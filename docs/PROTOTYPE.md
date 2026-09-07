@@ -10,7 +10,7 @@ The first Living Music prototype is split into seven independently reviewable st
 | 4. Core playback | Complete | Shared audio engine, vocal-first selection, transport controls, seeking, and mini player |
 | 5. Now Playing and queue | Complete | Expanded player, recording choices, Up Next, and track advancement |
 | 6. Search, favorites, and Library | Complete | Global search, local favorites, and populated Library |
-| 7. Polish, documentation, and deployment | Next | Media Session, cross-browser QA, cleanup, and release documentation |
+| 7. Polish, documentation, and deployment | Complete | Media Session, cross-browser QA, cleanup, and release documentation |
 
 ## Step 2 behavior
 
@@ -58,3 +58,10 @@ Search fetches the revisioned compact search index only when Search or Library o
 Heart controls in collection rows, search results, and Now Playing share one favorites set. Library renders saved songs from the compact index, supports direct playback, and keeps appearance settings alongside the listener’s music. Catalog IDs that disappear are ignored safely.
 
 A validated `livingMusic:userState:v1` record stores favorites, queue references, current queue position, repeat mode, the global preferred recording type, and per-song recording preferences. Legacy favorite IDs migrate automatically. On reload the client resolves valid queue references against the current revisioned catalog and restores the selected track paused, preserving browser autoplay expectations. Malformed storage, unavailable storage, removed songs, and removed recordings degrade to valid defaults.
+
+
+## Step 7 behavior
+
+Supported browsers receive Media Session metadata for the active title, artist, collection, and artwork. Lock-screen, headset, keyboard, and operating-system controls can play, pause, move between tracks, and seek. The integration treats every Media Session feature as optional so browsers with partial or no support retain the complete in-page player. Space toggles playback when keyboard focus is outside a link or form control.
+
+The app adds higher-contrast and forced-colors adaptations, complete sharing and install metadata, and dedicated release notes. The retired static prototype has been removed, leaving Vite's source and `dist/` as the only application paths. Automated tests cover catalog validation, audio selection, queue behavior, storage migration, routing, search, and Media Session actions. Production QA checks the responsive 390 px layout, desktop layout, live API, local persistence, and the minified Pages build.

@@ -1869,3 +1869,21 @@ a.collection-card:active { transform: scale(0.985); }
 @media (prefers-reduced-transparency: reduce) {
   .live-search { background: var(--surface-solid); }
 }
+
+
+@media (prefers-contrast: more) {
+  :root { --border: rgba(255, 255, 255, 0.28); --muted: #c5c5cc; }
+  html[data-theme="light"] { --border: rgba(0, 0, 0, 0.3); --muted: #45454c; }
+  .navigation-item.is-current,
+  .primary-action { outline: 1px solid currentColor; }
+}
+
+@media (forced-colors: active) {
+  .artwork,
+  .hero-icon,
+  .brand img,
+  .mobile-brand img { forced-color-adjust: none; }
+  .navigation-item.is-current,
+  .primary-action,
+  .player-control { border: 1px solid ButtonText; }
+}

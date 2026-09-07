@@ -6,6 +6,7 @@ import { Icon, type IconName } from "./Icon";
 import { MiniPlayer, NowPlaying } from "./components/Player";
 import { FavoriteSongs, SearchExperience } from "./components/SearchLibrary";
 import { AudioEngine, type PlayerSnapshot, type PlayerTrack } from "./player";
+import { MediaSessionController } from "./media-session";
 import { hrefFor, navigationDestination, routeFromHash, type Destination, type Route } from "./router";
 import { readTheme, readUserState, writeTheme, writeUserState, type Theme, type UserState } from "./storage";
 import type { CatalogIndex, CollectionSummary, SearchSong, Song } from "./types";
@@ -290,6 +291,8 @@ export function App() {
   const engineRef = useRef<AudioEngine | null>(null);
   if (!engineRef.current) engineRef.current = new AudioEngine();
   const engine = engineRef.current;
+  const mediaSessionRef = useRef<MediaSessionController | null>(null);
+  if (!mediaSessionRef.current) mediaSessionRef.current = new MediaSessionController(engine);
   const [player, setPlayer] = useState<PlayerSnapshot>(engine.state);
   const [userState, setUserState] = useState<UserState>(readUserState);
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
@@ -302,6 +305,24 @@ export function App() {
   const favorites = useMemo(() => new Set(userState.favorites), [userState.favorites]);
 
   useEffect(() => engine.subscribe(setPlayer), [engine]);
+
+  useEffect(() => {
+    mediaSessionRef.current?.update(player);
+  }, [player]);
+
+  useEffect(() => () => mediaSessionRef.current?.destroy(), []);
+
+  useEffect(() => {
+    const handlePlaybackShortcut = (event: KeyboardEvent) => {
+      if (event.code !== "Space" || event.repeat || event.metaKey || event.ctrlKey || event.altKey || !engine.state.track) return;
+      const target = event.target;
+      if (target instanceof Element && target.closest("button, input, select, textarea, a, [contenteditable='true']")) return;
+      event.preventDefault();
+      engine.toggle();
+    };
+    window.addEventListener("keydown", handlePlaybackShortcut);
+    return () => window.removeEventListener("keydown", handlePlaybackShortcut);
+  }, [engine]);
 
   useEffect(() => {
     writeUserState(userState);
