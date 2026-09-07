@@ -6,7 +6,7 @@ The companion [musicapi](https://github.com/living-music/musicapi) repository pu
 
 ## Status
 
-Step 1 of the first prototype is complete: the project has a typed Preact foundation, a Vite production build, focused unit tests, PWA metadata, and a GitHub Pages deployment workflow. The checked-in screen is intentionally small; navigation, live browsing, and playback are delivered in the following prototype steps described in [the implementation plan](docs/PLAN.md).
+Steps 1 and 2 of the first prototype are complete: the project has a typed Preact foundation and a responsive, dark-default application shell with Home, Browse, Search, and Library navigation. Live catalog browsing begins in Step 3; playback follows in Step 4. See the [prototype checklist](docs/PROTOTYPE.md) and [implementation plan](docs/PLAN.md).
 
 ## Requirements
 
@@ -57,6 +57,7 @@ src/
   *.test.ts                Focused unit tests
 docs/PLAN.md               Product and implementation plan
 docs/BRAND.md              App icon concept, assets, and usage rules
+docs/PROTOTYPE.md          Seven-step delivery checklist and current behavior
 .github/workflows/pages.yml  Tested GitHub Pages build and deployment
 site/                      Retired pre-tooling prototype; removal is deferred
 ```
