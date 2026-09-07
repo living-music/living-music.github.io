@@ -4,19 +4,21 @@ Status: implementation proposal, September 7, 2026.
 
 ## Product goal
 
-Build a fast, artwork-forward music player for everyday listening at [living-music.github.io](https://living-music.github.io/). The experience should feel as polished and predictable as Apple Music while retaining a distinct Living Music identity and using only music metadata and media URLs published by the companion [musicapi](https://living-music.github.io/musicapi/).
+Build a fast, artwork-forward music player for everyday listening at [living-music.github.io](https://living-music.github.io/). The experience must feel Apple-native even in a browser: smooth, direct, calm, and immediately understandable, while retaining a distinct Living Music identity and using only music metadata and media URLs published by the companion [musicapi](https://living-music.github.io/musicapi/).
 
 The first release succeeds when a listener can discover a collection, find a song, choose an available recording, start playback, build a queue, and return to favorites without creating an account.
 
 ## Product principles
 
-1. **Playback stays present.** Once a song is selected, a mini player remains available while the listener browses, searches, or edits the queue.
-2. **Artwork leads the interface.** Collection and song artwork provide hierarchy and color, while text and controls remain readable when artwork is missing.
-3. **One tap starts a sensible recording.** Prefer a vocal recording for everyday listening, remember the listener’s last recording preference, and keep alternate versions easy to reach.
-4. **The queue is understandable.** Show what is playing, what comes next, and what autoplay behavior will occur.
-5. **Local-first preferences.** Favorites, queue state, playback preferences, and appearance live on the device. No account or backend is required.
-6. **Progressive enhancement.** Browsing and source links remain useful when storage, Media Session, installation, or advanced browser features are unavailable.
-7. **Respect the source.** Keep official source links visible and describe Living Music as an independent interface rather than an official Church product.
+1. **Native feel serves clarity.** Motion, materials, spacing, and direct manipulation should feel at home on Apple devices while every action remains visible, labeled, and usable on the wider web.
+2. **Playback stays present.** Once a song is selected, a mini player remains available while the listener browses, searches, or edits the queue.
+3. **Artwork leads the interface.** Collection and song artwork provide hierarchy and color, while text and controls remain readable when artwork is missing.
+4. **One tap starts a sensible recording.** Prefer a vocal recording for everyday listening, remember the listener’s last recording preference, and keep alternate versions easy to reach.
+5. **The queue is understandable.** Show what is playing, what comes next, and what autoplay behavior will occur.
+6. **Dark by default.** The first paint and initial experience use a considered dark appearance; listeners can choose light or system appearance without losing contrast or readability.
+7. **Local-first preferences.** Favorites, queue state, playback preferences, and appearance live on the device. No account or backend is required.
+8. **Progressive enhancement.** Browsing and source links remain useful when storage, Media Session, installation, or advanced browser features are unavailable.
+9. **Respect the source.** Keep official source links visible and describe Living Music as an independent interface rather than an official Church product.
 
 ## Experience model
 
@@ -46,12 +48,28 @@ Open the queue in a right-side panel. Keep the current content position when the
 Use Apple Music as an interaction reference, not as a pixel-for-pixel copy.
 
 - Large artwork with 12–18 px corner radii.
-- Neutral layered surfaces, restrained shadows, and translucent player chrome where contrast remains sufficient.
-- A warm Living Music accent rather than Apple’s red.
-- System font stack for controls and metadata; a restrained display face may be used for major editorial headings.
-- Artwork-derived color may tint Now Playing, but text and controls use tested semantic colors.
-- Support light, dark, increased-contrast, reduced-motion, and 200% text zoom.
+- Dark mode is the default, using near-black layered surfaces instead of flat pure black so navigation, content, sheets, and player chrome remain distinct.
+- Use restrained shadows and translucent materials where contrast remains sufficient, with an opaque fallback when `backdrop-filter` is unavailable.
+- A warm Living Music accent replaces Apple’s red and never carries meaning by itself.
+- Use the Apple system font stack on Apple devices and native system fonts elsewhere. A restrained display face may be used only for major editorial headings.
+- Artwork-derived color may tint Now Playing, but semantic text and control colors remain stable and tested.
+- Offer light and system-following appearances as explicit settings; support increased contrast, reduced transparency, reduced motion, and 200% text zoom.
 - Use original icons from an open icon set or project-owned SVGs. Do not copy Apple icons, branding, screenshots, or proprietary assets.
+
+### Motion and native-feeling behavior
+
+- Make transitions explain spatial relationships: content pushes for navigation, the mini player expands into Now Playing, and queue/settings surfaces rise as sheets.
+- Keep common transitions in the 160–320 ms range with consistent ease-out curves. Controls respond immediately on press; decorative motion never delays an action.
+- Animate only opacity and transforms during routine navigation. Crossfade artwork changes and avoid large parallax or continuous background motion.
+- Respect `prefers-reduced-motion` by replacing movement with short fades or immediate state changes.
+- Treat touch, pointer, and keyboard as equal inputs. Hover adds information but is never required; drag-to-reorder always has button and keyboard alternatives.
+- Use native scrolling, predictable back behavior, retained scroll positions, and focus restoration rather than recreating browser primitives.
+- Account for `env(safe-area-inset-*)` around the mobile tab bar, mini player, full-screen sheets, and installed-app title area.
+- Use pressed, loading, disabled, selected, and focus-visible states consistently so every control feels responsive.
+- Prefer skeletons and preserved layout over blocking spinners. Optimistic favorite and queue actions should settle instantly and roll back with a clear message only if persistence fails.
+- Add `viewport-fit=cover`, Apple touch icons, manifest metadata, and dark status-bar styling for an app-like installed experience.
+- Apply the default theme before loading the main stylesheet or rendering Preact so a returning listener never sees a light flash.
+- Keep translucency subtle and functional. Under reduced transparency or unsupported blur, use an opaque surface with the same hierarchy.
 
 Apple’s guidance favors persistent, labeled top-level navigation, visible playback controls, user-initiated audio, and interfaces that adapt to appearance and accessibility settings. References:
 
@@ -80,7 +98,7 @@ Apple’s guidance favors persistent, labeled top-level navigation, visible play
 - Installable PWA metadata and app icons.
 - Loading, empty, offline, unavailable-media, storage-error, and unsupported-schema states.
 - Links to each item’s official source page.
-- Responsive light and dark themes.
+- Dark appearance by default, with selectable light and system-following appearances.
 
 ### Deferred
 
@@ -96,6 +114,8 @@ Apple’s guidance favors persistent, labeled top-level navigation, visible play
 Adopt **Vite, TypeScript, and Preact** for the application.
 
 This interface now has enough shared state and conditional views to justify a component framework. Preact keeps the shipped runtime small while providing predictable component rendering; TypeScript makes catalog parsing and player transitions safer; Vite produces static files that GitHub Pages can deploy without a server.
+
+Place a tiny inline theme bootstrap in the document `<head>` before the stylesheet. It reads the saved appearance safely and sets `data-theme`; when no preference exists, it selects dark. CSS declares `color-scheme: dark` at the root and supplies complete semantic tokens for dark, light, system-following, increased-contrast, and reduced-transparency modes.
 
 The Pages workflow will:
 
@@ -239,7 +259,7 @@ Keep these state groups separate:
 - **Player:** current song/recording, play state, current time, duration, buffering, error.
 - **Queue:** ordered entries, current index, shuffle order, repeat mode.
 - **Library:** favorites, recent history, recording preferences.
-- **Settings:** theme, reduced artwork motion, data-saving preferences.
+- **Settings:** theme (default dark), reduced artwork motion, data-saving preferences.
 
 The audio engine owns the `HTMLAudioElement` and emits state updates. UI components send commands to the engine rather than mutating the element independently.
 
@@ -278,8 +298,10 @@ interface UserStateV1 {
   songRecordingPreferences: Record<string, string>;
   repeatMode: "off" | "all" | "one";
   shuffle: boolean;
-  theme: "system" | "light" | "dark";
+  theme: "dark" | "light" | "system";
 }
+
+const DEFAULT_THEME = "dark";
 ```
 
 Limit recents to 50 items, validate all parsed values, discard unknown IDs gracefully, and wrap storage access in `try/catch`. `localStorage` persists across sessions but can be unavailable or cleared, especially in private browsing. Reference: [MDN Web Storage API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API).
@@ -297,7 +319,7 @@ Do not automatically resume audio after a page reload. Restore the queue and sel
 - Preserve focus when panels open and return it to the invoking control when they close.
 - Do not use color alone for favorite, selected, buffering, or error states.
 - Disable nonessential artwork and panel animations under `prefers-reduced-motion`.
-- Test light, dark, increased contrast, 200% zoom, keyboard-only navigation, VoiceOver, and TalkBack.
+- Test the default dark appearance first, then light, system-following, increased contrast, reduced transparency, 200% zoom, keyboard-only navigation, VoiceOver, and TalkBack.
 - Never autoplay on initial load.
 
 ## Error behavior
@@ -320,13 +342,14 @@ Deliver:
 - Vite, TypeScript, Preact, linting, and focused test setup.
 - GitHub Pages build workflow.
 - Responsive app shell with desktop sidebar and mobile tab bar.
-- Design tokens, light/dark themes, artwork placeholders, and base components.
+- Design tokens, a no-flash default dark theme, optional light/system themes, artwork placeholders, and base components.
 - Hash router and route restoration.
 - API client with runtime schema validation.
 
 Acceptance:
 
 - Root URL loads from a clean deployment.
+- First paint is dark with no light-theme flash; appearance changes persist across reloads.
 - App shell works at 320 px width, wide desktop, keyboard-only, and 200% zoom.
 - A malformed or unsupported manifest produces a recoverable error screen.
 - No playback or install prompt occurs without user action.
@@ -393,7 +416,7 @@ Deliver:
 - Favorite controls in song rows and Now Playing.
 - Library views for favorites and recent history.
 - Versioned local persistence and migrations.
-- Web app manifest, icons, standalone display settings, and theme colors.
+- Web app manifest, Apple touch icons, standalone display settings, safe-area handling, and dark-default theme colors.
 - Optional service worker for app shell and metadata only.
 
 Acceptance:
@@ -474,8 +497,9 @@ Representative manual checks:
 - Avoid decoding large artwork for off-screen rows.
 - Virtualize only after profiling shows a real need; collection lists are preferable as semantic HTML when practical.
 - Debounce search rendering, not keystroke capture.
-- Keep animations on opacity and transforms.
-- Measure first contentful render, interaction latency, memory during long queues, and artwork transfer size.
+- Keep animations on opacity and transforms; do not animate layout properties during navigation or playback transitions.
+- Target 60 frames per second for active motion and under 100 ms visual response to taps and clicks on representative devices.
+- Measure first contentful render, interaction latency, animation frame stability, memory during long queues, and artwork transfer size.
 
 ## Security, privacy, and rights
 
@@ -500,6 +524,7 @@ Representative manual checks:
 - Default recording: vocal-first with remembered overrides.
 - Offline: app shell and metadata only; no audio downloads.
 - Initial language: English.
+- Initial appearance: dark, with light and system-following options.
 - Initial analytics: none.
 
 ## First implementation slice
