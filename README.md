@@ -1,44 +1,77 @@
 # Living Music
 
-A static webapp in development for a simpler listening experience with music from The Church of Jesus Christ of Latter-day Saints.
+Living Music is an independent, Apple-native-feeling web player for music made available through The Church of Jesus Christ of Latter-day Saints music library. It is built as a static application and hosted at [living-music.github.io](https://living-music.github.io/).
+
+The companion [musicapi](https://github.com/living-music/musicapi) repository publishes the optimized catalog at [living-music.github.io/musicapi](https://living-music.github.io/musicapi/).
 
 ## Status
 
-Base repository initialized. The site is a responsive starting page with a link to the official music library; in-app playback and a music catalog are not implemented yet. Product scope and architecture are proposed in [the app plan](docs/PLAN.md).
+Step 1 of the first prototype is complete: the project has a typed Preact foundation, a Vite production build, focused unit tests, PWA metadata, and a GitHub Pages deployment workflow. The checked-in screen is intentionally small; navigation, live browsing, and playback are delivered in the following prototype steps described in [the implementation plan](docs/PLAN.md).
 
-The companion catalog API is published at [https://living-music.github.io/musicapi/](https://living-music.github.io/musicapi/).
+## Requirements
 
-## Run locally
+- Node.js 22 or newer
+- npm 10 or newer
 
-Requires Python 3. No package installation or build step is needed.
+## Local development
+
+Install the locked dependencies and start Vite:
 
 ```sh
-python3 -m http.server 8000 --bind 127.0.0.1 --directory site
+npm ci
+npm run dev
 ```
 
-Open http://127.0.0.1:8000. Use an HTTP server rather than opening the HTML file directly, since future modules and catalog fetching will require HTTP.
+Open the local URL printed by Vite. On localhost, the client uses the published catalog API automatically.
+
+To use another catalog, create an untracked `.env.local` file:
+
+```text
+VITE_MUSIC_API_ROOT=http://127.0.0.1:8080/
+```
+
+The value must resolve to a catalog root containing `index.json`.
+
+## Commands
+
+```sh
+npm run dev        # Start the local development server
+npm run typecheck  # Validate TypeScript
+npm test           # Run focused unit tests once
+npm run build      # Type-check and create dist/
+npm run preview    # Serve the production build locally
+```
 
 ## Project layout
 
 ```text
-site/                    Public files; only this folder is deployed
-  index.html             Accessible starting page
-  styles.css             Responsive styles
-  app.js                 Browser module entry point
-docs/PLAN.md             Product scope, architecture, milestones, open decisions
-.github/workflows/       GitHub Pages deployment
+index.html                 Vite document entry and pre-render theme bootstrap
+public/                    Static PWA files copied into dist/
+src/
+  App.tsx                  Current application entry screen
+  Icon.tsx                 Project-owned interface icons
+  api.ts                   Versioned musicapi client and runtime validation
+  audio.ts                 Recording choice and media formatting helpers
+  storage.ts               Defensive local favorites and theme persistence
+  types.ts                 Catalog and player data contracts
+  *.test.ts                Focused unit tests
+docs/PLAN.md               Product and implementation plan
+.github/workflows/pages.yml  Tested GitHub Pages build and deployment
+site/                      Retired pre-tooling prototype; removal is deferred
 ```
 
-## GitHub Pages
+## Catalog contract
 
-This repository is the organization site for the `living-music` GitHub organization. Its canonical URL is [https://living-music.github.io/](https://living-music.github.io/).
+Production loads the same-origin catalog from `/musicapi/`. Local development defaults to the published API. The client first requests `index.json`, rejects unsupported schema versions, resolves the advertised version index, and resolves collection and search links against the document that declared them.
 
-The deployment workflow uploads `site/`, placing `site/index.html` at the domain root. In **Settings → Pages**, the publishing source is **GitHub Actions**. Relative asset paths keep styles, scripts, and navigation rooted correctly at `/`.
+Catalog payloads are untrusted network input. Required envelope fields receive runtime checks, and rendering code must continue to treat all catalog strings as text.
 
-Keep credentials out of public files: everything in `site/` is downloadable. GitHub Pages supplies static hosting, so catalog maintenance happens before deployment rather than on a server at runtime.
+## Deployment
 
-## Development direction
+A push to `main` runs type-checking, unit tests, and a Vite production build. GitHub Actions uploads only `dist/` and deploys it to [living-music.github.io](https://living-music.github.io/). GitHub Pages must use **GitHub Actions** as its publishing source.
 
-Start with standard HTML, CSS, browser JavaScript modules, and a single native audio element. Revisit a framework when the approved interface warrants it. Add focused checks as catalog and playback behavior are implemented; this base has no automated test suite.
+Everything in `dist/` is public. Never place credentials in source files, Vite environment variables, or Pages artifacts.
 
-Living Music is a working name. This is an independent project, not affiliated with or endorsed by the Church. A source-code license has not yet been selected; any eventual code license will not grant rights to third-party music or artwork.
+## Independence and media
+
+Living Music is not affiliated with or endorsed by The Church of Jesus Christ of Latter-day Saints. The application stores catalog metadata and URLs; it does not copy Church-hosted audio or artwork into this repository. Public availability does not grant redistribution rights.

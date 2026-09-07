@@ -1,0 +1,11 @@
+{
+  "name": "Living Music",
+  "short_name": "Living Music",
+  "description": "A simple, beautiful way to listen to sacred music.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#08080a",
+  "theme_color": "#08080a",
+  "icons": [{"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
