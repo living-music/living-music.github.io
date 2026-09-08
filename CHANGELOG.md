@@ -4,6 +4,9 @@ All notable user-visible changes to Living Music are recorded here.
 
 ## Unreleased
 
+- Added right-click song context menus with matching overflow-button access.
+- Added playlist insertion from song menus and playable playlist song pages.
+
 - Moved Favorites into Playlists as a fixed smart playlist sorted by favorite date.
 - Made favoriting a song add it to Library while unfavoriting preserves Library membership.
 

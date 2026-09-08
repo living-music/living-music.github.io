@@ -3,8 +3,10 @@ import { CatalogClient } from "../api";
 import { Icon } from "../Icon";
 import type { PlayerStatus } from "../player";
 import { hrefForCollection } from "../router";
+import type { Playlist } from "../storage";
 import type { CollectionPayload, CollectionSummary, Song } from "../types";
 import { Artwork } from "./Artwork";
+import { SongContextMenu, type ContextMenuPosition } from "./SongContextMenu";
 
 export function CatalogSkeleton({ count = 6 }: { count?: number }) {
   return (
@@ -88,6 +90,8 @@ export function CollectionPage({
   onToggleFavorite,
   librarySongs,
   onToggleLibrarySong,
+  playlists,
+  onAddToPlaylist,
   visibleSongIds,
   libraryContext = false,
   savedAlbum,
@@ -104,21 +108,16 @@ export function CollectionPage({
   onToggleFavorite: (songId: string) => void;
   librarySongs: Set<string>;
   onToggleLibrarySong: (songId: string) => void;
+  playlists: Playlist[];
+  onAddToPlaylist: (playlistId: string, songId: string) => void;
   visibleSongIds?: Set<string>;
   libraryContext?: boolean;
   savedAlbum: boolean;
   onToggleAlbum: () => void;
 }) {
   const [request, setRequest] = useState(0);
-  const [menuSongId, setMenuSongId] = useState<string>();
+  const [menu, setMenu] = useState<{ songId: string; position: ContextMenuPosition }>();
   const [state, setState] = useState<CollectionState>({ status: "loading" });
-
-  useEffect(() => {
-    if (!menuSongId) return;
-    const closeMenu = (event: KeyboardEvent) => { if (event.key === "Escape") setMenuSongId(undefined); };
-    window.addEventListener("keydown", closeMenu);
-    return () => window.removeEventListener("keydown", closeMenu);
-  }, [menuSongId]);
 
   useEffect(() => {
     let active = true;
@@ -211,7 +210,14 @@ export function CollectionPage({
             const isPlaying = isCurrent && (playerStatus === "playing" || playerStatus === "loading");
             const unavailable = song.recordings.length === 0;
             return (
-              <li class={`song-row ${isCurrent ? "is-current" : ""}`} key={song.id}>
+              <li
+                class={`song-row ${isCurrent ? "is-current" : ""}`}
+                key={song.id}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  setMenu({ songId: song.id, position: { x: event.clientX, y: event.clientY } });
+                }}
+              >
                 <button
                   type="button"
                   class="song-button"
@@ -258,22 +264,32 @@ export function CollectionPage({
                   <button
                     type="button"
                     class="song-more-button"
-                    onClick={() => setMenuSongId(menuSongId === song.id ? undefined : song.id)}
-                    aria-label={`Queue options for ${song.title}`}
-                    aria-expanded={menuSongId === song.id}
+                    onClick={(event) => {
+                      const rect = event.currentTarget.getBoundingClientRect();
+                      setMenu(menu?.songId === song.id ? undefined : { songId: song.id, position: { x: rect.right, y: rect.bottom } });
+                    }}
+                    aria-label={`Options for ${song.title}`}
+                    aria-expanded={menu?.songId === song.id}
                   >
                     <Icon name="more" size={20} />
                   </button>
                 )}
-                {menuSongId === song.id && (
-                  <div class="song-queue-menu">
-                    <button type="button" onClick={() => { onPlayNext(song, collection); setMenuSongId(undefined); }}>
-                      <Icon name="next" size={17} /> Play Next
-                    </button>
-                    <button type="button" onClick={() => { onAddToQueue(song, collection); setMenuSongId(undefined); }}>
-                      <Icon name="queue" size={17} /> Add to End
-                    </button>
-                  </div>
+                {menu?.songId === song.id && (
+                  <SongContextMenu
+                    songId={song.id}
+                    title={song.title}
+                    position={menu.position}
+                    favorite={favorites.has(song.id)}
+                    inLibrary={librarySongs.has(song.id) || savedAlbum}
+                    libraryActionDisabled={savedAlbum}
+                    playlists={playlists}
+                    onFavorite={() => onToggleFavorite(song.id)}
+                    onToggleLibrary={() => onToggleLibrarySong(song.id)}
+                    onPlayNext={() => onPlayNext(song, collection)}
+                    onAddToQueue={() => onAddToQueue(song, collection)}
+                    onAddToPlaylist={(playlistId) => onAddToPlaylist(playlistId, song.id)}
+                    onClose={() => setMenu(undefined)}
+                  />
                 )}
               </li>
             );

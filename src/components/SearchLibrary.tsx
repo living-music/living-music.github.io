@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from "preact/hooks";
 import { normalizeSearch, CatalogClient } from "../api";
 import { Icon } from "../Icon";
 import type { PlayerStatus } from "../player";
+import type { Playlist } from "../storage";
 import type { CatalogIndex, SearchIndex, SearchSong } from "../types";
 import { Artwork } from "./Artwork";
+import { SongContextMenu, type ContextMenuPosition } from "./SongContextMenu";
 
 export type SearchState =
   | { status: "loading" }
@@ -83,24 +85,29 @@ export function SongResults({
   catalog,
   favorites,
   librarySongs,
+  playlists,
   currentSongId,
   playerStatus,
   onToggleFavorite,
   onToggleLibrarySong,
+  onAddToPlaylist,
   onPlay,
 }: {
   songs: SearchSong[];
   catalog: CatalogIndex;
   favorites: Set<string>;
   librarySongs: Set<string>;
+  playlists: Playlist[];
   currentSongId?: string;
   playerStatus: PlayerStatus;
   onToggleFavorite: (songId: string) => void;
   onToggleLibrarySong: (songId: string) => void;
+  onAddToPlaylist: (playlistId: string, songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   const [pendingId, setPendingId] = useState<string>();
   const [actionError, setActionError] = useState<string>();
+  const [menu, setMenu] = useState<{ songId: string; position: ContextMenuPosition }>();
   const collections = useMemo(
     () => new Map(catalog.collections.map((collection) => [collection.id, collection])),
     [catalog],
@@ -128,7 +135,14 @@ export function SongResults({
           const active = current && (playerStatus === "playing" || playerStatus === "loading");
           const playable = song.recordingTypes.length > 0;
           return (
-            <li class={`result-row ${current ? "is-current" : ""}`} key={song.id}>
+            <li
+              class={`result-row ${current ? "is-current" : ""}`}
+              key={song.id}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                setMenu({ songId: song.id, position: { x: event.clientX, y: event.clientY } });
+              }}
+            >
               <button
                 type="button"
                 class="result-main"
@@ -168,6 +182,32 @@ export function SongResults({
               >
                 <Icon name="heart" filled={favorites.has(song.id)} size={19} />
               </button>
+              <button
+                type="button"
+                class="result-more-button"
+                onClick={(event) => {
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  setMenu(menu?.songId === song.id ? undefined : { songId: song.id, position: { x: rect.right, y: rect.bottom } });
+                }}
+                aria-label={`Options for ${song.title}`}
+                aria-expanded={menu?.songId === song.id}
+              >
+                <Icon name="more" size={19} />
+              </button>
+              {menu?.songId === song.id && (
+                <SongContextMenu
+                  songId={song.id}
+                  title={song.title}
+                  position={menu.position}
+                  favorite={favorites.has(song.id)}
+                  inLibrary={librarySongs.has(song.id)}
+                  playlists={playlists}
+                  onFavorite={() => onToggleFavorite(song.id)}
+                  onToggleLibrary={() => onToggleLibrarySong(song.id)}
+                  onAddToPlaylist={(playlistId) => onAddToPlaylist(playlistId, song.id)}
+                  onClose={() => setMenu(undefined)}
+                />
+              )}
             </li>
           );
         })}
@@ -181,20 +221,24 @@ export function SearchExperience({
   catalog,
   favorites,
   librarySongs,
+  playlists,
   currentSongId,
   playerStatus,
   onToggleFavorite,
   onToggleLibrarySong,
+  onAddToPlaylist,
   onPlay,
 }: {
   client: CatalogClient;
   catalog: CatalogIndex;
   favorites: Set<string>;
   librarySongs: Set<string>;
+  playlists: Playlist[];
   currentSongId?: string;
   playerStatus: PlayerStatus;
   onToggleFavorite: (songId: string) => void;
   onToggleLibrarySong: (songId: string) => void;
+  onAddToPlaylist: (playlistId: string, songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   const search = useSearchIndex(client);
@@ -253,10 +297,12 @@ export function SearchExperience({
             catalog={catalog}
             favorites={favorites}
             librarySongs={librarySongs}
+            playlists={playlists}
             currentSongId={currentSongId}
             playerStatus={playerStatus}
             onToggleFavorite={onToggleFavorite}
             onToggleLibrarySong={onToggleLibrarySong}
+            onAddToPlaylist={onAddToPlaylist}
             onPlay={onPlay}
           />
         </section>

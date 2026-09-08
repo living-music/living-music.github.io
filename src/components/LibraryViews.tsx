@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "preact/hooks";
 import type { CatalogClient } from "../api";
 import { Icon } from "../Icon";
 import type { PlayerStatus } from "../player";
+import type { Playlist } from "../storage";
 import { hrefForLibraryAlbum, type LibraryView } from "../router";
 import type { CatalogIndex, CollectionSummary, SearchIndex, SearchSong } from "../types";
 import { Artwork } from "./Artwork";
@@ -156,12 +157,14 @@ export function LibraryViews({
   favoriteAddedAt,
   librarySongs,
   librarySongAddedAt,
+  playlists,
   albums,
   albumAddedAt,
   currentSongId,
   playerStatus,
   onToggleFavorite,
   onToggleLibrarySong,
+  onAddToPlaylist,
   onPlay,
 }: {
   view: LibraryView;
@@ -171,12 +174,14 @@ export function LibraryViews({
   favoriteAddedAt: Record<string, string>;
   librarySongs: Set<string>;
   librarySongAddedAt: Record<string, string>;
+  playlists: Playlist[];
   albums: Set<string>;
   albumAddedAt: Record<string, string>;
   currentSongId?: string;
   playerStatus: PlayerStatus;
   onToggleFavorite: (songId: string) => void;
   onToggleLibrarySong: (songId: string) => void;
+  onAddToPlaylist: (playlistId: string, songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   const [visibleCount, setVisibleCount] = useState(100);
@@ -222,10 +227,12 @@ export function LibraryViews({
                   catalog={catalog}
                   favorites={favorites}
                   librarySongs={librarySongs}
+                  playlists={playlists}
                   currentSongId={currentSongId}
                   playerStatus={playerStatus}
                   onToggleFavorite={onToggleFavorite}
                   onToggleLibrarySong={onToggleLibrarySong}
+                  onAddToPlaylist={onAddToPlaylist}
                   onPlay={onPlay}
                 />
                 {visibleCount < favoriteSongs.length && (
@@ -261,10 +268,12 @@ export function LibraryViews({
                 catalog={catalog}
                 favorites={favorites}
                 librarySongs={librarySongs}
+                playlists={playlists}
                 currentSongId={currentSongId}
                 playerStatus={playerStatus}
                 onToggleFavorite={onToggleFavorite}
                 onToggleLibrarySong={onToggleLibrarySong}
+                onAddToPlaylist={onAddToPlaylist}
                 onPlay={onPlay}
               />
               {visibleCount < activeSongs.length && (

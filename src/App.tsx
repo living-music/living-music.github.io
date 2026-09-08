@@ -10,7 +10,7 @@ import { PlaylistDialog, PlaylistPage, PlaylistsPage, type PlaylistDialogState }
 import { AudioEngine, type PlayerSnapshot, type PlayerTrack } from "./player";
 import { MediaSessionController } from "./media-session";
 import { toggleFavoriteInState } from "./library-state";
-import { createPlaylist as createPlaylistRecord, deletePlaylist as deletePlaylistRecord, renamePlaylist as renamePlaylistRecord } from "./playlists";
+import { addSongToPlaylist, createPlaylist as createPlaylistRecord, deletePlaylist as deletePlaylistRecord, renamePlaylist as renamePlaylistRecord } from "./playlists";
 import { hrefFor, hrefForLibrary, hrefForPlaylist, navigationDestination, routeFromHash, type Destination, type LibraryView, type Route } from "./router";
 import { readTheme, readUserState, writeTheme, writeUserState, type Playlist, type Theme, type UserState } from "./storage";
 import type { CatalogIndex, CollectionSummary, SearchSong, Song } from "./types";
@@ -255,19 +255,23 @@ function SearchPage({
   catalog,
   favorites,
   librarySongs,
+  playlists,
   player,
   onRetry,
   onToggleFavorite,
   onToggleLibrarySong,
+  onAddToPlaylist,
   onPlay,
 }: {
   catalog: CatalogState;
   favorites: Set<string>;
   librarySongs: Set<string>;
+  playlists: Playlist[];
   player: PlayerSnapshot;
   onRetry: () => void;
   onToggleFavorite: (songId: string) => void;
   onToggleLibrarySong: (songId: string) => void;
+  onAddToPlaylist: (playlistId: string, songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   return (
@@ -285,10 +289,12 @@ function SearchPage({
           catalog={catalog.index}
           favorites={favorites}
           librarySongs={librarySongs}
+          playlists={playlists}
           currentSongId={player.track?.song.id}
           playerStatus={player.status}
           onToggleFavorite={onToggleFavorite}
           onToggleLibrarySong={onToggleLibrarySong}
+          onAddToPlaylist={onAddToPlaylist}
           onPlay={onPlay}
         />
       )}
@@ -333,12 +339,14 @@ function LibraryPage({
   favoriteAddedAt,
   librarySongs,
   librarySongAddedAt,
+  playlists,
   albums,
   albumAddedAt,
   player,
   onRetry,
   onToggleFavorite,
   onToggleLibrarySong,
+  onAddToPlaylist,
   onPlay,
 }: {
   view: LibraryView;
@@ -349,12 +357,14 @@ function LibraryPage({
   favoriteAddedAt: Record<string, string>;
   librarySongs: Set<string>;
   librarySongAddedAt: Record<string, string>;
+  playlists: Playlist[];
   albums: Set<string>;
   albumAddedAt: Record<string, string>;
   player: PlayerSnapshot;
   onRetry: () => void;
   onToggleFavorite: (songId: string) => void;
   onToggleLibrarySong: (songId: string) => void;
+  onAddToPlaylist: (playlistId: string, songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   const viewCopy: Record<LibraryView, { title: string; description: string }> = {
@@ -401,12 +411,14 @@ function LibraryPage({
             favoriteAddedAt={favoriteAddedAt}
             librarySongs={librarySongs}
             librarySongAddedAt={librarySongAddedAt}
+            playlists={playlists}
             albums={albums}
             albumAddedAt={albumAddedAt}
             currentSongId={player.track?.song.id}
             playerStatus={player.status}
             onToggleFavorite={onToggleFavorite}
             onToggleLibrarySong={onToggleLibrarySong}
+            onAddToPlaylist={onAddToPlaylist}
             onPlay={onPlay}
           />
         )}
@@ -676,6 +688,14 @@ export function App() {
     if (route.page === "playlist" && route.playlistId === playlistId) window.location.hash = "#/playlists";
   };
 
+  const addSongToUserPlaylist = (playlistId: string, songId: string) => {
+    const timestamp = new Date().toISOString();
+    setUserState((current) => ({
+      ...current,
+      playlists: addSongToPlaylist(current.playlists, playlistId, songId, timestamp),
+    }));
+  };
+
   const currentDestination = navigationDestination(route);
   const currentLibraryView = route.page === "library" ? route.view : route.page === "library-album" ? "albums" : undefined;
   const currentPlaylistId = route.page === "playlist" ? route.playlistId : undefined;
@@ -727,10 +747,12 @@ export function App() {
             catalog={catalog}
             favorites={favorites}
             librarySongs={librarySongs}
+            playlists={userState.playlists}
             player={player}
             onRetry={retryCatalog}
             onToggleFavorite={toggleFavorite}
             onToggleLibrarySong={toggleLibrarySong}
+            onAddToPlaylist={addSongToUserPlaylist}
             onPlay={playSearchSong}
           />
         )}
@@ -744,12 +766,14 @@ export function App() {
             favoriteAddedAt={userState.favoriteAddedAt}
             librarySongs={librarySongs}
             librarySongAddedAt={userState.librarySongAddedAt}
+            playlists={userState.playlists}
             albums={albums}
             albumAddedAt={userState.albumAddedAt}
             player={player}
             onRetry={retryCatalog}
             onToggleFavorite={toggleFavorite}
             onToggleLibrarySong={toggleLibrarySong}
+            onAddToPlaylist={addSongToUserPlaylist}
             onPlay={playSearchSong}
           />
         )}
@@ -758,11 +782,26 @@ export function App() {
         )}
         {route.page === "playlist" && (
           currentPlaylist
-            ? <PlaylistPage
-                playlist={currentPlaylist}
-                onRename={() => setPlaylistDialog({ mode: "rename", playlist: currentPlaylist })}
-                onDelete={() => setPlaylistDialog({ mode: "delete", playlist: currentPlaylist })}
-              />
+            ? catalog.status === "ready"
+              ? <PlaylistPage
+                  playlist={currentPlaylist}
+                  client={catalogClient}
+                  catalog={catalog.index}
+                  favorites={favorites}
+                  librarySongs={librarySongs}
+                  playlists={userState.playlists}
+                  currentSongId={player.track?.song.id}
+                  playerStatus={player.status}
+                  onToggleFavorite={toggleFavorite}
+                  onToggleLibrarySong={toggleLibrarySong}
+                  onAddToPlaylist={addSongToUserPlaylist}
+                  onPlay={playSearchSong}
+                  onRename={() => setPlaylistDialog({ mode: "rename", playlist: currentPlaylist })}
+                  onDelete={() => setPlaylistDialog({ mode: "delete", playlist: currentPlaylist })}
+                />
+              : catalog.status === "error"
+                ? <div class="page"><CatalogError message={catalog.message} onRetry={retryCatalog} /></div>
+                : <div class="page"><CatalogSkeleton count={7} /></div>
             : <PlaylistsPage playlists={userState.playlists} favoriteCount={favorites.size} onCreate={() => setPlaylistDialog({ mode: "create" })} />
         )}
         {collectionRoute && catalog.status === "loading" && (
@@ -785,6 +824,8 @@ export function App() {
               onToggleFavorite={toggleFavorite}
               librarySongs={librarySongs}
               onToggleLibrarySong={toggleLibrarySong}
+              playlists={userState.playlists}
+              onAddToPlaylist={addSongToUserPlaylist}
               visibleSongIds={route.page === "library-album" && !albums.has(collection.id) ? librarySongs : undefined}
               libraryContext={route.page === "library-album"}
               savedAlbum={albums.has(collection.id)}

@@ -1,7 +1,12 @@
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import type { CatalogClient } from "../api";
 import { Icon } from "../Icon";
+import type { PlayerStatus } from "../player";
 import { hrefForLibrary, hrefForPlaylist } from "../router";
 import type { Playlist } from "../storage";
+import type { CatalogIndex, SearchSong } from "../types";
+import { resolvePlaylistSongs } from "../playlists";
+import { ResultsError, ResultsSkeleton, SongResults, useSearchIndex } from "./SearchLibrary";
 
 export type PlaylistDialogState =
   | { mode: "create" }
@@ -133,13 +138,41 @@ export function PlaylistsPage({
 
 export function PlaylistPage({
   playlist,
+  client,
+  catalog,
+  favorites,
+  librarySongs,
+  playlists,
+  currentSongId,
+  playerStatus,
+  onToggleFavorite,
+  onToggleLibrarySong,
+  onAddToPlaylist,
+  onPlay,
   onRename,
   onDelete,
 }: {
   playlist: Playlist;
+  client: CatalogClient;
+  catalog: CatalogIndex;
+  favorites: Set<string>;
+  librarySongs: Set<string>;
+  playlists: Playlist[];
+  currentSongId?: string;
+  playerStatus: PlayerStatus;
+  onToggleFavorite: (songId: string) => void;
+  onToggleLibrarySong: (songId: string) => void;
+  onAddToPlaylist: (playlistId: string, songId: string) => void;
+  onPlay: (song: SearchSong) => Promise<void>;
   onRename: () => void;
   onDelete: () => void;
 }) {
+  const search = useSearchIndex(client, playlist.songIds.length > 0);
+  const songs = useMemo(() => {
+    if (search.status !== "ready") return [];
+    return resolvePlaylistSongs(search.index.songs, playlist.songIds);
+  }, [search, playlist.songIds]);
+
   return (
     <div class="page playlist-page">
       <a class="back-link playlist-mobile-back" href="#/playlists"><Icon name="back" size={18} /> Playlists</a>
@@ -152,12 +185,35 @@ export function PlaylistPage({
           <button type="button" class="is-destructive" onClick={onDelete}>Delete</button>
         </div>
       </header>
-      <section class="empty-state compact playlist-empty">
-        <div class="empty-icon"><Icon name="music" size={28} /></div>
-        <h2>This playlist is empty.</h2>
-        <p>Use this playlist as a home for songs you want to hear together.</p>
-        <a class="primary-action" href="#/search">Find music</a>
-      </section>
+      {!playlist.songIds.length && (
+        <section class="empty-state compact playlist-empty">
+          <div class="empty-icon"><Icon name="music" size={28} /></div>
+          <h2>This playlist is empty.</h2>
+          <p>Right-click a song and choose this playlist to add it.</p>
+          <a class="primary-action" href="#/search">Find music</a>
+        </section>
+      )}
+      {playlist.songIds.length > 0 && search.status === "loading" && <ResultsSkeleton />}
+      {playlist.songIds.length > 0 && search.status === "error" && <ResultsError message={search.message} />}
+      {playlist.songIds.length > 0 && search.status === "ready" && (
+        songs.length ? (
+          <div class="library-song-view">
+            <SongResults
+              songs={songs}
+              catalog={catalog}
+              favorites={favorites}
+              librarySongs={librarySongs}
+              playlists={playlists}
+              currentSongId={currentSongId}
+              playerStatus={playerStatus}
+              onToggleFavorite={onToggleFavorite}
+              onToggleLibrarySong={onToggleLibrarySong}
+              onAddToPlaylist={onAddToPlaylist}
+              onPlay={onPlay}
+            />
+          </div>
+        ) : <ResultsError message="The songs in this playlist are no longer present in the current catalog." />
+      )}
     </div>
   );
 }
