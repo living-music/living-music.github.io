@@ -80,6 +80,20 @@ describe("AudioEngine", () => {
     expect(media.src).toBe("https://example.test/two.mp3");
   });
 
+  it("plays supplied tracks in order and advances from the selected track", async () => {
+    const media = new FakeAudio();
+    const engine = new AudioEngine(media as unknown as HTMLAudioElement);
+    const tracks = collectionTracks([song("three"), song("one"), song("two")], collection);
+
+    engine.playTracks(tracks, "one", false);
+    await Promise.resolve();
+    expect(engine.state.queue.map((track) => track.song.id)).toEqual(["three", "one", "two"]);
+
+    media.dispatchEvent(new Event("ended"));
+    await Promise.resolve();
+    expect(engine.state.track?.song.id).toBe("two");
+  });
+
   it("seeks safely and restarts the current song from the previous control", () => {
     const media = new FakeAudio();
     const engine = new AudioEngine(media as unknown as HTMLAudioElement);

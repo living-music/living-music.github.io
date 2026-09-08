@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addSongToPlaylist, createPlaylist, deletePlaylist, renamePlaylist, resolvePlaylistSongs } from "./playlists";
+import { addSongToPlaylist, createPlaylist, deletePlaylist, randomizePlaylistSongs, renamePlaylist, resolvePlaylistSongs } from "./playlists";
 
 const now = "2026-09-07T12:00:00.000Z";
 
@@ -38,6 +38,12 @@ describe("playlist management", () => {
       { id: "two", title: "Two", collectionId: "album", artists: [], recordingTypes: [] },
     ];
     expect(resolvePlaylistSongs(songs, ["two", "missing", "one"]).map((song) => song.id)).toEqual(["two", "one"]);
+  });
+
+  it("randomizes a copy without changing the saved playlist order", () => {
+    const songs = ["one", "two", "three"];
+    expect(randomizePlaylistSongs(songs, () => 0)).toEqual(["two", "three", "one"]);
+    expect(songs).toEqual(["one", "two", "three"]);
   });
 
   it("deletes only the selected playlist", () => {

@@ -2287,7 +2287,27 @@ a.collection-card:active { transform: scale(0.985); }
 .playlist-page-list small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .playlist-page-list strong { font-size: 0.9rem; }
 .playlist-page-list small { margin-top: 0.2rem; color: var(--muted); font-size: 0.73rem; }
-.playlist-page-actions { display: flex; gap: 0.55rem; margin-top: 1rem; }
+.playlist-playback-actions,
+.playlist-page-actions { display: flex; flex-wrap: wrap; gap: 0.55rem; margin-top: 1rem; }
+.playlist-playback-actions button {
+  min-width: 7rem;
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.58rem 1.05rem;
+  border: 0;
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--surface-hover);
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 680;
+}
+.playlist-playback-actions .playlist-play-action { color: var(--accent-ink); background: var(--accent); }
+.playlist-playback-actions button:disabled { cursor: default; opacity: 0.45; }
+.playlist-page-actions { margin-top: 0.7rem; }
 .playlist-empty { max-width: 44rem; }
 .playlist-mobile-back { display: none; }
 

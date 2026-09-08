@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-export type IconName="home"|"browse"|"search"|"heart"|"play"|"pause"|"previous"|"next"|"queue"|"close"|"chevron"|"music"|"back"|"more"|"up"|"down"|"repeat"|"trash"|"video"|"add"|"check";
+export type IconName="home"|"browse"|"search"|"heart"|"play"|"pause"|"previous"|"next"|"queue"|"close"|"chevron"|"music"|"back"|"more"|"up"|"down"|"repeat"|"trash"|"video"|"add"|"check"|"shuffle";
 const paths:Record<IconName,JSX.Element>={
 home:<><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10M9.5 20v-6h5v6"/></>,
 browse:<><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,
@@ -17,7 +17,8 @@ repeat:<><path d="m17 2 4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-
 trash:<><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></>,
 video:<><rect x="3" y="5" width="14" height="14" rx="3"/><path d="m17 10 4-2v8l-4-2Z"/></>,
 add:<path d="M12 5v14M5 12h14"/>,
-check:<path d="m5 12 4.5 4.5L19 7"/>
+check:<path d="m5 12 4.5 4.5L19 7"/>,
+shuffle:<><path d="M4 7h3c4 0 6 10 10 10h3"/><path d="m17 14 3 3-3 3"/><path d="M4 17h3c1.7 0 3-1.8 4.2-3.9M13.2 8.9C14.4 7.8 15.6 7 17 7h3"/><path d="m17 4 3 3-3 3"/></>
 };
 export function Icon({name,filled=false,size=22}:{name:IconName;filled?:boolean;size?:number}){
 return <svg aria-hidden="true" class="icon" width={size} height={size} viewBox="0 0 24 24" fill={filled?"currentColor":"none"} stroke="currentColor" stroke-width={filled?1.4:1.8} stroke-linecap="round" stroke-linejoin="round">{paths[name]}</svg>

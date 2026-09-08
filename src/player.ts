@@ -109,19 +109,23 @@ export class AudioEngine {
     songId: string,
     preferredType?: string,
   ): void {
-    const tracks = collectionTracks(songs, collection, preferredType);
+    this.playTracks(collectionTracks(songs, collection, preferredType), songId);
+  }
+
+  playTracks(tracks: PlayerTrack[], songId: string, toggleCurrent = true): void {
     const nextIndex = tracks.findIndex((track) => track.song.id === songId);
     if (nextIndex < 0) {
       this.setState({ status: "error", error: "No playable recording is available for this song." });
       return;
     }
 
-    if (this.snapshot.track?.song.id === songId && this.snapshot.track.collectionId === collection.id) {
+    const selected = tracks[nextIndex];
+    if (toggleCurrent && this.snapshot.track?.song.id === songId && this.snapshot.track.collectionId === selected.collectionId) {
       this.toggle();
       return;
     }
 
-    this.tracks = tracks;
+    this.tracks = [...tracks];
     this.index = nextIndex;
     this.loadCurrent(true);
   }

@@ -5,7 +5,7 @@ import type { PlayerStatus } from "../player";
 import { hrefForLibrary, hrefForPlaylist } from "../router";
 import type { Playlist } from "../storage";
 import type { CatalogIndex, SearchSong } from "../types";
-import { resolvePlaylistSongs } from "../playlists";
+import { randomizePlaylistSongs, resolvePlaylistSongs } from "../playlists";
 import { ResultsError, ResultsSkeleton, SongResults, useSearchIndex } from "./SearchLibrary";
 
 export type PlaylistDialogState =
@@ -148,7 +148,7 @@ export function PlaylistPage({
   onToggleFavorite,
   onToggleLibrarySong,
   onAddToPlaylist,
-  onPlay,
+  onPlaySongs,
   onRename,
   onDelete,
 }: {
@@ -163,15 +163,29 @@ export function PlaylistPage({
   onToggleFavorite: (songId: string) => void;
   onToggleLibrarySong: (songId: string) => void;
   onAddToPlaylist: (playlistId: string, songId: string) => void;
-  onPlay: (song: SearchSong) => Promise<void>;
+  onPlaySongs: (songs: SearchSong[], songId?: string) => Promise<void>;
   onRename: () => void;
   onDelete: () => void;
 }) {
   const search = useSearchIndex(client, playlist.songIds.length > 0);
+  const [starting, setStarting] = useState(false);
+  const [playbackError, setPlaybackError] = useState<string>();
   const songs = useMemo(() => {
     if (search.status !== "ready") return [];
     return resolvePlaylistSongs(search.index.songs, playlist.songIds);
   }, [search, playlist.songIds]);
+
+  const start = async (orderedSongs: SearchSong[], songId?: string) => {
+    setStarting(true);
+    setPlaybackError(undefined);
+    try {
+      await onPlaySongs(orderedSongs, songId);
+    } catch (error) {
+      setPlaybackError(error instanceof Error ? error.message : "This playlist could not be played.");
+    } finally {
+      setStarting(false);
+    }
+  };
 
   return (
     <div class="page playlist-page">
@@ -180,10 +194,21 @@ export function PlaylistPage({
         <p class="eyebrow">Playlist</p>
         <h1>{playlist.name}</h1>
         <p class="page-description">{playlist.songIds.length} {playlist.songIds.length === 1 ? "song" : "songs"}</p>
+        {playlist.songIds.length > 0 && (
+          <div class="playlist-playback-actions">
+            <button type="button" class="playlist-play-action" disabled={!songs.length || starting} onClick={() => void start(songs)}>
+              <Icon name="play" filled size={17} /> Play
+            </button>
+            <button type="button" disabled={!songs.length || starting} onClick={() => void start(randomizePlaylistSongs(songs))}>
+              <Icon name="shuffle" size={18} /> Random
+            </button>
+          </div>
+        )}
         <div class="playlist-page-actions">
           <button type="button" onClick={onRename}>Rename</button>
           <button type="button" class="is-destructive" onClick={onDelete}>Delete</button>
         </div>
+        {playbackError && <p class="result-action-error" role="alert">{playbackError}</p>}
       </header>
       {!playlist.songIds.length && (
         <section class="empty-state compact playlist-empty">
@@ -209,7 +234,7 @@ export function PlaylistPage({
               onToggleFavorite={onToggleFavorite}
               onToggleLibrarySong={onToggleLibrarySong}
               onAddToPlaylist={onAddToPlaylist}
-              onPlay={onPlay}
+              onPlay={(song) => start(songs, song.id)}
             />
           </div>
         ) : <ResultsError message="The songs in this playlist are no longer present in the current catalog." />

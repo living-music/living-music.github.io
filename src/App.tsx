@@ -7,7 +7,7 @@ import { MiniPlayer, NowPlaying } from "./components/Player";
 import { SearchExperience } from "./components/SearchLibrary";
 import { LibraryViews } from "./components/LibraryViews";
 import { PlaylistDialog, PlaylistPage, PlaylistsPage, type PlaylistDialogState } from "./components/Playlists";
-import { AudioEngine, type PlayerSnapshot, type PlayerTrack } from "./player";
+import { AudioEngine, trackForSong, type PlayerSnapshot, type PlayerTrack } from "./player";
 import { MediaSessionController } from "./media-session";
 import { toggleFavoriteInState } from "./library-state";
 import { addSongToPlaylist, createPlaylist as createPlaylistRecord, deletePlaylist as deletePlaylistRecord, renamePlaylist as renamePlaylistRecord } from "./playlists";
@@ -649,6 +649,29 @@ export function App() {
     engine.playCollection(payload.songs, summary, song.id, preferredRecording(song.id));
   };
 
+  const playPlaylistSongs = async (results: SearchSong[], songId?: string) => {
+    if (catalog.status !== "ready") throw new Error("The catalog is still loading.");
+    const summaries = new Map(catalog.index.collections.map((entry) => [entry.id, entry]));
+    const collectionIds = [...new Set(results.map((result) => result.collectionId))];
+    const payloads = await Promise.all(collectionIds.map(async (collectionId) => {
+      const summary = summaries.get(collectionId);
+      if (!summary) return undefined;
+      return { summary, payload: await catalogClient.loadCollection(summary) };
+    }));
+    const loaded = new Map(payloads.flatMap((entry) => entry ? [[entry.summary.id, entry] as const] : []));
+    const tracks = results.flatMap((result) => {
+      const entry = loaded.get(result.collectionId);
+      const song = entry?.payload.songs.find((candidate) => candidate.id === result.id);
+      const track = song && entry ? trackForSong(song, entry.summary, preferredRecording(song.id)) : undefined;
+      return track ? [track] : [];
+    });
+    if (!tracks.length) throw new Error("No playable songs remain in this playlist.");
+    const selectedId = songId && tracks.some((track) => track.song.id === songId) ? songId : tracks[0].song.id;
+    const toggleCurrent = player.track?.song.id === selectedId
+      && (player.status === "playing" || player.status === "loading");
+    engine.playTracks(tracks, selectedId, toggleCurrent);
+  };
+
   const changeRecording = (recordingId: string) => {
     const recording = player.track?.song.recordings.find((entry) => entry.id === recordingId);
     const songId = player.track?.song.id;
@@ -795,7 +818,7 @@ export function App() {
                   onToggleFavorite={toggleFavorite}
                   onToggleLibrarySong={toggleLibrarySong}
                   onAddToPlaylist={addSongToUserPlaylist}
-                  onPlay={playSearchSong}
+                  onPlaySongs={playPlaylistSongs}
                   onRename={() => setPlaylistDialog({ mode: "rename", playlist: currentPlaylist })}
                   onDelete={() => setPlaylistDialog({ mode: "delete", playlist: currentPlaylist })}
                 />

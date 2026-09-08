@@ -36,3 +36,12 @@ export function resolvePlaylistSongs(songs: SearchSong[], songIds: string[]): Se
     return song ? [song] : [];
   });
 }
+
+export function randomizePlaylistSongs<T>(songs: T[], random: () => number = Math.random): T[] {
+  const randomized = [...songs];
+  for (let index = randomized.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(random() * (index + 1));
+    [randomized[index], randomized[target]] = [randomized[target], randomized[index]];
+  }
+  return randomized;
+}
