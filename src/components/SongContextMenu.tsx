@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "preact/hooks";
+import { createPortal } from "preact/compat";
 import { Icon } from "../Icon";
 import type { Playlist } from "../storage";
 
@@ -75,7 +76,7 @@ export function SongContextMenu({
 
   const run = (action: () => void) => { action(); onClose(); };
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
       class="song-context-menu"
@@ -105,6 +106,7 @@ export function SongContextMenu({
           );
         }) : <small>No playlists yet</small>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
