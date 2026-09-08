@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Icon } from "../Icon";
-import { hrefForPlaylist } from "../router";
+import { hrefForLibrary, hrefForPlaylist } from "../router";
 import type { Playlist } from "../storage";
 
 export type PlaylistDialogState =
@@ -91,7 +91,15 @@ export function PlaylistDialog({
   );
 }
 
-export function PlaylistsPage({ playlists, onCreate }: { playlists: Playlist[]; onCreate: () => void }) {
+export function PlaylistsPage({
+  playlists,
+  favoriteCount,
+  onCreate,
+}: {
+  playlists: Playlist[];
+  favoriteCount: number;
+  onCreate: () => void;
+}) {
   return (
     <div class="page">
       <header class="page-header">
@@ -102,22 +110,22 @@ export function PlaylistsPage({ playlists, onCreate }: { playlists: Playlist[]; 
       <button type="button" class="primary-action playlist-create-action" onClick={onCreate}>
         <Icon name="add" size={18} /> New Playlist
       </button>
-      {playlists.length ? (
-        <div class="playlist-page-list">
-          {playlists.map((playlist) => (
-            <a href={hrefForPlaylist(playlist.id)} key={playlist.id}>
-              <span class="playlist-artwork"><Icon name="music" size={25} /></span>
-              <span><strong>{playlist.name}</strong><small>{playlist.songIds.length} {playlist.songIds.length === 1 ? "song" : "songs"}</small></span>
-              <Icon name="chevron" size={17} />
-            </a>
-          ))}
-        </div>
-      ) : (
-        <section class="empty-state compact playlist-empty">
-          <div class="empty-icon"><Icon name="music" size={28} /></div>
-          <h2>Create your first playlist.</h2>
-          <p>Give it a name and it will appear in the sidebar.</p>
-        </section>
+      <div class="playlist-page-list">
+        <a href={hrefForLibrary("favorites")}>
+          <span class="playlist-artwork playlist-favorites-artwork"><Icon name="heart" filled size={25} /></span>
+          <span><strong>Favorites</strong><small>{favoriteCount} {favoriteCount === 1 ? "song" : "songs"} · Smart Playlist</small></span>
+          <Icon name="chevron" size={17} />
+        </a>
+        {playlists.map((playlist) => (
+          <a href={hrefForPlaylist(playlist.id)} key={playlist.id}>
+            <span class="playlist-artwork"><Icon name="music" size={25} /></span>
+            <span><strong>{playlist.name}</strong><small>{playlist.songIds.length} {playlist.songIds.length === 1 ? "song" : "songs"}</small></span>
+            <Icon name="chevron" size={17} />
+          </a>
+        ))}
+      </div>
+      {!playlists.length && (
+        <p class="playlist-list-hint">Create a playlist and it will appear below Favorites in the sidebar.</p>
       )}
     </div>
   );

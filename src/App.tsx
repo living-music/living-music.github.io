@@ -9,6 +9,7 @@ import { LibraryViews } from "./components/LibraryViews";
 import { PlaylistDialog, PlaylistPage, PlaylistsPage, type PlaylistDialogState } from "./components/Playlists";
 import { AudioEngine, type PlayerSnapshot, type PlayerTrack } from "./player";
 import { MediaSessionController } from "./media-session";
+import { toggleFavoriteInState } from "./library-state";
 import { createPlaylist as createPlaylistRecord, deletePlaylist as deletePlaylistRecord, renamePlaylist as renamePlaylistRecord } from "./playlists";
 import { hrefFor, hrefForLibrary, hrefForPlaylist, navigationDestination, routeFromHash, type Destination, type LibraryView, type Route } from "./router";
 import { readTheme, readUserState, writeTheme, writeUserState, type Playlist, type Theme, type UserState } from "./storage";
@@ -34,7 +35,6 @@ const navigation: NavigationItem[] = [
 ];
 
 const libraryNavigation: { id: LibraryView; label: string }[] = [
-  { id: "favorites", label: "Favorites" },
   { id: "recent", label: "Recently Added" },
   { id: "albums", label: "Albums" },
   { id: "songs", label: "Songs" },
@@ -103,6 +103,16 @@ function Navigation({
           <div class="playlist-navigation-heading">
             <a href="#/playlists">Playlists</a>
             <button type="button" onClick={onCreatePlaylist} aria-label="Create playlist"><Icon name="add" size={16} /></button>
+          </div>
+          <div class="playlist-navigation-row playlist-navigation-favorites">
+            <a
+              class={libraryView === "favorites" ? "is-current" : ""}
+              href={hrefForLibrary("favorites")}
+              aria-current={libraryView === "favorites" ? "page" : undefined}
+            >
+              <Icon name="heart" filled size={16} />
+              <span>Favorites</span>
+            </a>
           </div>
           {playlists.map((playlist) => (
             <div class="playlist-navigation-row" key={playlist.id}>
@@ -216,7 +226,7 @@ function HomePage({ catalog, onRetry }: { catalog: CatalogState; onRetry: () => 
           </a>
           <a class="shortcut-card violet" href={hrefFor("library")}>
             <span class="shortcut-icon"><Icon name="heart" /></span>
-            <span><strong>Library</strong><small>Favorites, songs, and albums</small></span>
+            <span><strong>Library</strong><small>Songs, albums, and playlists</small></span>
             <Icon name="chevron" size={18} />
           </a>
         </div>
@@ -320,6 +330,7 @@ function LibraryPage({
   onThemeChange,
   catalog,
   favorites,
+  favoriteAddedAt,
   librarySongs,
   librarySongAddedAt,
   albums,
@@ -335,6 +346,7 @@ function LibraryPage({
   onThemeChange: (theme: Theme) => void;
   catalog: CatalogState;
   favorites: Set<string>;
+  favoriteAddedAt: Record<string, string>;
   librarySongs: Set<string>;
   librarySongAddedAt: Record<string, string>;
   albums: Set<string>;
@@ -346,7 +358,7 @@ function LibraryPage({
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   const viewCopy: Record<LibraryView, { title: string; description: string }> = {
-    favorites: { title: "Favorites", description: "Songs you marked as favorites, whether or not they are in your Library." },
+    favorites: { title: "Favorites", description: "Songs you marked as favorites, with the newest additions first." },
     recent: { title: "Recently Added", description: "Your Library music grouped by album and ordered by when you added it." },
     albums: { title: "Albums", description: "Albums you added and albums containing songs in your Library." },
     songs: { title: "Songs", description: "Every song you added to your Library, arranged alphabetically." },
@@ -356,23 +368,27 @@ function LibraryPage({
   return (
     <div class="page">
       <PageHeader
-        eyebrow="Library"
+        eyebrow={view === "favorites" ? "Playlist" : "Library"}
         title={copy.title}
         description={copy.description}
       />
-      <nav class="library-mobile-navigation" aria-label="Library views">
-        {libraryNavigation.map((item) => (
-          <a
-            class={view === item.id ? "is-current" : ""}
-            href={hrefForLibrary(item.id)}
-            aria-current={view === item.id ? "page" : undefined}
-            key={item.id}
-          >
-            {item.label}
-          </a>
-        ))}
-        <a href="#/playlists">Playlists</a>
-      </nav>
+      {view === "favorites" ? (
+        <a class="back-link playlist-mobile-back" href="#/playlists"><Icon name="back" size={18} /> Playlists</a>
+      ) : (
+        <nav class="library-mobile-navigation" aria-label="Library views">
+          {libraryNavigation.map((item) => (
+            <a
+              class={view === item.id ? "is-current" : ""}
+              href={hrefForLibrary(item.id)}
+              aria-current={view === item.id ? "page" : undefined}
+              key={item.id}
+            >
+              {item.label}
+            </a>
+          ))}
+          <a href="#/playlists">Playlists</a>
+        </nav>
+      )}
       <div class="library-content">
         {catalog.status === "loading" && <CatalogSkeleton count={5} />}
         {catalog.status === "error" && <CatalogError message={catalog.message} onRetry={onRetry} />}
@@ -382,6 +398,7 @@ function LibraryPage({
             client={catalogClient}
             catalog={catalog.index}
             favorites={favorites}
+            favoriteAddedAt={favoriteAddedAt}
             librarySongs={librarySongs}
             librarySongAddedAt={librarySongAddedAt}
             albums={albums}
@@ -393,9 +410,11 @@ function LibraryPage({
             onPlay={onPlay}
           />
         )}
-        <div class="library-settings">
-          <ThemeSelector theme={theme} onChange={onThemeChange} />
-        </div>
+        {view !== "favorites" && (
+          <div class="library-settings">
+            <ThemeSelector theme={theme} onChange={onThemeChange} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -570,18 +589,8 @@ export function App() {
     userState.songRecordingPreferences[songId] || userState.preferredRecordingType;
 
   const toggleFavorite = (songId: string) => {
-    setUserState((current) => {
-      const next = new Set(current.favorites);
-      const favoriteAddedAt = { ...current.favoriteAddedAt };
-      if (next.has(songId)) {
-        next.delete(songId);
-        delete favoriteAddedAt[songId];
-      } else {
-        next.add(songId);
-        favoriteAddedAt[songId] = new Date().toISOString();
-      }
-      return { ...current, favorites: [...next], favoriteAddedAt };
-    });
+    const timestamp = new Date().toISOString();
+    setUserState((current) => toggleFavoriteInState(current, songId, timestamp));
   };
 
   const toggleLibrarySong = (songId: string) => {
@@ -732,6 +741,7 @@ export function App() {
             onThemeChange={changeTheme}
             catalog={catalog}
             favorites={favorites}
+            favoriteAddedAt={userState.favoriteAddedAt}
             librarySongs={librarySongs}
             librarySongAddedAt={userState.librarySongAddedAt}
             albums={albums}
@@ -744,7 +754,7 @@ export function App() {
           />
         )}
         {route.page === "playlists" && (
-          <PlaylistsPage playlists={userState.playlists} onCreate={() => setPlaylistDialog({ mode: "create" })} />
+          <PlaylistsPage playlists={userState.playlists} favoriteCount={favorites.size} onCreate={() => setPlaylistDialog({ mode: "create" })} />
         )}
         {route.page === "playlist" && (
           currentPlaylist
@@ -753,7 +763,7 @@ export function App() {
                 onRename={() => setPlaylistDialog({ mode: "rename", playlist: currentPlaylist })}
                 onDelete={() => setPlaylistDialog({ mode: "delete", playlist: currentPlaylist })}
               />
-            : <PlaylistsPage playlists={userState.playlists} onCreate={() => setPlaylistDialog({ mode: "create" })} />
+            : <PlaylistsPage playlists={userState.playlists} favoriteCount={favorites.size} onCreate={() => setPlaylistDialog({ mode: "create" })} />
         )}
         {collectionRoute && catalog.status === "loading" && (
           <div class="page"><CatalogSkeleton count={8} /></div>

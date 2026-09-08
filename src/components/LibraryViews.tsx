@@ -68,6 +68,19 @@ export function savedSongs(search: SearchIndex, songIds: Set<string>, videosOnly
     .sort((left, right) => left.title.localeCompare(right.title, undefined, { sensitivity: "base" }));
 }
 
+export function favoriteSongsByAddedDate(
+  search: SearchIndex,
+  favoriteIds: Set<string>,
+  favoriteAddedAt: Record<string, string>,
+): SearchSong[] {
+  return search.songs
+    .filter((song) => favoriteIds.has(song.id))
+    .sort((left, right) =>
+      (favoriteAddedAt[right.id] || "").localeCompare(favoriteAddedAt[left.id] || "") ||
+      left.title.localeCompare(right.title, undefined, { sensitivity: "base" }),
+    );
+}
+
 function formatAddedDate(value: string): string {
   const date = new Date(value);
   return Number.isFinite(date.getTime())
@@ -140,6 +153,7 @@ export function LibraryViews({
   client,
   catalog,
   favorites,
+  favoriteAddedAt,
   librarySongs,
   librarySongAddedAt,
   albums,
@@ -154,6 +168,7 @@ export function LibraryViews({
   client: CatalogClient;
   catalog: CatalogIndex;
   favorites: Set<string>;
+  favoriteAddedAt: Record<string, string>;
   librarySongs: Set<string>;
   librarySongAddedAt: Record<string, string>;
   albums: Set<string>;
@@ -186,7 +201,7 @@ export function LibraryViews({
   );
   const songs = searchIndex ? savedSongs(searchIndex, librarySongs) : [];
   const videos = searchIndex ? savedSongs(searchIndex, librarySongs, true) : [];
-  const favoriteSongs = searchIndex ? savedSongs(searchIndex, favorites) : [];
+  const favoriteSongs = searchIndex ? favoriteSongsByAddedDate(searchIndex, favorites, favoriteAddedAt) : [];
   const activeSongs = view === "favorites" ? favoriteSongs : view === "videos" ? videos : songs;
 
   return (

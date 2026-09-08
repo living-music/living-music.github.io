@@ -4,6 +4,9 @@ All notable user-visible changes to Living Music are recorded here.
 
 ## Unreleased
 
+- Moved Favorites into Playlists as a fixed smart playlist sorted by favorite date.
+- Made favoriting a song add it to Library while unfavoriting preserves Library membership.
+
 - Replaced Music Videos in Library navigation with a Playlists sidebar section.
 - Added persistent playlist creation, rename, deletion, index, and detail routes.
 

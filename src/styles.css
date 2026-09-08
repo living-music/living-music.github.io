@@ -2300,3 +2300,8 @@ a.collection-card:active { transform: scale(0.985); }
   .playlist-dialog-backdrop { backdrop-filter: none; -webkit-backdrop-filter: none; }
   .playlist-dialog { background: var(--surface-solid); }
 }
+
+
+.playlist-navigation-favorites > a { grid-column: 1 / -1; }
+.playlist-favorites-artwork { color: var(--accent-ink); background: var(--accent); }
+.playlist-list-hint { max-width: 44rem; margin: 1rem 0 0; color: var(--muted); font-size: 0.8rem; }

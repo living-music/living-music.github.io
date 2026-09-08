@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { libraryAlbumGroups, recentLibraryAlbumGroups, savedSongs } from "./LibraryViews";
+import { favoriteSongsByAddedDate, libraryAlbumGroups, recentLibraryAlbumGroups, savedSongs } from "./LibraryViews";
 import type { CatalogIndex, SearchIndex } from "../types";
 
 const search: SearchIndex = {
@@ -50,6 +50,18 @@ describe("library views", () => {
     });
     expect(groups).toHaveLength(1);
     expect(groups[0]).toMatchObject({ albumSaved: true, savedSongIds: [], addedAt: "2026-09-02T00:00:00.000Z" });
+  });
+
+  it("sorts Favorites by when each song was favorited, newest first", () => {
+    expect(favoriteSongsByAddedDate(
+      search,
+      new Set(["one", "two", "three"]),
+      {
+        one: "2026-09-01T00:00:00.000Z",
+        two: "2026-09-03T00:00:00.000Z",
+        three: "2026-09-02T00:00:00.000Z",
+      },
+    ).map((song) => song.id)).toEqual(["two", "three", "one"]);
   });
 
   it("returns saved songs alphabetically and filters music videos", () => {
