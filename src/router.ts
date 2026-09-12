@@ -1,4 +1,4 @@
-export type Destination = "home" | "browse" | "search" | "library";
+export type Destination = "home" | "browse" | "search" | "library" | "settings";
 export type LibraryView = "favorites" | "recent" | "albums" | "songs" | "videos" | "downloaded";
 
 export type Route =
@@ -9,7 +9,7 @@ export type Route =
   | { page: "playlist"; playlistId: string }
   | { page: "collection"; collectionId: string };
 
-const destinations = new Set<Destination>(["home", "browse", "search", "library"]);
+const destinations = new Set<Destination>(["home", "browse", "search", "library", "settings"]);
 const libraryViews = new Set<LibraryView>(["favorites", "recent", "albums", "songs", "videos", "downloaded"]);
 
 function decoded(value: string): string | undefined {

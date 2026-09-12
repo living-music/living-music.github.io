@@ -71,6 +71,7 @@ const pageTitles: Record<Destination, string> = {
   browse: "Browse",
   search: "Search",
   library: "Library",
+  settings: "Settings",
 };
 
 function Navigation({
@@ -428,7 +429,7 @@ function LocalDataSettings({ userState, persistence, install, downloads, onClear
   const [storage, setStorage] = useState<StorageSnapshot>({});
   const [busy, setBusy] = useState(false);
   const refreshStorage = () => void getStorageSnapshot().then(setStorage);
-  useEffect(refreshStorage, [userState]);
+  useEffect(refreshStorage, [userState, downloads]);
 
   const exportData = () => {
     const blob = new Blob([exportUserState(userState)], { type: "application/json" });
@@ -473,12 +474,17 @@ function LocalDataSettings({ userState, persistence, install, downloads, onClear
 
   return (
     <div class="settings-stack">
-      {install.mode !== "installed" && (
-        <section class="settings-card" aria-labelledby="install-heading">
-          <div><h2 id="install-heading">Install Living Music</h2><p>{install.mode === "prompt" ? "Open Living Music like an app from your home screen or dock." : installCopy}</p></div>
-          {install.mode === "prompt" && <button type="button" class="settings-action" disabled={install.prompting} onClick={() => void promptInstall()}>{install.prompting ? "Opening…" : "Install"}</button>}
-        </section>
-      )}
+      <section class="settings-card" aria-labelledby="install-heading">
+        <div>
+          <h2 id="install-heading">Installation</h2>
+          <p>{install.mode === "installed"
+            ? "Living Music is installed on this device."
+            : install.mode === "prompt"
+              ? "Open Living Music like an app from your home screen or dock."
+              : installCopy}</p>
+        </div>
+        {install.mode === "prompt" && <button type="button" class="settings-action" disabled={install.prompting} onClick={() => void promptInstall()}>{install.prompting ? "Opening…" : "Install"}</button>}
+      </section>
       <section class="settings-card settings-card-column" aria-labelledby="data-heading">
         <div><h2 id="data-heading">Local data</h2><p>Your Library and playlists stay on this device. Export a backup before clearing browser data.</p></div>
         <dl class="storage-details">
@@ -500,8 +506,7 @@ function LocalDataSettings({ userState, persistence, install, downloads, onClear
   );
 }
 
-function LibraryPage({
-  view,
+function SettingsPage({
   theme,
   onThemeChange,
   userState,
@@ -511,6 +516,42 @@ function LibraryPage({
   onClearDownloads,
   onReplaceUserState,
   onPersistenceMessage,
+}: {
+  theme: Theme;
+  onThemeChange: (theme: Theme) => void;
+  userState: UserState;
+  persistence: PersistenceLoadResult;
+  install: InstallSnapshot;
+  downloadState: DownloadSnapshot;
+  onClearDownloads: () => Promise<void>;
+  onReplaceUserState: (state: UserState) => void;
+  onPersistenceMessage: (message?: string) => void;
+}) {
+  return (
+    <div class="page settings-page">
+      <PageHeader
+        eyebrow="Living Music"
+        title="Settings"
+        description="Manage appearance, installation, storage, and the data saved on this device."
+      />
+      <div class="settings-page-content">
+        <ThemeSelector theme={theme} onChange={onThemeChange} />
+        <LocalDataSettings
+          userState={userState}
+          persistence={persistence}
+          install={install}
+          downloads={downloadState}
+          onClearDownloads={onClearDownloads}
+          onReplaceUserState={onReplaceUserState}
+          onMessage={onPersistenceMessage}
+        />
+      </div>
+    </div>
+  );
+}
+
+function LibraryPage({
+  view,
   catalog,
   favorites,
   favoriteAddedAt,
@@ -531,15 +572,6 @@ function LibraryPage({
   onPlay,
 }: {
   view: LibraryView;
-  theme: Theme;
-  onThemeChange: (theme: Theme) => void;
-  userState: UserState;
-  persistence: PersistenceLoadResult;
-  install: InstallSnapshot;
-  downloadState: DownloadSnapshot;
-  onClearDownloads: () => Promise<void>;
-  onReplaceUserState: (state: UserState) => void;
-  onPersistenceMessage: (message?: string) => void;
   catalog: CatalogState;
   favorites: Set<string>;
   favoriteAddedAt: Record<string, string>;
@@ -619,20 +651,6 @@ function LibraryPage({
             onPlay={onPlay}
           />
         )}
-        {view !== "favorites" && (
-          <div class="library-settings">
-            <ThemeSelector theme={theme} onChange={onThemeChange} />
-            <LocalDataSettings
-              userState={userState}
-              persistence={persistence}
-              install={install}
-              downloads={downloadState}
-              onClearDownloads={onClearDownloads}
-              onReplaceUserState={onReplaceUserState}
-              onMessage={onPersistenceMessage}
-            />
-          </div>
-        )}
       </div>
     </div>
   );
@@ -691,7 +709,7 @@ function AppStatus({
           <Icon name="browse" size={17} />
           <p><strong>Local data</strong><span>{persistenceMessage}</span></p>
           <div class="app-status-actions">
-            <button type="button" onClick={() => window.location.hash = "#/library/recent"}>Manage</button>
+            <button type="button" onClick={() => window.location.hash = "#/settings"}>Manage</button>
             <button type="button" class="app-status-dismiss" onClick={onDismissPersistence} aria-label="Dismiss local data notice" title="Dismiss">
               <Icon name="close" size={15} />
             </button>
@@ -1155,9 +1173,14 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
           onDeletePlaylist={(playlist) => setPlaylistDialog({ mode: "delete", playlist })}
         />
         <div class="sidebar-footer">
-          <p>Independent project</p>
-          <a href="https://www.churchofjesuschrist.org/media/music/collections/all-music?lang=eng">
-            Official music library
+          <div class="sidebar-footer-copy">
+            <p>Independent project</p>
+            <a href="https://www.churchofjesuschrist.org/media/music/collections/all-music?lang=eng">
+              Official music library
+            </a>
+          </div>
+          <a class="sidebar-settings-button" href="#/settings" aria-label="Settings" aria-current={route.page === "settings" ? "page" : undefined}>
+            <Icon name="settings" size={19} />
           </a>
         </div>
       </aside>
@@ -1166,6 +1189,9 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
         <a class="mobile-brand" href="#/home" aria-label="Living Music home">
           <img src="/app-icon-192.png" alt="" />
           <span>Living Music</span>
+        </a>
+        <a class="mobile-settings-button" href="#/settings" aria-label="Settings" aria-current={route.page === "settings" ? "page" : undefined}>
+          <Icon name="settings" size={20} />
         </a>
       </header>
 
@@ -1189,9 +1215,8 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
             onPlay={playSearchSong}
           />
         )}
-        {route.page === "library" && (
-          <LibraryPage
-            view={route.view}
+        {route.page === "settings" && (
+          <SettingsPage
             theme={theme}
             onThemeChange={changeTheme}
             userState={userState}
@@ -1201,6 +1226,11 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
             onClearDownloads={clearAllDownloads}
             onReplaceUserState={setUserState}
             onPersistenceMessage={setPersistenceMessage}
+          />
+        )}
+        {route.page === "library" && (
+          <LibraryPage
+            view={route.view}
             catalog={catalog}
             favorites={favorites}
             favoriteAddedAt={userState.favoriteAddedAt}

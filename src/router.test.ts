@@ -5,6 +5,7 @@ describe("routeFromHash", () => {
   it("reads supported top-level routes", () => {
     expect(routeFromHash("#/browse")).toEqual({ page: "browse" });
     expect(routeFromHash("#search")).toEqual({ page: "search" });
+    expect(routeFromHash("#/settings")).toEqual({ page: "settings" });
   });
 
   it("reads Library views and defaults old Library links to Recently Added", () => {
@@ -46,6 +47,7 @@ describe("routeFromHash", () => {
 describe("route hrefs", () => {
   it("creates GitHub Pages-safe hash links", () => {
     expect(hrefFor("library")).toBe("#/library/recent");
+    expect(hrefFor("settings")).toBe("#/settings");
     expect(hrefForLibrary("videos")).toBe("#/library/videos");
     expect(hrefForLibraryAlbum("hymns & songs")).toBe("#/library/album/hymns%20%26%20songs");
     expect(hrefForPlaylist("Sunday & evening")).toBe("#/playlist/Sunday%20%26%20evening");

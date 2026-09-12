@@ -224,6 +224,9 @@ input:focus-visible {
 }
 
 .sidebar-footer {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.65rem;
   margin-top: auto;
   padding: 1rem 0.75rem 0.25rem;
   color: var(--faint);
@@ -231,8 +234,33 @@ input:focus-visible {
   line-height: 1.45;
 }
 
+.sidebar-footer-copy { min-width: 0; flex: 1; }
 .sidebar-footer p { margin: 0 0 0.35rem; }
-.sidebar-footer a { color: var(--muted); text-underline-offset: 0.18rem; }
+.sidebar-footer-copy a { color: var(--muted); text-underline-offset: 0.18rem; }
+
+.sidebar-settings-button,
+.mobile-settings-button {
+  width: 2.35rem;
+  height: 2.35rem;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 160ms ease, background 160ms ease, transform 160ms var(--ease-out);
+}
+
+.sidebar-settings-button:hover,
+.mobile-settings-button:hover,
+.sidebar-settings-button[aria-current="page"],
+.mobile-settings-button[aria-current="page"] {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.sidebar-settings-button:active,
+.mobile-settings-button:active { transform: scale(0.94); }
 
 .mobile-header,
 .mobile-navigation { display: none; }
@@ -564,6 +592,7 @@ h1 {
 
   .mobile-brand { font-size: 0.96rem; }
   .mobile-brand img { width: 1.75rem; height: 1.75rem; border-radius: 0.55rem; }
+  .mobile-settings-button { margin-left: auto; }
 
   .content {
     margin-left: 0;
@@ -2040,13 +2069,6 @@ a.collection-card:active { transform: scale(0.985); }
 .recent-library-copy small { margin-top: 0.22rem; color: var(--muted); font-size: 0.74rem; }
 .recent-library-copy time { margin-top: 0.22rem; color: var(--faint); font-size: 0.68rem; }
 
-.library-settings {
-  max-width: 44rem;
-  margin-top: clamp(4rem, 8vw, 6rem);
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border);
-}
-
 .collection-header-actions {
   display: flex;
   flex-wrap: wrap;
@@ -2539,6 +2561,23 @@ a.collection-card:active { transform: scale(0.985); }
   gap: 1rem;
   margin-top: 1rem;
 }
+
+.settings-page-content {
+  width: min(100%, 50rem);
+  display: grid;
+  gap: 1rem;
+}
+
+.settings-page-content .theme-setting {
+  width: 100%;
+  max-width: none;
+  padding: 1.15rem;
+  border-radius: 1.2rem;
+}
+
+.settings-page-content .theme-setting legend { font-size: 0.95rem; }
+.settings-page-content .theme-setting p { margin: 0.35rem 0 1rem; font-size: 0.8rem; line-height: 1.45; }
+.settings-page-content .settings-stack { margin-top: 0; }
 
 .settings-card {
   display: flex;

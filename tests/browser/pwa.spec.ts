@@ -290,6 +290,26 @@ test("shows playlist options above sidebar chrome", async ({ page }) => {
   }))).toEqual({ parent: "BODY", position: "fixed", zIndex: 90 });
 });
 
+test("opens dedicated Settings from the sidebar and mobile header", async ({ page }) => {
+  await page.goto("/#/browse");
+  const desktopSettings = page.locator(".sidebar-settings-button");
+  await expect(desktopSettings).toBeVisible();
+  await desktopSettings.click();
+  await expect(page).toHaveURL(/#\/settings$/);
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Appearance" })).toBeVisible();
+  await expect(desktopSettings).toHaveAttribute("aria-current", "page");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/#/browse");
+  const mobileSettings = page.locator(".mobile-settings-button");
+  await expect(mobileSettings).toBeVisible();
+  await mobileSettings.click();
+  await expect(page).toHaveURL(/#\/settings$/);
+  await expect(page.getByRole("heading", { name: "Installation" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Local data" })).toBeVisible();
+});
+
 test("exports, clears, and restores listener data", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("livingMusic:userState:v1", JSON.stringify({
     favorites: ["offline-song"],
@@ -297,8 +317,7 @@ test("exports, clears, and restores listener data", async ({ page }) => {
     librarySongs: ["offline-song"],
     librarySongAddedAt: { "offline-song": "2026-09-01T12:00:00.000Z" },
   })));
-  await page.goto("/#/library/songs");
-  await expect(page.getByText("Offline Song", { exact: true })).toBeVisible();
+  await page.goto("/#/settings");
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export backup" }).click();
   const download = await downloadPromise;
@@ -307,14 +326,18 @@ test("exports, clears, and restores listener data", async ({ page }) => {
 
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Clear local data" }).click();
+  await expect(page.getByText("Local listener data was cleared.", { exact: true })).toBeVisible();
+  await page.evaluate(() => { window.location.hash = "#/library/songs"; });
   await expect(page.getByRole("heading", { name: "Add songs to your Library." })).toBeVisible();
+  await page.evaluate(() => { window.location.hash = "#/settings"; });
   await page.locator('input[type="file"]').setInputFiles(backupPath!);
   await expect(page.getByText("Backup restored.", { exact: true })).toBeVisible();
+  await page.evaluate(() => { window.location.hash = "#/library/songs"; });
   await expect(page.getByText("Offline Song", { exact: true })).toBeVisible();
 });
 
-test("offers the captured browser install prompt from Library settings", async ({ page }) => {
-  await page.goto("/#/library/songs");
+test("offers the captured browser install prompt from Settings", async ({ page }) => {
+  await page.goto("/#/settings");
   await page.evaluate(() => {
     const event = new Event("beforeinstallprompt") as Event & {
       prompt: () => Promise<void>;
@@ -335,9 +358,11 @@ test("hides install promotion in standalone mode", async ({ page }) => {
       ? { matches: true, media: query, onchange: null, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent: () => true }
       : original(query);
   });
-  await page.goto("/#/library/songs");
+  await page.goto("/#/settings");
+  await expect(page.getByRole("heading", { name: "Installation" })).toBeVisible();
+  await expect(page.getByText("Living Music is installed on this device.", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Local data" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Install Living Music" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Install", exact: true })).toHaveCount(0);
 });
 
 
