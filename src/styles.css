@@ -201,6 +201,8 @@ input:focus-visible {
   background: transparent;
 }
 
+.sidebar::before { box-shadow: none; }
+
 .brand,
 .mobile-brand {
   display: flex;

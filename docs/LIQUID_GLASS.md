@@ -6,6 +6,8 @@ Status: Stage 1 candidate implemented and locally validated. Automated Chromium,
 
 Evolve Living Music toward Apple's Liquid Glass design language while preserving its reliability as a static, installable web app. Glass belongs to the navigation and control layer: the desktop sidebar, mobile header and navigation, mini player, Now Playing controls, menus, and dialogs. Album artwork, song lists, and other content remain visually direct.
 
+The visual target is the iOS 27 and macOS 27 generation documented in Apple's 2026 guidance. Living Music uses regular glass for text-heavy navigation, allows underlying content color to influence the material, and avoids a persistent highlighted outline around the large desktop sidebar. Border emphasis remains available for compact floating controls and accessibility modes where separation is necessary.
+
 The web implementation will use standards-based CSS and progressive enhancement. It will resemble Liquid Glass through translucency, depth, edge light, adaptive tint, and responsive motion. It will not depend on WebKit's private `-apple-system-glass-material` or `-apple-visual-effect` values, which are not stable web APIs.
 
 ## Non-negotiable behavior
@@ -69,8 +71,9 @@ Implementation record — September 12, 2026:
 - Added a reusable `glass-surface` primitive whose non-interactive pseudo-element owns the material while direct content remains in a sharp layer above it.
 - Kept the solid material as the base rule and enabled blur only inside the standards/WebKit `@supports` gate.
 - Applied regular glass only to the desktop sidebar; its width, padding, fixed position, scroll behavior, and stacking level are unchanged.
+- Removed inset borders, edge highlights, and the floating-panel shadow from the desktop sidebar. Like Apple Music on macOS 27, it uses material tone and selected-row contrast instead of a drawn boundary.
 - Added explicit Reduced Transparency, increased-contrast, and forced-colors behavior.
-- Validated the candidate with TypeScript, 60 unit tests, the production build, 21 browser tests, dark/light Chromium captures, and a dark macOS Safari inspection.
+- Validated the candidate with TypeScript, 60 unit tests, the production build, 21 browser tests, dark/light Chromium captures, a dark macOS Safari inspection, and the native Apple Music sidebar as the macOS 27 reference.
 
 ## Stage 2 — Persistent navigation and player chrome
 
@@ -239,6 +242,9 @@ Recommended commit sequence:
 
 ## References
 
+- [Apple: Materials](https://developer.apple.com/design/human-interface-guidelines/materials)
+- [Apple: Sidebars](https://developer.apple.com/design/human-interface-guidelines/sidebars)
+- [Apple: Platforms State of the Union — WWDC26](https://developer.apple.com/videos/play/wwdc2026/102/)
 - [Apple: Meet Liquid Glass](https://developer.apple.com/videos/play/wwdc2025/219/)
 - [Apple: Get to know the new design system](https://developer.apple.com/videos/play/wwdc2025/356/)
 - [WebKit: Backdrop Filter in Safari](https://webkit.org/blog/15865/webkit-features-in-safari-18-0/)

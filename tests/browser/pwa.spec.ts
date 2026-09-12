@@ -118,6 +118,7 @@ test("isolates the desktop sidebar material and honors reduced transparency", as
       })),
       surfaceBackground: surface.backgroundColor,
       layerBackground: layer.backgroundColor,
+      layerBoxShadow: layer.boxShadow,
       enhancedSupport: CSS.supports("(backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))"),
       pointerEvents: layer.pointerEvents,
       childZIndex: firstChild.zIndex,
@@ -127,6 +128,7 @@ test("isolates the desktop sidebar material and honors reduced transparency", as
   expect(new Set(material.variants.map((variant) => variant.fallback)).size).toBe(3);
   expect(material.surfaceBackground).toBe("rgba(0, 0, 0, 0)");
   expect(material.layerBackground).toBe("rgba(24, 24, 28, 0.66)");
+  expect(material.layerBoxShadow).toBe("none");
   expect(material.enhancedSupport).toBe(true);
   expect(material.pointerEvents).toBe("none");
   expect(material.childZIndex).toBe("1");
