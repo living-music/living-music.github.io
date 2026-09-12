@@ -116,7 +116,12 @@ function Navigation({
     };
   }, [openPlaylistMenu]);
   const items: NavigationItem[] = mobile
-    ? [...navigation, { id: "library", label: "Library", icon: "heart" }]
+    ? [
+      { id: "home", label: "Home", icon: "home" },
+      { id: "browse", label: "Browse", icon: "browse" },
+      { id: "library", label: "Library", icon: "heart" },
+      { id: "search", label: "Search", icon: "search" },
+    ]
     : navigation;
   return (
     <nav class={mobile ? "mobile-navigation glass-surface glass-surface--clear" : "sidebar-navigation"} aria-label="Primary">
