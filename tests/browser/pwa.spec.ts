@@ -18,7 +18,7 @@ test("loads Google Analytics only after the listener allows it", async ({ page }
   }));
   await page.goto("/#/browse");
 
-  const banner = page.getByRole("region", { name: "Help improve Living Music?" });
+  const banner = page.getByRole("region", { name: "Please help improve Living Music" });
   await expect(banner).toBeVisible();
   await expect(page.locator('script[src*="googletagmanager.com"]')).toHaveCount(0);
 

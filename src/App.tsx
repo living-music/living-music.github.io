@@ -574,7 +574,7 @@ function AnalyticsConsentBanner({ onChoose }: { onChoose: (enabled: boolean) => 
   return (
     <section class="analytics-consent glass-surface glass-surface--regular" role="region" aria-labelledby="analytics-consent-heading">
       <div>
-        <h2 id="analytics-consent-heading">Help improve Living Music?</h2>
+        <h2 id="analytics-consent-heading">Please help improve Living Music</h2>
         <p>Allow anonymous page-view analytics through Google Analytics. Song titles, searches, playlists, and your Library are never shared.</p>
       </div>
       <div class="analytics-consent-actions">
