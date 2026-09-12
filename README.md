@@ -37,9 +37,10 @@ The value must resolve to a catalog root containing `index.json`.
 ```sh
 npm run dev        # Start the local development server
 npm run typecheck  # Validate TypeScript
-npm test           # Run focused unit tests once
-npm run build      # Type-check and create dist/
-npm run preview    # Serve the production build locally
+npm test              # Run focused unit tests once
+npm run build         # Type-check and create dist/
+npm run test:browser  # Test the built PWA in Chromium
+npm run preview       # Serve the production build locally
 ```
 
 ## Project layout
@@ -53,12 +54,16 @@ src/
   components/               Catalog, search, Library, artwork, and player views
   Icon.tsx                 Project-owned interface icons
   api.ts                   Versioned musicapi client and runtime validation
+  connectivity.ts          Catalog failure classification and connection state
+  pwa.ts                   Service-worker registration, updates, and cache status
   audio.ts                 Recording choice and media formatting helpers
   player.ts                Shared HTMLAudioElement engine and playback state
   media-session.ts          Lock-screen and hardware media-control integration
   storage.ts               Defensive local user-state and theme persistence
   types.ts                 Catalog and player data contracts
   *.test.ts                Focused unit tests
+tests/browser/             Production offline and update smoke tests
+playwright.config.ts        Browser PWA test configuration
 docs/PLAN.md               Product and implementation plan
 docs/BRAND.md              App icon concept, assets, and usage rules
 docs/PROTOTYPE.md          Seven-step delivery checklist and current behavior
@@ -81,9 +86,11 @@ Search opens the compact global index only when Search or Library is visited. Qu
 
 Heart controls in collections, search results, Library song lists, and Now Playing add songs to the fixed Favorites playlist and ensure they are also in Library. Unfavoriting leaves Library membership intact. Adjacent add/check controls manage individual Library songs, while collection pages can add whole albums. Library exposes Recently Added, Albums, and Songs in the desktop sidebar and a compact mobile switcher. Favorites appears first under Playlists as a fixed smart playlist that cannot be renamed or deleted and sorts songs by favorite date, newest first. Recently Added groups Library songs by album and sorts each album by its newest device-local add timestamp; Albums includes both explicitly added albums and albums containing Library songs. Opening an album from Library shows only its individually added songs unless the complete album was added. Existing combined saved-song data migrates into both Favorites and Library Songs so prior choices are preserved. A separate Playlists sidebar section supports locally persisted playlist creation, rename, deletion, and direct playlist routes. Right-clicking any song opens a shared context menu for favorite, Library, queue, and playlist actions; overflow buttons expose the same menu without a pointer. Songs added to a playlist appear in insertion order on its detail page. Playing any row continues through that playlist order, while the playlist Play and Random buttons start from the beginning in saved or randomized order.
 
-## App-shell caching
+## Offline catalog and updates
 
-Production registers a generated service worker after the first page load. It precaches the document, hashed JavaScript and CSS, the web manifest, and local icons. Every file has a content-derived cache key, so deployments reuse unchanged entries from the previous cache and fetch only changed assets before activating atomically. Navigation and known same-origin shell assets are served cache-first. Catalog requests under `/musicapi/` and all Church-hosted media bypass the service worker.
+Production registers a generated service worker that precaches the document, hashed JavaScript and CSS, the web manifest, and local icons. Every shell file has a content-derived cache key, so deployments reuse unchanged entries and install atomically. A completed update waits for the listener to select **Update now**, preventing routine releases from interrupting active playback.
+
+The service worker maintains a separate `living-music-catalog-v1` runtime cache. `/musicapi/index.json` uses network-first loading with the last complete manifest as fallback; its referenced index must be available before that fallback is replaced. Revisioned catalog indexes, search data, and opened collections use cache-first loading, retaining the two newest responses for each logical path. The interface identifies offline, saved-catalog, upstream, unsupported-schema, and malformed-data states and retries the catalog automatically when connectivity returns. Church-hosted artwork and audio remain outside automatic caching.
 
 ## Catalog contract
 

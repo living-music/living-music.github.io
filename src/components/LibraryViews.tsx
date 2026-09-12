@@ -213,7 +213,7 @@ export function LibraryViews({
     <section class="library-browser" aria-label="Saved library">
       <div class="library-panel">
         {needsSearch && search.status === "loading" && <ResultsSkeleton />}
-        {needsSearch && search.status === "error" && <ResultsError message={search.message} />}
+        {needsSearch && search.status === "error" && <ResultsError message={search.message} kind={search.kind} />}
 
         {searchIndex && view === "favorites" && (
           favorites.size > 0

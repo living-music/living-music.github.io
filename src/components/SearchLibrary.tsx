@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { normalizeSearch, CatalogClient } from "../api";
+import { catalogFailure, type CatalogFailureKind } from "../connectivity";
 import { Icon } from "../Icon";
 import type { PlayerStatus } from "../player";
 import type { Playlist } from "../storage";
@@ -10,7 +11,7 @@ import { SongContextMenu, type ContextMenuPosition } from "./SongContextMenu";
 export type SearchState =
   | { status: "loading" }
   | { status: "ready"; index: SearchIndex }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; kind: CatalogFailureKind };
 
 export function useSearchIndex(client: CatalogClient, enabled = true): SearchState {
   const [state, setState] = useState<SearchState>({ status: "loading" });
@@ -21,10 +22,10 @@ export function useSearchIndex(client: CatalogClient, enabled = true): SearchSta
     setState({ status: "loading" });
     client.loadSearch().then(
       (index) => active && setState({ status: "ready", index }),
-      (error: unknown) => active && setState({
-        status: "error",
-        message: error instanceof Error ? error.message : "An unexpected search error occurred.",
-      }),
+      (error: unknown) => {
+        const failure = catalogFailure(error, "An unexpected search error occurred.");
+        if (active) setState({ status: "error", ...failure });
+      },
     );
     return () => { active = false; };
   }, [client, enabled]);
@@ -52,12 +53,17 @@ export function filterSearchSongs(
   });
 }
 
-export function ResultsError({ message }: { message: string }) {
+export function ResultsError({ message, kind = "upstream" }: { message: string; kind?: CatalogFailureKind }) {
+  const title = kind === "offline"
+    ? "These songs aren’t saved for offline use yet."
+    : kind === "unsupported"
+      ? "Living Music needs an update."
+      : "These songs couldn’t be loaded.";
   return (
     <section class="results-message" role="alert">
       <Icon name="search" size={25} />
       <div>
-        <h2>These songs couldn’t be loaded.</h2>
+        <h2>{title}</h2>
         <p>{message}</p>
       </div>
     </section>
@@ -271,7 +277,7 @@ export function SearchExperience({
       </label>
 
       {search.status === "loading" && <ResultsSkeleton />}
-      {search.status === "error" && <ResultsError message={search.message} />}
+      {search.status === "error" && <ResultsError message={search.message} kind={search.kind} />}
       {search.status === "ready" && !normalized && (
         <section class="search-prompt">
           <Icon name="music" size={28} />

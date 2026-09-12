@@ -22,8 +22,11 @@
   <link rel="manifest" href="/manifest.webmanifest">
   <script>
     try {
-      const savedTheme = localStorage.getItem("livingMusic:theme");
-      document.documentElement.dataset.theme = savedTheme || "dark";
+      const savedTheme = localStorage.getItem("livingMusic:theme") || "dark";
+      const light = savedTheme === "light" ||
+        (savedTheme === "system" && matchMedia("(prefers-color-scheme: light)").matches);
+      document.documentElement.dataset.theme = savedTheme;
+      document.querySelector('meta[name="theme-color"]').content = light ? "#f2f2f7" : "#08080a";
     } catch {
       document.documentElement.dataset.theme = "dark";
     }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { CatalogClient } from "./api";
 import { chooseRecording } from "./audio";
+import { catalogFailure, type CatalogFailureKind } from "./connectivity";
 import { CatalogError, CatalogSkeleton, CollectionGrid, CollectionPage } from "./components/CatalogViews";
 import { Icon, type IconName } from "./Icon";
 import { MiniPlayer, NowPlaying } from "./components/Player";
@@ -9,6 +10,7 @@ import { LibraryViews } from "./components/LibraryViews";
 import { PlaylistDialog, PlaylistPage, PlaylistsPage, type PlaylistDialogState } from "./components/Playlists";
 import { AudioEngine, trackForSong, type PlayerSnapshot, type PlayerTrack } from "./player";
 import { MediaSessionController } from "./media-session";
+import { applyPwaUpdate, currentPwaSnapshot, subscribeToPwa } from "./pwa";
 import { toggleFavoriteInState } from "./library-state";
 import { addSongToPlaylist, createPlaylist as createPlaylistRecord, deletePlaylist as deletePlaylistRecord, renamePlaylist as renamePlaylistRecord } from "./playlists";
 import { hrefFor, hrefForLibrary, hrefForPlaylist, navigationDestination, routeFromHash, type Destination, type LibraryView, type Route } from "./router";
@@ -24,7 +26,7 @@ interface NavigationItem {
 type CatalogState =
   | { status: "loading" }
   | { status: "ready"; index: CatalogIndex }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; kind: CatalogFailureKind };
 
 const catalogClient = new CatalogClient();
 
@@ -167,7 +169,7 @@ function CatalogSection({
   featured?: boolean;
 }) {
   if (state.status === "loading") return <CatalogSkeleton count={featured ? 6 : 10} />;
-  if (state.status === "error") return <CatalogError message={state.message} onRetry={onRetry} />;
+  if (state.status === "error") return <CatalogError message={state.message} kind={state.kind} onRetry={onRetry} />;
 
   const collections = featured ? state.index.collections.slice(0, 6) : state.index.collections;
   return <CollectionGrid collections={collections} label={featured ? "Featured collections" : "All collections"} />;
@@ -282,7 +284,7 @@ function SearchPage({
         description="Search the complete catalog without downloading every collection."
       />
       {catalog.status === "loading" && <CatalogSkeleton count={7} />}
-      {catalog.status === "error" && <CatalogError message={catalog.message} onRetry={onRetry} />}
+      {catalog.status === "error" && <CatalogError message={catalog.message} kind={catalog.kind} onRetry={onRetry} />}
       {catalog.status === "ready" && (
         <SearchExperience
           client={catalogClient}
@@ -401,7 +403,7 @@ function LibraryPage({
       )}
       <div class="library-content">
         {catalog.status === "loading" && <CatalogSkeleton count={5} />}
-        {catalog.status === "error" && <CatalogError message={catalog.message} onRetry={onRetry} />}
+        {catalog.status === "error" && <CatalogError message={catalog.message} kind={catalog.kind} onRetry={onRetry} />}
         {catalog.status === "ready" && (
           <LibraryViews
             view={view}
@@ -446,6 +448,49 @@ function MissingCollection({ library = false }: { library?: boolean }) {
   );
 }
 
+function AppStatus({
+  online,
+  catalogFallback,
+  updateAvailable,
+  applyingUpdate,
+  onRetry,
+}: {
+  online: boolean;
+  catalogFallback: boolean;
+  updateAvailable: boolean;
+  applyingUpdate: boolean;
+  onRetry: () => void;
+}) {
+  if (online && !catalogFallback && !updateAvailable) return null;
+  return (
+    <div class="app-status-region" aria-live="polite">
+      {!online && (
+        <section class="app-status app-status-offline">
+          <Icon name="browse" size={17} />
+          <p><strong>Offline</strong><span>Saved catalog pages remain available. Audio may require a connection.</span></p>
+          <button type="button" onClick={onRetry}>Try again</button>
+        </section>
+      )}
+      {online && catalogFallback && (
+        <section class="app-status app-status-cached">
+          <Icon name="browse" size={17} />
+          <p><strong>Using saved catalog</strong><span>The catalog service could not be reached.</span></p>
+          <button type="button" onClick={onRetry}>Check again</button>
+        </section>
+      )}
+      {updateAvailable && (
+        <section class="app-status app-status-update">
+          <Icon name="check" size={17} />
+          <p><strong>Update ready</strong><span>Refresh when you’re ready to use the latest version.</span></p>
+          <button type="button" onClick={applyPwaUpdate} disabled={applyingUpdate}>
+            {applyingUpdate ? "Updating…" : "Update now"}
+          </button>
+        </section>
+      )}
+    </div>
+  );
+}
+
 export function App() {
   const engineRef = useRef<AudioEngine | null>(null);
   if (!engineRef.current) engineRef.current = new AudioEngine();
@@ -460,13 +505,32 @@ export function App() {
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [catalogAttempt, setCatalogAttempt] = useState(0);
   const [catalog, setCatalog] = useState<CatalogState>({ status: "loading" });
+  const [online, setOnline] = useState(() => navigator.onLine);
+  const [pwa, setPwa] = useState(currentPwaSnapshot);
   const mainRef = useRef<HTMLElement>(null);
   const restoredQueue = useRef(false);
+  const loadedCatalogOnce = useRef(false);
   const favorites = useMemo(() => new Set(userState.favorites), [userState.favorites]);
   const librarySongs = useMemo(() => new Set(userState.librarySongs), [userState.librarySongs]);
   const albums = useMemo(() => new Set(userState.albums), [userState.albums]);
 
   useEffect(() => engine.subscribe(setPlayer), [engine]);
+
+  useEffect(() => subscribeToPwa(setPwa), []);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setOnline(true);
+      setCatalogAttempt((attempt) => attempt + 1);
+    };
+    const handleOffline = () => setOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     mediaSessionRef.current?.update(player);
@@ -547,12 +611,16 @@ export function App() {
   useEffect(() => {
     let active = true;
     setCatalog({ status: "loading" });
-    catalogClient.loadIndex().then(
+    const request = loadedCatalogOnce.current
+      ? catalogClient.refreshIndex()
+      : catalogClient.loadIndex();
+    loadedCatalogOnce.current = true;
+    request.then(
       (index) => active && setCatalog({ status: "ready", index }),
-      (error: unknown) => active && setCatalog({
-        status: "error",
-        message: error instanceof Error ? error.message : "An unexpected catalog error occurred.",
-      }),
+      (error: unknown) => {
+        const failure = catalogFailure(error, "An unexpected catalog error occurred.");
+        if (active) setCatalog({ status: "error", ...failure });
+      },
     );
     return () => { active = false; };
   }, [catalogAttempt]);
@@ -584,12 +652,20 @@ export function App() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [route, catalog, userState.playlists]);
 
+  useEffect(() => {
+    const appearance = window.matchMedia("(prefers-color-scheme: light)");
+    const syncThemeColor = () => {
+      const light = theme === "light" || (theme === "system" && appearance.matches);
+      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", light ? "#f2f2f7" : "#08080a");
+    };
+    syncThemeColor();
+    if (theme === "system") appearance.addEventListener("change", syncThemeColor);
+    return () => appearance.removeEventListener("change", syncThemeColor);
+  }, [theme]);
+
   const changeTheme = (nextTheme: Theme) => {
     setTheme(nextTheme);
     writeTheme(nextTheme);
-    const light = nextTheme === "light" ||
-      (nextTheme === "system" && window.matchMedia("(prefers-color-scheme: light)").matches);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", light ? "#f2f2f7" : "#08080a");
   };
 
   const closeNowPlaying = useCallback(() => {
@@ -732,6 +808,13 @@ export function App() {
   return (
     <div class={`app-shell ${player.track ? "has-player" : ""}`}>
       <a class="skip-link" href="#main-content">Skip to content</a>
+      <AppStatus
+        online={online}
+        catalogFallback={pwa.catalogFallback}
+        updateAvailable={pwa.updateAvailable}
+        applyingUpdate={pwa.applyingUpdate}
+        onRetry={() => setCatalogAttempt((attempt) => attempt + 1)}
+      />
 
       <aside class="sidebar">
         <a class="brand" href="#/home" aria-label="Living Music home">
@@ -823,7 +906,7 @@ export function App() {
                   onDelete={() => setPlaylistDialog({ mode: "delete", playlist: currentPlaylist })}
                 />
               : catalog.status === "error"
-                ? <div class="page"><CatalogError message={catalog.message} onRetry={retryCatalog} /></div>
+                ? <div class="page"><CatalogError message={catalog.message} kind={catalog.kind} onRetry={retryCatalog} /></div>
                 : <div class="page"><CatalogSkeleton count={7} /></div>
             : <PlaylistsPage playlists={userState.playlists} favoriteCount={favorites.size} onCreate={() => setPlaylistDialog({ mode: "create" })} />
         )}
@@ -831,7 +914,7 @@ export function App() {
           <div class="page"><CatalogSkeleton count={8} /></div>
         )}
         {collectionRoute && catalog.status === "error" && (
-          <div class="page"><CatalogError message={catalog.message} onRetry={retryCatalog} /></div>
+          <div class="page"><CatalogError message={catalog.message} kind={catalog.kind} onRetry={retryCatalog} /></div>
         )}
         {collectionRoute && catalog.status === "ready" && (
           collection ? (

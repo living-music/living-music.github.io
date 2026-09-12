@@ -219,7 +219,7 @@ export function PlaylistPage({
         </section>
       )}
       {playlist.songIds.length > 0 && search.status === "loading" && <ResultsSkeleton />}
-      {playlist.songIds.length > 0 && search.status === "error" && <ResultsError message={search.message} />}
+      {playlist.songIds.length > 0 && search.status === "error" && <ResultsError message={search.message} kind={search.kind} />}
       {playlist.songIds.length > 0 && search.status === "ready" && (
         songs.length ? (
           <div class="library-song-view">

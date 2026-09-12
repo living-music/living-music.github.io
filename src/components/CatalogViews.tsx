@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { CatalogClient } from "../api";
+import { catalogFailure, type CatalogFailureKind } from "../connectivity";
 import { Icon } from "../Icon";
 import type { PlayerStatus } from "../player";
 import { hrefForCollection } from "../router";
@@ -22,13 +23,28 @@ export function CatalogSkeleton({ count = 6 }: { count?: number }) {
   );
 }
 
-export function CatalogError({ message, onRetry }: { message: string; onRetry: () => void }) {
+export function CatalogError({
+  message,
+  kind = "upstream",
+  onRetry,
+}: {
+  message: string;
+  kind?: CatalogFailureKind;
+  onRetry: () => void;
+}) {
+  const title = kind === "offline"
+    ? "You’re offline."
+    : kind === "unsupported"
+      ? "Living Music needs an update."
+      : kind === "invalid"
+        ? "The catalog couldn’t be read."
+        : "The library couldn’t be loaded.";
   return (
-    <section class="catalog-error" role="alert">
+    <section class={`catalog-error catalog-error-${kind}`} role="alert">
       <span class="empty-icon"><Icon name="music" size={28} /></span>
       <div>
-        <h2>The library couldn’t be loaded.</h2>
-        <p>{message} Check your connection, then try again.</p>
+        <h2>{title}</h2>
+        <p>{message}</p>
         <div class="error-actions">
           <button type="button" class="primary-action" onClick={onRetry}>Try again</button>
           <a class="secondary-action" href="https://www.churchofjesuschrist.org/media/music/collections/all-music?lang=eng">
@@ -67,7 +83,7 @@ export function CollectionGrid({
 type CollectionState =
   | { status: "loading" }
   | { status: "ready"; payload: CollectionPayload }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; kind: CatalogFailureKind };
 
 function songCredits(song: Song): string {
   const names = song.artists.length ? song.artists : song.composers.length ? song.composers : song.authors;
@@ -124,10 +140,10 @@ export function CollectionPage({
     setState({ status: "loading" });
     client.loadCollection(summary).then(
       (payload) => active && setState({ status: "ready", payload }),
-      (error: unknown) => active && setState({
-        status: "error",
-        message: error instanceof Error ? error.message : "An unexpected catalog error occurred.",
-      }),
+      (error: unknown) => {
+        const failure = catalogFailure(error, "An unexpected catalog error occurred.");
+        if (active) setState({ status: "error", ...failure });
+      },
     );
     return () => { active = false; };
   }, [client, summary.id, request]);
@@ -152,7 +168,7 @@ export function CollectionPage({
     return (
       <div class="page collection-page">
         <a class="back-link" href={libraryContext ? "#/library/albums" : "#/browse"}><Icon name="back" size={18} /> {libraryContext ? "Albums" : "Browse"}</a>
-        <CatalogError message={state.message} onRetry={() => setRequest((value) => value + 1)} />
+        <CatalogError message={state.message} kind={state.kind} onRetry={() => setRequest((value) => value + 1)} />
       </div>
     );
   }

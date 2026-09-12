@@ -1,3 +1,4 @@
+import { CatalogClientError, deviceIsOffline } from "./connectivity";
 import type { CatalogIndex, CatalogManifest, CollectionPayload, CollectionSummary, Recording, SearchIndex, SearchSong, Song } from "./types";
 
 const SCHEMA = 1;
@@ -5,19 +6,39 @@ const SCHEMA = 1;
 function defaultRoot(): URL {
   const configured = import.meta.env.VITE_MUSIC_API_ROOT as string | undefined;
   if (configured) return new URL(configured, window.location.origin);
-  if (["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+  if (import.meta.env.DEV && ["localhost", "127.0.0.1"].includes(window.location.hostname)) {
     return new URL("https://living-music.github.io/musicapi/");
   }
   return new URL("/musicapi/", window.location.origin);
 }
 
-async function fetchJson(url: URL): Promise<unknown> {
-  const response = await fetch(url, {
-    headers: { Accept: "application/json" },
-    cache: url.pathname.endsWith("/index.json") ? "no-cache" : "default",
-  });
-  if (!response.ok) throw new Error(`The music catalog returned ${response.status}.`);
-  return response.json();
+async function fetchJson(url: URL, revalidate = false): Promise<unknown> {
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: { Accept: "application/json" },
+      cache: revalidate ? "no-cache" : "default",
+    });
+  } catch (cause) {
+    throw new CatalogClientError(
+      deviceIsOffline() ? "offline" : "upstream",
+      deviceIsOffline()
+        ? "You’re offline, and this part of the catalog has not been saved on this device yet."
+        : "The music catalog could not be reached. Try again shortly.",
+      { cause },
+    );
+  }
+  if (!response.ok) {
+    throw new CatalogClientError(
+      "upstream",
+      `The music catalog is temporarily unavailable (${response.status}).`,
+    );
+  }
+  try {
+    return await response.json();
+  } catch (cause) {
+    throw new CatalogClientError("invalid", "The music catalog returned unreadable data.", { cause });
+  }
 }
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -26,7 +47,7 @@ function record(value: unknown): value is Record<string, unknown> {
 
 function schema(value: unknown, label: string): asserts value is Record<string, unknown> & { schemaVersion: number } {
   if (!record(value) || value.schemaVersion !== SCHEMA) {
-    throw new Error(`${label} uses an unsupported catalog format.`);
+    throw new CatalogClientError("unsupported", `${label} uses an unsupported catalog format.`);
   }
 }
 
@@ -102,7 +123,7 @@ function validSearchSong(value: unknown): value is SearchSong {
 function manifest(value: unknown): asserts value is CatalogManifest {
   schema(value, "The catalog manifest");
   if (!requiredString(value.href) || !requiredString(value.revision) || !requiredString(value.currentVersion)) {
-    throw new Error("The catalog manifest is incomplete.");
+    throw new CatalogClientError("invalid", "The catalog manifest is incomplete.");
   }
 }
 
@@ -118,7 +139,7 @@ function index(value: unknown): asserts value is CatalogIndex {
     !record(value.search) ||
     !requiredString(value.search.href)
   ) {
-    throw new Error("The catalog index is incomplete.");
+    throw new CatalogClientError("invalid", "The catalog index is incomplete.");
   }
 }
 
@@ -130,14 +151,14 @@ function collection(value: unknown): asserts value is CollectionPayload {
     !value.songs.every(validSong) ||
     !requiredString(value.revision)
   ) {
-    throw new Error("The collection response is incomplete.");
+    throw new CatalogClientError("invalid", "The collection response is incomplete.");
   }
 }
 
 function search(value: unknown): asserts value is SearchIndex {
   schema(value, "The search index");
   if (!Array.isArray(value.songs) || !value.songs.every(validSearchSong) || !requiredString(value.revision)) {
-    throw new Error("The search index is incomplete.");
+    throw new CatalogClientError("invalid", "The search index is incomplete.");
   }
 }
 
@@ -154,13 +175,35 @@ export class CatalogClient {
 
   async loadIndex(): Promise<CatalogIndex> {
     if (this.index) return this.index;
-    const manifestData = await fetchJson(new URL("index.json", this.apiRoot));
+    const manifestData = await fetchJson(new URL("index.json", this.apiRoot), true);
     manifest(manifestData);
     this.indexUrl = new URL(manifestData.href, this.apiRoot);
     const indexData = await fetchJson(this.indexUrl);
     index(indexData);
     this.index = indexData;
     return indexData;
+  }
+
+  async refreshIndex(): Promise<CatalogIndex> {
+    const previous = {
+      index: this.index,
+      indexUrl: this.indexUrl,
+      search: this.search,
+      collections: this.collections,
+    };
+    this.index = undefined;
+    this.indexUrl = undefined;
+    this.search = undefined;
+    this.collections = new Map();
+    try {
+      return await this.loadIndex();
+    } catch (error) {
+      this.index = previous.index;
+      this.indexUrl = previous.indexUrl;
+      this.search = previous.search;
+      this.collections = previous.collections;
+      throw error;
+    }
   }
 
   async loadSearch(): Promise<SearchIndex> {

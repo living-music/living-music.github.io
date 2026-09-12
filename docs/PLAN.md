@@ -1,6 +1,6 @@
 # Living Music implementation plan
 
-Status: prototype complete; post-prototype PWA roadmap active, September 11, 2026.
+Status: prototype and PWA Phase 1 complete; Phase 2 planned, September 11, 2026.
 
 ## Product goal
 
@@ -460,6 +460,8 @@ The completed prototype establishes the installable shell and playback experienc
 
 ### Phase 1 — Offline-ready catalog and controlled updates
 
+Status: Complete. Automated coverage includes offline reload, first-use offline recovery, reconnect, controlled worker activation, two-revision retention, interrupted catalog release fallback, and theme-color synchronization.
+
 Deliver:
 
 - A separate, versioned runtime cache for the musicapi manifest, catalog index, search index, and opened collections.
@@ -616,16 +618,15 @@ Representative manual checks:
 
 ## Next implementation slice
 
-Complete Phase 1 as the next reviewable release:
+Complete the durable-data foundation of Phase 2 as the next reviewable release:
 
-1. Extract service-worker generation into shell and catalog-cache policies with separate cache prefixes.
-2. Cache the last valid manifest and revisioned catalog index, then prove Browse survives an offline reload.
-3. Extend the same policy to search and opened collections with current/previous revision cleanup.
-4. Add explicit online, offline, and upstream-error application states with retry behavior.
-5. Replace immediate worker activation with a waiting-update message and listener-controlled refresh.
-6. Recheck for updates when the app returns to the foreground without interrupting playback.
-7. Correct saved light/system `theme-color` initialization.
-8. Add browser tests for first install, second-load control, offline reload, reconnect, and worker upgrade.
-9. Deploy and verify the phase on current iPhone/iPad Safari, macOS Safari, Android Chrome, and desktop Chromium.
+1. Define a versioned IndexedDB schema and asynchronous persistence adapter for listener-owned state.
+2. Migrate `livingMusic:userState:v1` transactionally, retaining the readable source record until the new record is verified.
+3. Keep theme selection in `localStorage` and move Library, Favorites, albums, playlists, queue, and recording preferences to IndexedDB.
+4. Surface storage and migration failures without blocking in-memory listening.
+5. Request persistent storage only after the listener has saved meaningful data and report the result without pressure.
+6. Add validated JSON export, import, Clear Local Data, and storage-usage controls.
+7. Add migration, interrupted-write, unavailable-storage, quota, export/import, and browser-restart tests.
+8. Deploy and verify that existing production user state migrates once with IDs, timestamps, ordering, and queue position intact.
 
-This slice resolves the largest PWA gap: today the shell opens offline while its catalog-dependent experience does not. It deliberately leaves persistence migration and media downloads for later releases so cache behavior can be validated before storage responsibilities expand.
+Manifest promotion, maskable assets, screenshots, shortcuts, and the Install Living Music interface follow on the same Phase 2 storage foundation. Keeping them in a subsequent review prevents installation UI work from obscuring the higher-risk data migration.

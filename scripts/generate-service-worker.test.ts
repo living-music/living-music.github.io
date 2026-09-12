@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { collectPrecacheEntries, generateServiceWorker } from "./generate-service-worker.mjs";
+import { collectPrecacheEntries, generateServiceWorker, renderServiceWorker } from "./generate-service-worker.mjs";
 
 describe("service worker generation", () => {
   it("content-addresses app assets and excludes maps and deployment files", async () => {
@@ -28,5 +28,26 @@ describe("service worker generation", () => {
     expect(worker).toContain("living-music-shell-");
     expect(worker).toContain("event.request.mode === \"navigate\"");
     expect(worker).not.toContain("app.js.map");
+  });
+
+  it("separates shell and catalog caches with safe catalog policies", () => {
+    const worker = renderServiceWorker([{ url: "/", cacheKey: "/?__lm=root" }]);
+    expect(worker).toContain('CATALOG_CACHE_NAME = CATALOG_CACHE_PREFIX + "v1"');
+    expect(worker).toContain('CATALOG_MANIFEST_PATH = "/musicapi/index.json"');
+    expect(worker).toContain("CATALOG_REVISIONS_PER_PATH = 2");
+    expect(worker).toContain("name.startsWith(CATALOG_CACHE_PREFIX) && name !== CATALOG_CACHE_NAME");
+    expect(worker).toContain("catalogManifestNetworkFirst(event.request)");
+    expect(worker).toContain("catalogCacheFirst(event.request)");
+    expect(worker).toContain("Catalog index has no search link");
+    expect(worker).toContain("await cache.put(manifestKey, response.clone())");
+    expect(worker).toContain("LIVING_MUSIC_CATALOG_FALLBACK");
+  });
+
+  it("waits for listener approval before activating an update", () => {
+    const worker = renderServiceWorker([{ url: "/", cacheKey: "/?__lm=root" }]);
+    expect(worker).toContain("LIVING_MUSIC_SKIP_WAITING");
+    expect(worker).toContain("void self.skipWaiting()");
+    expect(worker).not.toContain("await self.skipWaiting()");
+    expect(() => new Function(worker)).not.toThrow();
   });
 });

@@ -91,3 +91,35 @@ it("rejects malformed compact search records", async () => {
   await expect(new CatalogClient(new URL("https://example.test/musicapi/")).loadSearch())
     .rejects.toThrow("search index is incomplete");
 });
+
+describe("catalog failure recovery", () => {
+  it("classifies a failed fetch while offline", async () => {
+    vi.stubGlobal("navigator", { onLine: false });
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("Failed to fetch"); }));
+
+    await expect(new CatalogClient(new URL("https://example.test/musicapi/")).loadIndex())
+      .rejects.toMatchObject({ kind: "offline" });
+  });
+
+  it("classifies HTTP failures as upstream availability errors", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("Unavailable", { status: 503 })));
+
+    await expect(new CatalogClient(new URL("https://example.test/musicapi/")).loadIndex())
+      .rejects.toMatchObject({ kind: "upstream" });
+  });
+
+  it("restores the last in-memory catalog when refresh fails", async () => {
+    let available = true;
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      if (!available) throw new TypeError("Failed to fetch");
+      return new Response(JSON.stringify(String(input).includes("/v1/") ? index : manifest), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const client = new CatalogClient(new URL("https://example.test/musicapi/"));
+    const initial = await client.loadIndex();
+
+    available = false;
+    await expect(client.refreshIndex()).rejects.toMatchObject({ kind: "upstream" });
+    await expect(client.loadIndex()).resolves.toBe(initial);
+  });
+});

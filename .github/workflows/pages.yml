@@ -38,6 +38,10 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Install browser test runtime
+        run: npx playwright install --with-deps chromium
+      - name: Test production PWA behavior
+        run: npm run test:browser
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload production build

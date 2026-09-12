@@ -2425,3 +2425,96 @@ a.collection-card:active { transform: scale(0.985); }
 @media (prefers-reduced-transparency: reduce) {
   .song-context-menu { background: var(--surface-solid); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
+
+/* PWA connection and update status */
+
+.app-status-region {
+  position: fixed;
+  z-index: 70;
+  top: max(0.8rem, env(safe-area-inset-top));
+  right: max(0.8rem, env(safe-area-inset-right));
+  width: min(28rem, calc(100vw - var(--sidebar-width) - 2rem));
+  display: grid;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.app-status {
+  min-height: 3.35rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.7rem 0.65rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface-solid) 92%, transparent);
+  box-shadow: 0 0.7rem 2rem rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(24px) saturate(135%);
+  -webkit-backdrop-filter: blur(24px) saturate(135%);
+  pointer-events: auto;
+  animation: status-enter 200ms var(--ease-out) both;
+}
+
+.app-status > .icon { color: var(--accent); }
+.app-status-offline > .icon { color: var(--muted); }
+.app-status p { min-width: 0; margin: 0; }
+.app-status strong,
+.app-status span { display: block; }
+.app-status strong { font-size: 0.8rem; }
+.app-status span {
+  margin-top: 0.12rem;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+}
+
+.app-status button {
+  min-height: 2rem;
+  padding: 0 0.7rem;
+  border: 0;
+  border-radius: 0.65rem;
+  color: var(--accent-ink);
+  background: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 720;
+  cursor: pointer;
+}
+
+.app-status button:disabled { cursor: wait; opacity: 0.65; }
+
+@keyframes status-enter {
+  from { opacity: 0; transform: translateY(-0.4rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 760px) {
+  .app-status-region {
+    top: calc(var(--mobile-header-height) + env(safe-area-inset-top) + 0.55rem);
+    right: max(0.55rem, env(safe-area-inset-right));
+    left: max(0.55rem, env(safe-area-inset-left));
+    width: auto;
+  }
+
+  .app-status {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.55rem;
+  }
+
+  .app-status span { white-space: nowrap; }
+}
+
+@media (max-width: 390px) {
+  .app-status span { display: none; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .app-status {
+    background: var(--surface-solid);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

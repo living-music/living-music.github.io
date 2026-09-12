@@ -4,6 +4,7 @@ All notable user-visible changes to Living Music are recorded here.
 
 ## Unreleased
 
+- Added offline catalog caching, explicit connection states, listener-controlled app updates, synchronized installed-app theme colors, and production PWA browser tests.
 - Added atomic, content-addressed app-shell caching through a generated service worker.
 - Made Browse the default landing page for root and unrecognized routes.
 - Added sequential playlist playback with playlist-level Play and Random controls.
