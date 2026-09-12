@@ -32,6 +32,7 @@ export interface DownloadRequest { song: Song; collection: CollectionSummary; pr
 type Listener = (snapshot: DownloadSnapshot) => void;
 const listeners = new Set<Listener>();
 const active = new Map<string, AbortController>();
+const cancelledQueuedRecordings = new Set<string>();
 let records = new Map<string, DownloadRecord>();
 const knownSongs = new Map<string, Song>();
 let snapshot: DownloadSnapshot = { initialized: false, records: [] };
@@ -242,14 +243,18 @@ export async function downloadMany(requests: DownloadRequest[]): Promise<void> {
     });
   }
   for (const request of requests) {
+    const recording = chooseRecording(request.song, request.preferredType);
+    if (recording && cancelledQueuedRecordings.delete(recording.id)) continue;
     try { await downloadRecording(request); } catch { /* Each failed record remains retryable. */ }
   }
 }
 
 export async function removeDownload(recordingId: string): Promise<void> {
-  active.get(recordingId)?.abort();
+  const controller = active.get(recordingId);
+  controller?.abort();
   const record = records.get(recordingId);
   if (!record) return;
+  if (record.status === "queued" && !controller) cancelledQueuedRecordings.add(recordingId);
   const cache = await caches.open(DOWNLOAD_CACHE);
   await cache.delete(record.sourceUrl, { ignoreVary: true });
   records.delete(recordingId); publish();
@@ -263,6 +268,7 @@ export async function removeSongDownloads(songId: string): Promise<void> {
 export async function clearAllDownloads(): Promise<void> {
   active.forEach((controller) => controller.abort());
   active.clear();
+  cancelledQueuedRecordings.clear();
   await Promise.all([caches.delete(DOWNLOAD_CACHE), caches.delete(ARTWORK_CACHE)]);
   try {
     const database = await openDatabase();

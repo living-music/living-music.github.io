@@ -188,6 +188,10 @@ export function PlaylistPage({
     return record?.status === "downloaded" || record?.status === "stale";
   }).length;
   const playlistDownloaded = songs.length > 0 && downloadedCount === songs.length;
+  const playlistDownloading = songs.some((song) => {
+    const status = downloads.get(song.id)?.status;
+    return status === "queued" || status === "downloading";
+  });
 
   const start = async (orderedSongs: SearchSong[], songId?: string) => {
     setStarting(true);
@@ -216,8 +220,8 @@ export function PlaylistPage({
             <button type="button" disabled={!songs.length || starting} onClick={() => void start(randomizePlaylistSongs(songs))}>
               <Icon name="shuffle" size={18} /> Random
             </button>
-            <button type="button" disabled={!songs.length} onClick={() => onDownloadPlaylist(songs, playlistDownloaded)}>
-              <Icon name={playlistDownloaded ? "check" : "download"} size={18} /> {playlistDownloaded ? "Remove Downloads" : downloadedCount ? "Download Remaining" : "Download"}
+            <button type="button" disabled={!songs.length || playlistDownloading} onClick={() => onDownloadPlaylist(songs, playlistDownloaded)}>
+              <Icon name={playlistDownloaded ? "check" : "download"} size={18} /> {playlistDownloading ? "Downloading..." : playlistDownloaded ? "Remove Downloads" : downloadedCount ? "Download Remaining" : "Download"}
             </button>
           </div>
         )}

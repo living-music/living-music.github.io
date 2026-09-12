@@ -198,7 +198,13 @@ export function SongResults({
                 >
                   <Icon name="heart" filled={favorites.has(song.id)} size={19} />
                 </button>
-                <DownloadStatus download={download} />
+                <DownloadStatus
+                  title={song.title}
+                  download={download}
+                  disabled={!playable}
+                  onDownload={onDownload ? () => onDownload(song) : undefined}
+                  onRemoveDownload={onRemoveDownload ? () => onRemoveDownload(song.id) : undefined}
+                />
                 <button
                   type="button"
                   class="result-more-button"

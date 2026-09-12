@@ -346,9 +346,8 @@ test("downloads, seeks, plays, and removes a recording offline without removing 
   await waitForControl(page);
   const songButton = page.getByRole("button", { name: "Play Offline Song" });
   await expect(songButton).toBeVisible();
-  await songButton.click({ button: "right" });
-  await page.getByRole("menuitem", { name: "Download", exact: true }).click();
-  const downloadedStatus = page.getByRole("img", { name: "Downloaded" });
+  await page.getByRole("button", { name: /^Download Offline Song\./ }).click();
+  const downloadedStatus = page.getByRole("button", { name: /^Delete download for Offline Song\./ });
   await expect(downloadedStatus).toBeVisible();
   await expect(downloadedStatus).toHaveClass(/is-downloaded/);
   expect(await downloadedStatus.evaluate((element) => element.parentElement?.className)).toBe("song-row-actions");
@@ -369,8 +368,7 @@ test("downloads, seeks, plays, and removes a recording offline without removing 
   await seek.fill("1");
   await expect(seek).toHaveAttribute("aria-valuetext", /0:01 of 0:02/);
 
-  await page.getByRole("button", { name: "Play Offline Song" }).click({ button: "right" });
-  await page.getByRole("menuitem", { name: "Remove Download" }).click();
+  await page.getByRole("button", { name: /^Delete download for Offline Song\./ }).click();
   await expect(page.getByRole("heading", { name: "Download music for offline listening." })).toBeVisible();
   await page.evaluate(() => { window.location.hash = "#/library/songs"; });
   await expect(page.getByRole("button", { name: "Play Offline Song" })).toBeVisible();
@@ -453,4 +451,31 @@ test("marks changed catalog sources stale and lets the listener update them", as
   await page.getByRole("button", { name: "Play Offline Song" }).click({ button: "right" });
   await page.getByRole("menuitem", { name: "Update Download" }).click();
   await expect(page.locator(".download-status.is-downloaded").first()).toBeVisible();
+});
+
+test.describe("batch download queue", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("shows one active transfer, distinguishes queued songs, and cancels a queued item", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("livingMusic:userState:v1", JSON.stringify({
+      playlists: [{ id: "queue-playlist", name: "Queue Playlist", createdAt: "2026-09-01T12:00:00.000Z", updatedAt: "2026-09-01T12:00:00.000Z", songIds: ["offline-song", "offline-song-two"] }],
+    })));
+    await page.route("**/musicapi/offline.wav", async (route) => {
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 900));
+      await route.continue();
+    });
+    await page.goto("/#/playlist/queue-playlist");
+    await page.getByRole("button", { name: "Download", exact: true }).click();
+
+    await expect(page.getByRole("button", { name: /^Cancel download for Offline Song\./ })).toBeVisible();
+    const queued = page.getByRole("button", { name: /^Cancel queued download for Second Offline Song\./ });
+    await expect(queued).toBeVisible();
+    await expect(page.getByRole("button", { name: "Downloading..." })).toBeDisabled();
+
+    await queued.click();
+    await expect(page.getByRole("button", { name: /^Download Second Offline Song\./ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Delete download for Offline Song\./ })).toBeVisible();
+    await page.waitForTimeout(300);
+    await expect(page.getByRole("button", { name: /^Download Second Offline Song\./ })).toBeVisible();
+  });
 });

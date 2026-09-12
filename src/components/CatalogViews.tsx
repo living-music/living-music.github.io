@@ -195,6 +195,10 @@ export function CollectionPage({
     return record?.status === "downloaded" || record?.status === "stale";
   }).length;
   const albumDownloaded = downloadableSongs.length > 0 && downloadedCount === downloadableSongs.length;
+  const albumDownloading = downloadableSongs.some((song) => {
+    const status = downloads.get(song.id)?.status;
+    return status === "queued" || status === "downloading";
+  });
 
   return (
     <div class="page collection-page">
@@ -219,9 +223,9 @@ export function CollectionPage({
               <Icon name={savedAlbum ? "check" : "add"} size={17} />
               {savedAlbum ? "Added to Library" : "Add Album to Library"}
             </button>
-            <button type="button" class="album-download-button" onClick={() => onDownloadAlbum(downloadableSongs, collection, albumDownloaded)} disabled={!downloadableSongs.length}>
+            <button type="button" class="album-download-button" onClick={() => onDownloadAlbum(downloadableSongs, collection, albumDownloaded)} disabled={!downloadableSongs.length || albumDownloading}>
               <Icon name={albumDownloaded ? "check" : "download"} size={17} />
-              {albumDownloaded ? "Remove Downloads" : downloadedCount ? `Download Remaining (${downloadedCount}/${downloadableSongs.length})` : "Download Album"}
+              {albumDownloading ? "Downloading..." : albumDownloaded ? "Remove Downloads" : downloadedCount ? "Download Remaining (" + downloadedCount + "/" + downloadableSongs.length + ")" : "Download Album"}
             </button>
             <a class="source-link" href={collection.sourceUrl}>
               View in the official music library <Icon name="chevron" size={16} />
@@ -302,7 +306,13 @@ export function CollectionPage({
                   >
                     <Icon name="heart" filled={favorites.has(song.id)} size={18} />
                   </button>
-                  <DownloadStatus download={download} />
+                  <DownloadStatus
+                    title={song.title}
+                    download={download}
+                    disabled={unavailable}
+                    onDownload={() => onDownload(song, collection)}
+                    onRemoveDownload={() => onRemoveDownload(song.id)}
+                  />
                   {!unavailable && (
                     <button
                       type="button"

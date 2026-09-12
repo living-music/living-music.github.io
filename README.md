@@ -104,7 +104,7 @@ Library, Favorites, albums, playlists, queue position, repeat mode, and recordin
 
 ## Offline music
 
-Choose **Download** from a song’s right-click or overflow menu, or use the Download action on an album or playlist. Living Music saves the selected recording directly from its official Church URL and adds the song to Library. Downloaded, queued, active, failed, and stale states appear beside song rows and in their menus. **Library → Downloaded** collects the recordings available without a connection.
+Use the download button on a song row to download, retry, update, cancel, or remove that song in one click; the same actions remain available in its context menu. Album and playlist batches queue every selected song and transfer one recording at a time, showing a static queued marker and a progress ring only for the active transfer. The batch button remains disabled until the queue finishes. Living Music saves each selected recording directly from its official Church URL and adds the song to Library. Downloaded, queued, active, failed, and stale states appear beside song rows and in their menus. **Library → Downloaded** collects the recordings available without a connection.
 
 Downloads remain local to the current browser profile. Readable media responses show byte progress and support cached byte-range seeking; non-CORS media uses opaque browser caching with indeterminate progress. Interrupted downloads become retryable after restart. When the catalog changes a recording URL, the old copy stays playable and is marked for an optional update. Removing audio leaves Library, Favorites, albums, and playlists intact.
 

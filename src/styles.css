@@ -2644,17 +2644,19 @@ a.collection-card:active { transform: scale(0.985); }
   flex: 0 0 auto;
   display: grid;
   place-items: center;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
   color: var(--muted);
   background: transparent;
+  cursor: pointer;
+  transition: color 150ms ease, background 150ms ease, transform 150ms var(--ease-out);
 }
 
 .song-row-actions .download-status {
   width: 2.35rem;
   height: 2.35rem;
 }
-
-.download-status.is-empty { visibility: hidden; }
 
 .download-status-glyph {
   position: relative;
@@ -2670,9 +2672,35 @@ a.collection-card:active { transform: scale(0.985); }
   z-index: 1;
 }
 
+.download-status:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.download-status:active:not(:disabled) { transform: scale(0.94); }
+.download-status:disabled { cursor: default; opacity: 0.5; }
+
+.download-status.is-queued .download-status-glyph::after {
+  content: "";
+  position: absolute;
+  right: 0.08rem;
+  bottom: 0.14rem;
+  z-index: 2;
+  width: 0.32rem;
+  height: 0.32rem;
+  border: 2px solid var(--background);
+  border-radius: 50%;
+  background: var(--muted);
+}
+
 .download-status.is-downloaded {
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.download-status.is-downloaded:hover {
+  color: var(--danger, #ff6961);
+  background: color-mix(in srgb, var(--danger, #ff6961) 10%, transparent);
 }
 
 .download-status.is-stale {
