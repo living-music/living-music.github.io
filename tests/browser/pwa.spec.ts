@@ -163,7 +163,7 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
     tiles.map((tile) => ({ width: tile.getAttribute("width"), radius: tile.getAttribute("rx"), fill: tile.getAttribute("fill"), stroke: tile.getAttribute("stroke") })),
   )).toEqual(Array.from({ length: 4 }, () => ({ width: "8.5", radius: "2.2", fill: "currentColor", stroke: "none" })));
   await expect(navigation.getByRole("link", { name: "Library", exact: true }).locator("svg")).toHaveAttribute("fill", "currentColor");
-  await expect(header).toHaveClass(/glass-surface--regular/);
+  await expect(header).toHaveCount(0);
   await expect(navigation).toHaveClass(/glass-surface--clear/);
   await expect(miniPlayer).toHaveClass(/glass-surface--regular/);
   await expect.poll(async () => {
@@ -174,12 +174,10 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
     return (navigationBounds?.y ?? 0) - ((playerBounds?.y ?? 0) + (playerBounds?.height ?? 0));
   }).toBeGreaterThanOrEqual(7);
 
-  const [headerBox, navigationBox, playerBox] = await Promise.all([
-    header.boundingBox(),
+  const [navigationBox, playerBox] = await Promise.all([
     navigation.boundingBox(),
     miniPlayer.boundingBox(),
   ]);
-  expect(headerBox?.height).toBeLessThanOrEqual(58);
   expect(navigationBox?.height).toBeLessThanOrEqual(62);
   expect(playerBox?.height).toBeLessThanOrEqual(58);
   expect(navigationBox?.x).toBeGreaterThanOrEqual(17);
@@ -244,7 +242,7 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   )).toEqual(["25", "25", "25", "25"]);
   await expect(page.getByRole("link", { name: "Library", exact: true })).toBeVisible();
 
-  const surfaces = await Promise.all([header, navigation, miniPlayer].map((surface) => surface.evaluate((element) => {
+  const surfaces = await Promise.all([navigation, miniPlayer].map((surface) => surface.evaluate((element) => {
     const container = getComputedStyle(element);
     const layer = getComputedStyle(element, "::before");
     return {
@@ -255,7 +253,6 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
     };
   })));
   expect(surfaces).toEqual([
-    { background: "rgba(0, 0, 0, 0)", material: "rgba(24, 24, 28, 0.66)", pointerEvents: "none", contentZIndex: "1" },
     { background: "rgba(0, 0, 0, 0)", material: "rgba(18, 18, 22, 0.39)", pointerEvents: "none", contentZIndex: "1" },
     { background: "rgba(0, 0, 0, 0)", material: "rgba(24, 24, 28, 0.6)", pointerEvents: "none", contentZIndex: "1" },
   ]);
@@ -264,7 +261,7 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   await session.send("Emulation.setEmulatedMedia", {
     features: [{ name: "prefers-reduced-transparency", value: "reduce" }],
   });
-  await expect.poll(() => Promise.all([header, navigation, miniPlayer].map((surface) => surface.evaluate((element) => {
+  await expect.poll(() => Promise.all([navigation, miniPlayer].map((surface) => surface.evaluate((element) => {
     const layer = getComputedStyle(element, "::before");
     return {
       background: layer.backgroundColor,
@@ -272,7 +269,6 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
         .map((filter) => filter || "none"),
     };
   })))).toEqual([
-    { background: "rgb(24, 24, 28)", filters: ["none", "none"] },
     { background: "rgb(18, 18, 22)", filters: ["none", "none"] },
     { background: "rgb(24, 24, 28)", filters: ["none", "none"] },
   ]);
@@ -377,7 +373,7 @@ test("shows playlist options above sidebar chrome", async ({ page }) => {
   }))).toEqual({ parent: "BODY", position: "fixed", zIndex: 90 });
 });
 
-test("opens dedicated Settings from the sidebar and mobile header", async ({ page }) => {
+test("opens dedicated Settings and scopes the mobile content header", async ({ page }) => {
   await page.goto("/#/browse");
   const desktopSettings = page.locator(".sidebar-settings-button");
   await expect(desktopSettings).toBeVisible();
@@ -394,16 +390,27 @@ test("opens dedicated Settings from the sidebar and mobile header", async ({ pag
   const mobileHeader = page.locator(".mobile-header");
   await expect(mobileHeader).toBeVisible();
   expect((await mobileHeader.boundingBox())?.height).toBeLessThanOrEqual(58);
+  await expect(mobileHeader).toHaveCSS("position", "static");
+  const [mobileHeaderBox, browseTitleBox] = await Promise.all([
+    mobileHeader.boundingBox(),
+    page.getByRole("heading", { name: "Browse", exact: true }).boundingBox(),
+  ]);
+  expect((mobileHeaderBox?.y ?? 0) + (mobileHeaderBox?.height ?? 0)).toBeLessThan(browseTitleBox?.y ?? 0);
   const mobileNavigation = page.locator(".mobile-navigation");
   await expect(mobileNavigation).toBeVisible();
   expect((await mobileNavigation.boundingBox())?.height).toBeLessThanOrEqual(62);
   await mobileSettings.click();
   await expect(page).toHaveURL(/#\/settings$/);
+  await expect(mobileHeader).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Installation" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Local data" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "About" })).toBeVisible();
   await expect(page.getByText("0.1.0", { exact: true })).toBeVisible();
   await expect(page.locator(".settings-build-id")).toHaveText(/^[0-9a-f]{7}$/);
+  await page.goto("/#/library/recent");
+  await expect(mobileHeader).toBeVisible();
+  await page.goto("/#/search");
+  await expect(mobileHeader).toHaveCount(0);
 });
 
 test("exports, clears, and restores listener data", async ({ page }) => {
@@ -473,12 +480,8 @@ test("hides install promotion in standalone mode", async ({ page }) => {
       : original(query);
   });
   await page.goto("/#/settings");
-  const standaloneHeader = page.locator(".mobile-header");
   await expect(page.locator(".app-shell")).toHaveClass(/is-ios-standalone/);
-  await expect(standaloneHeader).toHaveClass(/is-standalone/);
-  expect((await standaloneHeader.boundingBox())?.height).toBeGreaterThanOrEqual(71);
-  await expect.poll(() => standaloneHeader.evaluate((element) => getComputedStyle(element).backdropFilter)).toBe("none");
-  await expect.poll(() => standaloneHeader.evaluate((element) => getComputedStyle(element, "::before").content)).not.toBe("none");
+  await expect(page.locator(".mobile-header")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Installation" })).toBeVisible();
   await expect(page.getByText("Living Music is installed on this device.", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Local data" })).toBeVisible();

@@ -232,6 +232,20 @@ function PageHeader({ eyebrow, title, description }: { eyebrow: string; title: s
   );
 }
 
+function MobileContentHeader() {
+  return (
+    <header class="mobile-header">
+      <a class="mobile-brand" href="#/home" aria-label="Living Music home">
+        <img src="/app-icon-192.png" alt="" />
+        <span>Living Music</span>
+      </a>
+      <a class="mobile-settings-button" href="#/settings" aria-label="Settings">
+        <Icon name="settings" size={20} />
+      </a>
+    </header>
+  );
+}
+
 function CatalogSection({
   state,
   onRetry,
@@ -314,6 +328,7 @@ function BrowsePage({ catalog, onRetry }: { catalog: CatalogState; onRetry: () =
   const stats = catalog.status === "ready" ? catalog.index.stats : undefined;
   return (
     <div class="page">
+      <MobileContentHeader />
       <PageHeader
         eyebrow="All music"
         title="Browse"
@@ -627,6 +642,7 @@ function LibraryPage({
   const copy = viewCopy[view];
   return (
     <div class="page">
+      <MobileContentHeader />
       <PageHeader
         eyebrow={view === "favorites" ? "Playlist" : "Library"}
         title={copy.title}
@@ -1211,16 +1227,6 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
           </a>
         </div>
       </aside>
-
-      <header class={`mobile-header glass-surface glass-surface--regular ${install.mode === "installed" ? "is-standalone" : ""}`}>
-        <a class="mobile-brand" href="#/home" aria-label="Living Music home">
-          <img src="/app-icon-192.png" alt="" />
-          <span>Living Music</span>
-        </a>
-        <a class="mobile-settings-button" href="#/settings" aria-label="Settings" aria-current={route.page === "settings" ? "page" : undefined}>
-          <Icon name="settings" size={20} />
-        </a>
-      </header>
 
       <main id="main-content" class="content" ref={mainRef} tabIndex={-1}>
         {route.page === "home" && <HomePage catalog={catalog} onRetry={retryCatalog} />}

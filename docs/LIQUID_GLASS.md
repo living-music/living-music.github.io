@@ -163,6 +163,7 @@ Implementation record — September 12, 2026:
 - Thickened Pause into two softly rounded filled bars and increased bottom-navigation glyphs from 22 to 25 pixels for clearer visual weight inside the mobile capsule.
 - Reordered mobile navigation to Home, Browse, Library, Search and replaced the angular Home outline with a softly rounded filled-house silhouette modeled after the iOS tab-bar treatment.
 - Filled the Browse tile grid and kept the Library heart filled at rest, using color rather than outline weight to distinguish the active destination.
+- Moved the mobile Living Music and Settings row into normal page flow above Browse and Library titles. Other destinations no longer render that header, and content no longer reserves space for or scrolls beneath a fixed top material.
 
 ## Stage 4 — Controls, menus, and interaction response
 

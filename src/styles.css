@@ -39,7 +39,6 @@
   --glass-saturation-clear: 155%;
   --glass-saturation-subdued: 125%;
   --sidebar-width: 15.5rem;
-  --mobile-header-height: 3.5rem;
   --mobile-nav-height: 3.75rem;
   --mobile-player-height: 3.5rem;
   --mobile-chrome-inset: 1rem;
@@ -682,26 +681,11 @@ h1 {
 @media (max-width: 760px) {
   .sidebar { display: none; }
 
-  .app-shell.is-ios-standalone {
-    --mobile-header-height: 4.5rem;
-  }
-
   .mobile-header {
-    position: fixed;
-    z-index: 20;
-    inset: 0 0 auto;
-    min-height: calc(var(--mobile-header-height) + env(safe-area-inset-top));
     display: flex;
     align-items: center;
-    padding: env(safe-area-inset-top) 1rem 0;
-    background: transparent;
-  }
-
-  .mobile-header::before { box-shadow: inset 0 -1px var(--glass-border); }
-
-  .app-shell.is-ios-standalone .mobile-header {
-    align-items: flex-end;
-    padding-bottom: 0.65rem;
+    min-height: 2.35rem;
+    margin-bottom: 1.35rem;
   }
 
   .mobile-brand { font-size: 0.96rem; }
@@ -710,7 +694,7 @@ h1 {
 
   .content {
     margin-left: 0;
-    padding: calc(var(--mobile-header-height) + env(safe-area-inset-top) + 2rem)
+    padding: calc(1.15rem + env(safe-area-inset-top))
       calc(1rem + env(safe-area-inset-right))
       calc(var(--mobile-nav-height) + env(safe-area-inset-bottom) + var(--mobile-chrome-inset) + 2.3rem)
       calc(1rem + env(safe-area-inset-left));
@@ -755,7 +739,6 @@ h1 {
       var(--glass-material-background);
   }
 
-  .app-shell::before,
   .app-shell::after {
     content: "";
     position: fixed;
@@ -763,12 +746,6 @@ h1 {
     right: 0;
     left: 0;
     pointer-events: none;
-  }
-
-  .app-shell::before {
-    top: calc(var(--mobile-header-height) + env(safe-area-inset-top));
-    height: 2rem;
-    background: linear-gradient(to bottom, color-mix(in srgb, var(--background) 68%, transparent), transparent);
   }
 
   .app-shell::after {
@@ -2721,7 +2698,7 @@ a.collection-card:active { transform: scale(0.985); }
 
 @media (max-width: 760px) {
   .app-status-region {
-    top: calc(var(--mobile-header-height) + env(safe-area-inset-top) + 0.55rem);
+    top: calc(env(safe-area-inset-top) + 0.55rem);
     right: max(0.55rem, env(safe-area-inset-right));
     left: max(0.55rem, env(safe-area-inset-left));
     width: auto;
