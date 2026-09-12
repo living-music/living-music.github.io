@@ -934,7 +934,7 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
             ? "Playlists"
             : pageTitles[route.page];
     document.title = `${collectionTitle || fallbackTitle} · Living Music`;
-    if (mainRef.current) mainRef.current.scrollTop = 0;
+    window.scrollTo({ top: 0, behavior: "instant" });
   }, [route, catalog, userState.playlists]);
 
   useEffect(() => {
@@ -1165,7 +1165,7 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
     && Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
 
   return (
-    <div class={`app-shell ${player.track ? "has-player" : ""} ${iosStandalone ? "is-ios-standalone" : ""} ${nowPlayingOpen ? "now-playing-open" : ""} ${playlistDialog ? "dialog-open" : ""}`}>
+    <div class={`app-shell ${player.track ? "has-player" : ""} ${iosStandalone ? "is-ios-standalone" : ""}`}>
       <a class="skip-link" href="#main-content">Skip to content</a>
       <AppStatus
         online={online}

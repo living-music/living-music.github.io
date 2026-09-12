@@ -20,8 +20,6 @@
   --sidebar-width: 15.5rem;
   --mobile-header-height: 3.5rem;
   --mobile-nav-height: 3.75rem;
-  --desktop-player-height: 5.3rem;
-  --mobile-player-height: 4.65rem;
   --content-width: 78rem;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -105,10 +103,7 @@ input:focus-visible {
 
 .skip-link:focus { top: 1rem; }
 
-.app-shell {
-  height: 100dvh;
-  overflow: hidden;
-}
+.app-shell { min-height: 100dvh; }
 
 .sidebar {
   position: fixed;
@@ -271,12 +266,8 @@ input:focus-visible {
 .mobile-navigation { display: none; }
 
 .content {
-  height: 100dvh;
-  min-height: 0;
+  min-height: 100dvh;
   margin-left: var(--sidebar-width);
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
   padding: calc(3.2rem + env(safe-area-inset-top))
     calc(clamp(1.5rem, 5vw, 5rem) + env(safe-area-inset-right))
     calc(2rem + env(safe-area-inset-bottom))
@@ -636,17 +627,11 @@ h1 {
   .mobile-settings-button { margin-left: auto; }
 
   .content {
-    height: 100dvh;
     margin-left: 0;
     padding: calc(var(--mobile-header-height) + env(safe-area-inset-top) + 2rem)
       calc(1rem + env(safe-area-inset-right))
       calc(var(--mobile-nav-height) + env(safe-area-inset-bottom) + 2.3rem)
       calc(1rem + env(safe-area-inset-left));
-  }
-
-  .content::-webkit-scrollbar-track {
-    margin-top: calc(var(--mobile-header-height) + env(safe-area-inset-top));
-    margin-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
   }
 
   .page { min-height: calc(100dvh - 13rem); }
@@ -1031,24 +1016,14 @@ a.collection-card:active { transform: scale(0.985); }
 .song-button:active .song-play-icon { transform: scale(0.9); }
 
 .has-player .content {
-  height: 100dvh;
-  padding-bottom: calc(var(--desktop-player-height) + env(safe-area-inset-bottom) + 2rem);
-}
-
-.has-player .content::-webkit-scrollbar-track {
-  margin-bottom: calc(var(--desktop-player-height) + env(safe-area-inset-bottom));
-}
-
-.app-shell.now-playing-open .content,
-.app-shell.dialog-open .content {
-  overflow-y: hidden;
+  padding-bottom: calc(7.5rem + env(safe-area-inset-bottom));
 }
 
 .mini-player {
   position: fixed;
   z-index: 40;
   inset: auto 0 0 var(--sidebar-width);
-  min-height: calc(var(--desktop-player-height) + env(safe-area-inset-bottom));
+  min-height: calc(5.3rem + env(safe-area-inset-bottom));
   display: grid;
   grid-template-columns: minmax(12rem, 1fr) auto auto auto;
   align-items: center;
@@ -1232,17 +1207,12 @@ a.collection-card:active { transform: scale(0.985); }
 
 @media (max-width: 760px) {
   .has-player .content {
-    height: 100dvh;
-    padding-bottom: calc(var(--mobile-nav-height) + var(--mobile-player-height) + env(safe-area-inset-bottom) + 2.3rem);
-  }
-
-  .has-player .content::-webkit-scrollbar-track {
-    margin-bottom: calc(var(--mobile-nav-height) + var(--mobile-player-height) + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--mobile-nav-height) + 7.2rem + env(safe-area-inset-bottom));
   }
 
   .mini-player {
     inset: auto 0 calc(var(--mobile-nav-height) + env(safe-area-inset-bottom)) 0;
-    min-height: var(--mobile-player-height);
+    min-height: 4.65rem;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.4rem;
     padding: 0.55rem 0.65rem;
