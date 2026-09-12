@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { formatTime } from "../audio";
 import { Icon } from "../Icon";
 import type { PlayerSnapshot, RepeatMode } from "../player";
+import { projectedPlaybackTime } from "../progress";
 import { Artwork } from "./Artwork";
 
 function SeekBar({
@@ -14,19 +15,71 @@ function SeekBar({
   expanded?: boolean;
 }) {
   const duration = player.duration || 0;
-  const progress = Math.min(player.currentTime, duration || player.currentTime);
+  const boundedTime = Math.min(player.currentTime, duration || player.currentTime);
+  const [progress, setProgress] = useState(boundedTime);
+  const progressRef = useRef(boundedTime);
+  const dragging = useRef(false);
+  const anchor = useRef({ time: boundedTime, timestamp: performance.now() });
+
+  useEffect(() => {
+    anchor.current = { time: boundedTime, timestamp: performance.now() };
+    if (!dragging.current) {
+      progressRef.current = boundedTime;
+      setProgress(boundedTime);
+    }
+  }, [boundedTime, player.track?.recording.id]);
+
+  useEffect(() => {
+    anchor.current = { time: progressRef.current, timestamp: performance.now() };
+  }, [player.status]);
+
+  useEffect(() => {
+    if (player.status !== "playing") return;
+    let frame = 0;
+    const update = (timestamp: number) => {
+      if (!dragging.current) {
+        const next = projectedPlaybackTime(
+          anchor.current.time,
+          timestamp - anchor.current.timestamp,
+          duration,
+        );
+        progressRef.current = next;
+        setProgress(next);
+      }
+      frame = requestAnimationFrame(update);
+    };
+    frame = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(frame);
+  }, [player.status, duration, player.track?.recording.id]);
+
+  const seek = (value: number) => {
+    const next = Math.max(0, duration ? Math.min(value, duration) : value);
+    progressRef.current = next;
+    setProgress(next);
+    anchor.current = { time: next, timestamp: performance.now() };
+    onSeek(next);
+  };
+  const finishDragging = () => {
+    dragging.current = false;
+    anchor.current = { time: progressRef.current, timestamp: performance.now() };
+  };
+
   return (
     <div class={expanded ? "expanded-progress" : "mini-progress"}>
       <input
         type="range"
         min="0"
         max={duration || 0}
-        step="1"
+        step="0.01"
         value={progress}
         disabled={!duration}
         aria-label="Playback position"
         aria-valuetext={`${formatTime(progress)} of ${formatTime(duration)}`}
-        onInput={(event) => onSeek(Number(event.currentTarget.value))}
+        onPointerDown={() => { dragging.current = true; }}
+        onPointerUp={finishDragging}
+        onPointerCancel={finishDragging}
+        onBlur={finishDragging}
+        onInput={(event) => seek(Number(event.currentTarget.value))}
         style={{ "--progress": duration ? `${(progress / duration) * 100}%` : "0%" }}
       />
       {expanded && (
