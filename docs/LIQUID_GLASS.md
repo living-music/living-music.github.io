@@ -150,6 +150,7 @@ Implementation record — September 12, 2026:
 - Recalculated the bottom fade and page clearance from the actual player, navigation, gap, and safe-area values after shortening the player.
 - Replaced the crisp one-pixel capsule outlines with a layered rim: a faint half-pixel perimeter, soft upper inner light, lower inner shade, near-edge depth shadow, and diffuse ambient lift. Light and dark appearances use separate edge-shadow values, while Increased Contrast and forced colors retain their explicit boundaries.
 - Increased color transmission through the floating chrome by moving navigation to clear glass and the mini player from subdued to regular glass. Added 4 px of left breathing room inside the mini player so artwork no longer crowds the curved rim; opaque accessibility fallbacks remain unchanged.
+- Moved the mini-player artwork farther from the leading rim to a 16 px inner inset after device review. Strengthened capsule volume with an upper curved highlight bloom, face shading, directional inner rim light, lower refraction shade, and paired contact/ambient shadows while retaining the underlying clear and regular materials.
 
 ## Stage 4 — Controls, menus, and interaction response
 

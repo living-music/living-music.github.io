@@ -147,6 +147,7 @@ input:focus-visible {
 .glass-surface {
   --glass-material-tint: var(--glass-tint-regular);
   --glass-material-fallback: var(--glass-fallback-regular);
+  --glass-material-background: var(--glass-material-fallback);
   --glass-material-blur: var(--glass-blur-regular);
   --glass-material-saturation: var(--glass-saturation-regular);
   position: relative;
@@ -174,7 +175,7 @@ input:focus-visible {
   z-index: 0;
   inset: 0;
   pointer-events: none;
-  background: var(--glass-material-fallback);
+  background: var(--glass-material-background);
   box-shadow:
     inset 0 0 0 1px var(--glass-border),
     inset 0 1px var(--glass-edge-highlight),
@@ -187,8 +188,10 @@ input:focus-visible {
 }
 
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-surface { --glass-material-background: var(--glass-material-tint); }
+
   .glass-surface::before {
-    background: var(--glass-material-tint);
+    background: var(--glass-material-background);
     backdrop-filter: blur(var(--glass-material-blur)) saturate(var(--glass-material-saturation));
     -webkit-backdrop-filter: blur(var(--glass-material-blur)) saturate(var(--glass-material-saturation));
   }
@@ -717,11 +720,21 @@ h1 {
   .mobile-navigation::before {
     border-radius: inherit;
     box-shadow:
-      inset 0 0 0 0.5px color-mix(in srgb, var(--glass-border) 58%, transparent),
-      inset 0 1.5px 1.5px -1px color-mix(in srgb, var(--glass-edge-highlight) 88%, transparent),
-      inset 0 -1.5px 1.5px -1px var(--glass-edge-shadow),
-      0 0.2rem 0.6rem rgba(0, 0, 0, 0.1),
-      0 0.7rem 2.2rem rgba(0, 0, 0, 0.2);
+      inset 0 0 0 0.5px color-mix(in srgb, var(--glass-border) 48%, transparent),
+      inset 0 2px 2.5px -1.25px var(--glass-edge-highlight),
+      inset 1px 0 1.5px -1px color-mix(in srgb, var(--glass-edge-highlight) 65%, transparent),
+      inset -1px 0 1.5px -1px color-mix(in srgb, var(--glass-edge-highlight) 45%, transparent),
+      inset 0 -2px 2.5px -1.25px var(--glass-edge-shadow),
+      0 0.3rem 0.8rem rgba(0, 0, 0, 0.13),
+      0 0.85rem 2.4rem rgba(0, 0, 0, 0.22);
+  }
+
+  .mobile-navigation::before,
+  .mini-player::before {
+    background:
+      radial-gradient(120% 82% at 50% -28%, color-mix(in srgb, var(--glass-edge-highlight) 32%, transparent), transparent 68%),
+      linear-gradient(to bottom, color-mix(in srgb, var(--glass-edge-highlight) 12%, transparent), transparent 38%, color-mix(in srgb, var(--glass-edge-shadow) 26%, transparent)),
+      var(--glass-material-background);
   }
 
   .app-shell::before,
@@ -1309,18 +1322,20 @@ a.collection-card:active { transform: scale(0.985); }
     min-height: var(--mobile-player-height);
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.4rem;
-    padding: 0.35rem 0.55rem 0.35rem 0.8rem;
+    padding: 0.35rem 0.55rem 0.35rem 1rem;
     border-radius: 999px;
   }
 
   .mini-player::before {
     border-radius: inherit;
     box-shadow:
-      inset 0 0 0 0.5px color-mix(in srgb, var(--glass-border) 58%, transparent),
-      inset 0 1.5px 1.5px -1px color-mix(in srgb, var(--glass-edge-highlight) 88%, transparent),
-      inset 0 -1.5px 1.5px -1px var(--glass-edge-shadow),
-      0 0.2rem 0.6rem rgba(0, 0, 0, 0.11),
-      0 0.7rem 2.1rem rgba(0, 0, 0, 0.22);
+      inset 0 0 0 0.5px color-mix(in srgb, var(--glass-border) 48%, transparent),
+      inset 0 2px 2.5px -1.25px var(--glass-edge-highlight),
+      inset 1px 0 1.5px -1px color-mix(in srgb, var(--glass-edge-highlight) 65%, transparent),
+      inset -1px 0 1.5px -1px color-mix(in srgb, var(--glass-edge-highlight) 45%, transparent),
+      inset 0 -2px 2.5px -1.25px var(--glass-edge-shadow),
+      0 0.3rem 0.8rem rgba(0, 0, 0, 0.14),
+      0 0.85rem 2.3rem rgba(0, 0, 0, 0.24);
   }
 
   .mini-track {
