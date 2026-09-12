@@ -1,6 +1,6 @@
 # Liquid Glass implementation plan
 
-Status: Stage 0 in progress. Automated Chromium and iOS 27 Simulator Safari static references are complete; interactive installed-PWA and physical-device validation remain. See [Stage 0 baseline](LIQUID_GLASS_BASELINE.md). Baseline UI: commit `7279cca` as restored by `8787b20`.
+Status: Stage 0 in progress. Automated Chromium, iOS 27 Simulator Safari comparisons, and the interactive installed-PWA baseline are recorded. The baseline found a landscape Now Playing defect; remaining Simulator accessibility/update checks and physical-device validation are still required. See [Stage 0 baseline](LIQUID_GLASS_BASELINE.md). Baseline UI: commit `7279cca` as restored by `8787b20`.
 
 ## Goal
 

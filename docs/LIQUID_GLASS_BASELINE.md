@@ -1,6 +1,6 @@
 # Liquid Glass Stage 0 baseline
 
-Status: automated Chromium capture complete; iOS 27 Simulator Safari static-route capture complete; installed-PWA, interactive Simulator, and physical-iPhone validation pending.
+Status: automated Chromium capture complete; iOS 27 Simulator Safari comparison capture complete; installed-PWA interactive baseline recorded with one landscape defect; physical-iPhone validation pending.
 
 Baseline UI: commit `7279cca`, restored by `8787b20`. Capture date: September 12, 2026. The documentation and capture tooling do not change production styling.
 
@@ -32,6 +32,12 @@ The deterministic catalog deliberately uses local fallback artwork. Later stages
 | `ios27-safari-browse.png` | iPhone 13 Simulator, iOS 27.0 | Live Browse in Safari |
 | `ios27-safari-album.png` | iPhone 13 Simulator, iOS 27.0 | Live production album in Safari |
 | `ios27-safari-settings.png` | iPhone 13 Simulator, iOS 27.0 | Live Settings in Safari |
+| `ios27-installed-open.png` | iPhone 13 Simulator, iOS 27.0 Home Screen PWA | Standalone Browse, safe areas, and fixed navigation |
+| `ios27-installed-settings.png` | iPhone 13 Simulator, iOS 27.0 Home Screen PWA | Standalone Settings and device storage reporting |
+| `ios27-installed-player.png` | iPhone 13 Simulator, iOS 27.0 Home Screen PWA | Scrolled album, active track, mini player, and fixed navigation |
+| `ios27-installed-now-playing.png` | iPhone 13 Simulator, iOS 27.0 Home Screen PWA | Portrait Now Playing and populated queue |
+| `ios27-installed-now-playing-increase-contrast.png` | iPhone 13 Simulator, iOS 27.0 Home Screen PWA | Now Playing with Increase Contrast enabled |
+| `ios27-installed-now-playing-landscape.png` | iPhone 13 Simulator, iOS 27.0 Home Screen PWA | Landscape Now Playing and its current transport-control defect |
 
 The adjacent JSON files record viewport metrics, safe-area probe results, document scroll ownership, fixed-element rectangles, stacking order, backgrounds, and computed filter values. Chromium's production CSSOM can report `backdrop-filter: none` when the optimized stylesheet retains only the WebKit-prefixed declaration, so those computed values are diagnostic data rather than proof that WebKit rendered or failed to render blur.
 
@@ -53,17 +59,23 @@ Do not use these measurements as substitutes for the iOS 27 Simulator record. Th
 
 The host now has iOS 27.0 build `24A5408d` and a booted iPhone 13 Simulator. Dark-mode Safari references were captured from the live GitHub Pages site at the device's native 1170 × 2532 screenshot resolution with a normalized 9:41 status bar.
 
-Browse, album, and Settings static-route captures pass the first visual check: the header label and Settings icon are sharp and fully visible, content respects Safari's visible viewport, artwork loads, and navigation remains fixed. A static screenshot cannot prove active backdrop sampling, scroll behavior, player placement, service-worker transitions, or the Home Screen web-app compositor. Those interactive and installed-mode checks remain pending.
+Browse, album, and Settings Safari comparison captures pass the first visual check: the header label and Settings icon are sharp and fully visible, content respects Safari's visible viewport, artwork loads, and navigation remains fixed.
+
+The installed Home Screen PWA was then exercised directly in portrait and landscape. Browse, Settings, long album scrolling, song playback, the mini player, portrait Now Playing, queue rendering, rotation, and Increase Contrast all work in standalone mode. The installed header respects the top safe area, its label and Settings icon remain sharp, the mini player stays immediately above navigation, and playback continued through the visual checks. Scrolled rows visibly pass beneath the fixed top and bottom materials without covering their controls.
+
+The landscape Now Playing capture records one existing defect: the two-column layout places the primary transport controls below the visible viewport. This is baseline evidence and remains open for the geometry stage. Reduced Transparency, Reduced Motion, larger text, menus and dialogs, Web Inspector/service-worker inspection, and the deployed update sequence still require manual runs.
 
 Use the installed Home Screen PWA as the primary iOS 27 test target. Safari is used to install it and to provide a comparison capture for browser-chrome behavior. Apple documents Simulator as the more accurate option for iOS-specific web rendering and exposes Simulator pages, Home Screen web apps, and service workers through macOS Safari's Web Inspector.
 
-Record screenshots using these names:
+The current installed-PWA record uses these names:
 
 - `ios27-safari-browse.png`
 - `ios27-safari-player.png`
 - `ios27-installed-settings.png`
 - `ios27-installed-player.png`
 - `ios27-installed-now-playing.png`
+- `ios27-installed-now-playing-increase-contrast.png`
+- `ios27-installed-now-playing-landscape.png`
 
 Record the device model, iOS build, Safari build, orientation, appearance, display zoom, text size, and whether Increased Contrast, Reduced Transparency, or Reduced Motion is enabled.
 
@@ -96,13 +108,13 @@ A simulator does not accurately represent device performance, memory pressure, n
 
 | Environment | State | Required evidence |
 | --- | --- | --- |
-| iOS 27 Home Screen PWA | Pending installation | Primary player, scrolling, blur, safe-area, accessibility, and update record |
+| iOS 27 Home Screen PWA | Partial: installed Browse, Settings, playback, Now Playing, rotation, and Increase Contrast captured | Remaining accessibility, overlays, Web Inspector, and deployed-update record |
 | iOS 27 Simulator Safari | Partial: live Browse, album, and Settings captured | Comparison record for browser chrome and Safari-only behavior |
 | Physical iPhone | Pending | Background audio, performance, lock-screen, orientation, and update notes |
 | macOS Safari | Pending | Browse, playlist, player, menus, Reduced Transparency, keyboard |
 | Chromium | Complete | Eight PNG references and four JSON layout records |
 | Firefox | Pending | Opaque/standard blur fallback, keyboard, playback |
-| Offline installed PWA | Pending physical or simulator install | Cached startup, downloaded playback, update recovery |
+| Offline installed PWA | Pending offline run | Cached startup, downloaded playback, update recovery |
 
 Use a new dated subsection below this matrix for every manual run. Include failures; do not overwrite an earlier result.
 
@@ -130,7 +142,8 @@ A stage fails this procedure if the Update action leaves old CSS active, reloads
 - [x] Scroll ownership, fixed-chrome geometry, and safe-area diagnostics
 - [x] Service-worker visual update procedure
 - [x] iOS 27 Simulator Safari static Browse, album, and Settings record
-- [ ] iOS 27 Simulator interactive player and installed-PWA record
+- [x] iOS 27 Simulator interactive player and installed-PWA record
+- [ ] iOS 27 Simulator accessibility, overlays, Web Inspector, and deployed-update record
 - [ ] Physical-iPhone playback, performance, and update record
 - [ ] macOS Safari record
 - [ ] Firefox fallback record
