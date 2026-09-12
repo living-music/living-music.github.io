@@ -69,6 +69,7 @@ tests/browser/             Production offline and update smoke tests
 playwright.config.ts        Browser PWA test configuration
 docs/PLAN.md               Product and implementation plan
 docs/LIQUID_GLASS.md       Staged Liquid Glass migration and validation plan
+docs/LIQUID_GLASS_BASELINE.md  Stage 0 captures and real-device test record
 docs/BRAND.md              App icon concept, assets, and usage rules
 docs/PROTOTYPE.md          Seven-step delivery checklist and current behavior
 docs/RELEASE.md            Prototype scope, QA record, limits, and release process

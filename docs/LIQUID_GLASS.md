@@ -1,6 +1,6 @@
 # Liquid Glass implementation plan
 
-Status: planned. Baseline: commit `7279cca` as restored by `8787b20`.
+Status: Stage 0 in progress. Automated Chromium references are complete; iOS 27 Simulator and physical-device validation remain. See [Stage 0 baseline](LIQUID_GLASS_BASELINE.md). Baseline UI: commit `7279cca` as restored by `8787b20`.
 
 ## Goal
 

@@ -1,0 +1,136 @@
+# Liquid Glass Stage 0 baseline
+
+Status: automated Chromium capture complete; iOS 27 Simulator and physical-iPhone validation pending.
+
+Baseline UI: commit `7279cca`, restored by `8787b20`. Capture date: September 12, 2026. The documentation and capture tooling do not change production styling.
+
+## Reproduce the automated baseline
+
+From a clean checkout with Node.js 22 or newer:
+
+```sh
+npm ci
+npm run baseline:visual
+```
+
+The command creates a production build, serves it through Vite Preview, installs the generated service worker, writes a deterministic two-song catalog into the temporary build, and captures the files in `docs/baselines/7279cca/`. The normal browser suite skips the capture-only tests.
+
+The deterministic catalog deliberately uses local fallback artwork. Later stages must also be reviewed manually against light, dark, and detailed production artwork.
+
+## Captured references
+
+| Reference | Environment | Surface |
+| --- | --- | --- |
+| `chromium-desktop-browse.png` | Chromium, 1440 × 900 | Browse and sidebar without playback |
+| `chromium-desktop-album-player.png` | Chromium, 1440 × 900 | Album and persistent player |
+| `chromium-desktop-playlist.png` | Chromium, 1440 × 900 | Playlist, sidebar, and persistent player |
+| `chromium-mobile-browser-browse.png` | Chromium, 390 × 844 | Browser-mode header and navigation without playback |
+| `chromium-mobile-browser-player.png` | Chromium, 390 × 844 | Browser-mode header, mini player, and navigation |
+| `chromium-mobile-installed-settings.png` | Standalone-mode emulation, 390 × 844 | Taller installed header and Settings |
+| `chromium-mobile-installed-player.png` | Standalone-mode emulation, 390 × 844 | Taller installed header, mini player, and navigation |
+| `chromium-mobile-installed-now-playing.png` | Standalone-mode emulation, 390 × 844 | Full-screen Now Playing |
+
+The adjacent JSON files record viewport metrics, safe-area probe results, document scroll ownership, fixed-element rectangles, stacking order, backgrounds, and computed filter values. Chromium's production CSSOM can report `backdrop-filter: none` when the optimized stylesheet retains only the WebKit-prefixed declaration, so those computed values are diagnostic data rather than proof that WebKit rendered or failed to render blur.
+
+## Baseline layout facts
+
+The automated 390 × 844 reference records:
+
+- The root `html` element owns vertical document scrolling.
+- Browser-mode mobile header: 56 px high.
+- Installed-mode emulated header: 72 px high.
+- Mobile navigation: 60 px high and fixed to the viewport bottom.
+- Mini player: approximately 74.4 px high, fixed immediately above navigation.
+- Header, mini player, and navigation use stacking levels 20, 40, and 30 respectively.
+- Chromium reports zero safe-area insets because desktop browser emulation does not reproduce iOS hardware insets.
+
+Do not use these measurements as substitutes for the iOS 27 Simulator record. The simulator record must include nonzero safe areas on a device with a sensor housing or Dynamic Island.
+
+## iOS 27 Simulator gate
+
+An iOS 27 Simulator is the next required test environment. The current host has Xcode beta but no installed Simulator runtimes, so this gate cannot yet be recorded.
+
+Install the iOS 27 runtime through Xcode, create a current iPhone simulator, and test the deployed GitHub Pages build in both Safari and as a Home Screen web app. Apple documents Simulator as the more accurate option for iOS-specific web rendering and exposes Simulator pages, Home Screen web apps, and service workers through macOS Safari's Web Inspector.
+
+Record screenshots using these names:
+
+- `ios27-safari-browse.png`
+- `ios27-safari-player.png`
+- `ios27-installed-settings.png`
+- `ios27-installed-player.png`
+- `ios27-installed-now-playing.png`
+
+Record the device model, iOS build, Safari build, orientation, appearance, display zoom, text size, and whether Increased Contrast, Reduced Transparency, or Reduced Motion is enabled.
+
+### Simulator checks
+
+1. Open Browse in Safari and scroll colorful artwork under the header and navigation.
+2. Start a song and confirm that the mini player is directly above navigation and remains translucent.
+3. Add the site to the Home Screen, launch it, and confirm the taller installed header respects the top safe area.
+4. Confirm that the Living Music label and Settings icon remain sharp and fully opaque while the header background blurs.
+5. Scroll long album, playlist, and Settings pages to both ends; record where the native scrollbar appears relative to fixed chrome.
+6. Open Now Playing, context menus, playlist menus, and dialogs; inspect seams, stacking, focus, and background scroll locking.
+7. Rotate portrait to landscape and back, then repeat with larger text.
+8. Enable Reduced Transparency and confirm every glass surface becomes intentionally opaque.
+9. Enable Reduced Motion and confirm controls remain responsive without spatial animation.
+10. Inspect the Home Screen web app and its service worker from macOS Safari's Develop menu.
+
+## Physical iPhone gate
+
+A simulator does not accurately represent device performance, memory pressure, networking, audio-session interruption, lock-screen controls, or background suspension. Before Stage 0 is marked complete, repeat these checks on a physical iPhone:
+
+- Scroll each reference view while audio is playing and watch for dropped frames or black compositing flashes.
+- Lock the device, control playback from the system media surface, unlock, and confirm the page remains synchronized.
+- Background the PWA for at least ten minutes, return, and confirm playback can recover.
+- Change orientation and text size, including the largest practical accessibility size.
+- Install one older deployed build, publish a visual probe build, apply the in-app update, and verify that no manual cache clearing is required.
+
+## Cross-browser manual matrix
+
+| Environment | State | Required evidence |
+| --- | --- | --- |
+| iOS 27 Simulator Safari | Pending runtime installation | Five screenshots, Web Inspector metrics, Safari and installed-mode checklist |
+| Physical iPhone | Pending | Background audio, performance, lock-screen, orientation, and update notes |
+| macOS Safari | Pending | Browse, playlist, player, menus, Reduced Transparency, keyboard |
+| Chromium | Complete | Eight PNG references and four JSON layout records |
+| Firefox | Pending | Opaque/standard blur fallback, keyboard, playback |
+| Offline installed PWA | Pending physical or simulator install | Cached startup, downloaded playback, update recovery |
+
+Use a new dated subsection below this matrix for every manual run. Include failures; do not overwrite an earlier result.
+
+## Service-worker visual update procedure
+
+1. Install and open deployed build A. In Settings, record its version and build ID.
+2. Keep build A open and begin playback.
+3. Deploy build B with a visible, harmless test token or style change.
+4. Return build A to the foreground. Visibility change invokes `registration.update()`.
+5. Confirm the update banner appears while build A remains active and playback is not interrupted.
+6. Select **Update now**. The page sends `LIVING_MUSIC_SKIP_WAITING` to the waiting worker.
+7. Confirm `controllerchange` causes exactly one reload.
+8. In Settings, confirm build B's build ID. Confirm its hashed stylesheet in Web Inspector and verify the visible probe.
+9. Confirm Library, favorites, playlists, queue state, downloads, and appearance survived the reload.
+10. Close and reopen the installed app, switch offline, and confirm build B still starts from the new shell cache.
+11. In Cache Storage, confirm the active `living-music-shell-*` cache is the new revision and the prior shell cache was removed after activation.
+
+A stage fails this procedure if the Update action leaves old CSS active, reloads repeatedly, interrupts playback before listener approval, loses local state, or requires manual cache clearing.
+
+## Stage 0 completion record
+
+- [x] Deterministic automated capture command
+- [x] Browse, album, playlist, Settings, mini-player, and Now Playing Chromium references
+- [x] Browser and emulated-installed mobile states
+- [x] Scroll ownership, fixed-chrome geometry, and safe-area diagnostics
+- [x] Service-worker visual update procedure
+- [ ] iOS 27 Simulator Safari and installed-PWA record
+- [ ] Physical-iPhone playback, performance, and update record
+- [ ] macOS Safari record
+- [ ] Firefox fallback record
+
+Stage 1 may be implemented locally after the simulator baseline is recorded. Do not make Stage 1 materials the production default until the physical-iPhone baseline and update path are also recorded.
+
+## References
+
+- [Apple: Installing Xcode and Simulators](https://developer.apple.com/documentation/safari-developer-tools/installing-xcode-and-simulators)
+- [Apple: Responsive Design Mode and Open with Simulator](https://developer.apple.com/documentation/safari-developer-tools/responsive-design-mode)
+- [Apple: Inspect Apps and Devices](https://developer.apple.com/documentation/safari-developer-tools/inspect-apps-and-devices)
+- [WebKit: Enabling Web Inspector](https://webkit.org/web-inspector/enabling-web-inspector/)

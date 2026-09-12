@@ -1,0 +1,75 @@
+{
+  "mode": "mobile-installed-emulation",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "devicePixelRatio": 1
+  },
+  "standalone": true,
+  "scrollingElement": "html",
+  "safeAreaInsets": {
+    "top": 0,
+    "right": 0,
+    "bottom": 0,
+    "left": 0
+  },
+  "scrollers": [
+    {
+      "element": "html",
+      "overflowY": "visible",
+      "clientHeight": 844,
+      "scrollHeight": 1297
+    },
+    {
+      "element": "body",
+      "overflowY": "visible",
+      "clientHeight": 1297,
+      "scrollHeight": 1297
+    },
+    {
+      "element": ".content",
+      "overflowY": "visible",
+      "clientHeight": 1297,
+      "scrollHeight": 1297
+    }
+  ],
+  "chrome": {
+    "sidebar": null,
+    "header": {
+      "top": 0,
+      "right": 390,
+      "bottom": 72,
+      "left": 0,
+      "width": 390,
+      "height": 72,
+      "position": "fixed",
+      "zIndex": "20",
+      "background": "rgba(0, 0, 0, 0)",
+      "backdropFilter": "none",
+      "before": {
+        "content": "\"\"",
+        "background": "color(srgb 0.0313726 0.0313726 0.0392157 / 0.78)",
+        "backdropFilter": "none"
+      }
+    },
+    "miniPlayer": null,
+    "navigation": {
+      "top": 784,
+      "right": 390,
+      "bottom": 844,
+      "left": 0,
+      "width": 390,
+      "height": 60,
+      "position": "fixed",
+      "zIndex": "30",
+      "background": "color(srgb 0.0627451 0.0627451 0.0745098 / 0.82)",
+      "backdropFilter": "none",
+      "before": {
+        "content": "none",
+        "background": "rgba(0, 0, 0, 0)",
+        "backdropFilter": "none"
+      }
+    }
+  }
+}
