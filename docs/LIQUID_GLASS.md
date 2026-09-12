@@ -153,6 +153,7 @@ Implementation record — September 12, 2026:
 - Moved the mini-player artwork farther from the leading rim to a 16 px inner inset after device review. Strengthened capsule volume with an upper curved highlight bloom, face shading, directional inner rim light, lower refraction shade, and paired contact/ambient shadows while retaining the underlying clear and regular materials.
 - Increased the visible lens curve after direct comparison with Apple Music on iOS 27: rounded-end radial highlights now bend light inward from both sides, a broader top-face bloom and 3.5 px soft inner band shape the capsule, and stronger directional refraction defines the upper and lower curves without returning to a hard outline. Floating chrome also receives extra backdrop saturation so artwork color carries through like the native reference.
 - Rebalanced that curve after installed review: removed the luminous side bands, reduced the perimeter to a faint half-pixel boundary, concentrated a smaller and shinier specular highlight along the top, and softened both lower refraction and ambient lift. The resulting surface follows Apple Music's top-lit glass rather than tracing the entire pill.
+- Tightened the internal refraction into a shallower, quieter band while preserving the narrow top glint. Mobile chrome now uses less blur so content reads through the material more clearly, and mini-player artwork is slightly smaller to give the capsule more breathing room.
 
 ## Stage 4 — Controls, menus, and interaction response
 

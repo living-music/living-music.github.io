@@ -713,6 +713,7 @@ h1 {
   .page { min-height: calc(100dvh - 13rem); }
 
   .mobile-navigation {
+    --glass-material-blur: 22px;
     --glass-material-saturation: 180%;
     position: fixed;
     z-index: 30;
@@ -741,8 +742,8 @@ h1 {
   .mobile-navigation::before,
   .mini-player::before {
     background:
-      radial-gradient(125% 58% at 50% -8%, color-mix(in srgb, var(--glass-lens-highlight) 58%, transparent), transparent 72%),
-      linear-gradient(to bottom, color-mix(in srgb, var(--glass-lens-sheen) 30%, transparent), transparent 30%, color-mix(in srgb, var(--glass-lens-shadow) 14%, transparent)),
+      radial-gradient(125% 30% at 50% -6%, color-mix(in srgb, var(--glass-lens-highlight) 34%, transparent), transparent 68%),
+      linear-gradient(to bottom, color-mix(in srgb, var(--glass-lens-sheen) 18%, transparent), transparent 18%, color-mix(in srgb, var(--glass-lens-shadow) 14%, transparent)),
       var(--glass-material-background);
   }
 
@@ -1325,6 +1326,7 @@ a.collection-card:active { transform: scale(0.985); }
   }
 
   .mini-player {
+    --glass-material-blur: 18px;
     --glass-material-saturation: 165%;
     inset: auto calc(var(--mobile-chrome-inset) + env(safe-area-inset-right))
       calc(var(--mobile-nav-height) + max(var(--mobile-chrome-inset), env(safe-area-inset-bottom)) + var(--mobile-chrome-gap))
@@ -1348,11 +1350,11 @@ a.collection-card:active { transform: scale(0.985); }
   }
 
   .mini-track {
-    grid-template-columns: 2.8rem minmax(0, 1fr);
+    grid-template-columns: 2.55rem minmax(0, 1fr);
     gap: 0.6rem;
   }
 
-  .mini-artwork { width: 2.8rem; border-radius: 0.52rem; }
+  .mini-artwork { width: 2.55rem; border-radius: 0.48rem; }
   .mini-copy small { max-width: 15rem; }
 
   .mini-progress { display: none; }

@@ -182,17 +182,20 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   const artworkBox = await page.locator(".mini-artwork").boundingBox();
   expect((artworkBox?.x ?? 0) - (playerBox?.x ?? 0)).toBeGreaterThanOrEqual(15);
   expect((artworkBox?.x ?? 0) - (playerBox?.x ?? 0)).toBeLessThanOrEqual(17);
+  expect(artworkBox?.width).toBeLessThanOrEqual(41);
 
   const capsuleShape = await Promise.all([navigation, miniPlayer].map((surface) => surface.evaluate((element) => ({
     radius: Number.parseFloat(getComputedStyle(element).borderRadius),
     height: element.getBoundingClientRect().height,
     edge: getComputedStyle(element, "::before").boxShadow,
     depth: getComputedStyle(element, "::before").backgroundImage,
+    blur: getComputedStyle(element).getPropertyValue("--glass-material-blur").trim(),
   }))));
   expect(capsuleShape.every(({ radius, height }) => radius >= height / 2)).toBe(true);
   expect(capsuleShape.every(({ edge }) => edge.includes("0.5px") && edge.includes("1.5px"))).toBe(true);
   expect(capsuleShape.every(({ edge }) => !edge.includes("0px 0px 0px 1px"))).toBe(true);
   expect(capsuleShape.every(({ depth }) => depth.match(/radial-gradient/g)?.length === 1 && depth.includes("linear-gradient"))).toBe(true);
+  expect(capsuleShape.map(({ blur }) => blur)).toEqual(["22px", "18px"]);
   await expect(page.locator(".mini-progress")).toBeHidden();
 
   const contentPaddingBottom = await page.locator(".content").evaluate((element) =>
