@@ -1,6 +1,6 @@
 # Liquid Glass implementation plan
 
-Status: Stage 2 candidate implemented and locally validated. Automated Chromium, iOS 27 Simulator Safari comparisons, and the interactive installed-PWA baseline are recorded. The baseline found a landscape Now Playing defect; remaining Simulator accessibility/update checks and physical-device validation are still required. See [Stage 0 baseline](LIQUID_GLASS_BASELINE.md). Baseline UI: commit `7279cca` as restored by `8787b20`.
+Status: Stage 2 implemented, deployed, and verified in the installed iOS 27 Simulator PWA. Automated Chromium, iOS 27 Simulator Safari comparisons, and the interactive installed-PWA baseline are recorded. The baseline found a landscape Now Playing defect; remaining Simulator accessibility checks and physical-device validation are still required. See [Stage 0 baseline](LIQUID_GLASS_BASELINE.md). Baseline UI: commit `7279cca` as restored by `8787b20`.
 
 ## Goal
 
@@ -105,7 +105,9 @@ Implementation record — September 12, 2026:
 - Preserved the existing header, navigation, mini-player, safe-area, content-padding, and stacking geometry.
 - Limited edge light and shadow to the adjoining edges of the bottom navigation and mini player; the header uses a restrained lower separator.
 - Consolidated all three surfaces onto the shared solid fallback for Reduced Transparency and browsers without filter support.
-- Validated dark and light installed-size renders, exact player-to-navigation placement after animation, TypeScript, 60 unit tests, and the production build. The deployed iOS 27 PWA update check remains the release gate for this stage.
+- Validated dark and light installed-size renders, exact player-to-navigation placement after animation, TypeScript, 60 unit tests, 22 browser tests, and the production build.
+- Verified the deployed service-worker path in the installed iOS 27 PWA: build `6ad86e1` presented **Update ready**, **Update now** performed one visible reload, Settings then reported build `a34d474`, and the existing mini-player state remained present without clearing cache or local data.
+- Captured the deployed player and build evidence in `docs/baselines/a34d474/`. Stage 2 is complete in the simulator; physical-device behavior remains part of the final resilience gate.
 
 ## Stage 3 — Floating geometry and scroll edges
 

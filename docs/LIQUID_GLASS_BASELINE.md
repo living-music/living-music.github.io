@@ -1,6 +1,6 @@
 # Liquid Glass Stage 0 baseline
 
-Status: automated Chromium capture complete; iOS 27 Simulator Safari comparison capture complete; installed-PWA interactive baseline recorded with one landscape defect; physical-iPhone validation pending.
+Status: automated Chromium capture complete; iOS 27 Simulator Safari comparison capture complete; installed-PWA interactive baseline and deployed-update path recorded with one landscape defect; physical-iPhone validation pending.
 
 Baseline UI: commit `7279cca`, restored by `8787b20`. Capture date: September 12, 2026. The documentation and capture tooling do not change production styling.
 
@@ -108,7 +108,7 @@ A simulator does not accurately represent device performance, memory pressure, n
 
 | Environment | State | Required evidence |
 | --- | --- | --- |
-| iOS 27 Home Screen PWA | Partial: installed Browse, Settings, playback, Now Playing, rotation, and Increase Contrast captured | Remaining accessibility, overlays, Web Inspector, and deployed-update record |
+| iOS 27 Home Screen PWA | Partial: installed Browse, Settings, playback, Now Playing, rotation, Increase Contrast, and deployed update captured | Remaining accessibility, overlays, and Web Inspector record |
 | iOS 27 Simulator Safari | Partial: live Browse, album, and Settings captured | Comparison record for browser chrome and Safari-only behavior |
 | Physical iPhone | Pending | Background audio, performance, lock-screen, orientation, and update notes |
 | macOS Safari | Pending | Browse, playlist, player, menus, Reduced Transparency, keyboard |
@@ -117,6 +117,14 @@ A simulator does not accurately represent device performance, memory pressure, n
 | Offline installed PWA | Pending offline run | Cached startup, downloaded playback, update recovery |
 
 Use a new dated subsection below this matrix for every manual run. Include failures; do not overwrite an earlier result.
+
+### September 12, 2026 — Stage 2 deployed update
+
+The installed iPhone 13 Simulator PWA began on build `6ad86e1` with its existing paused mini-player state intact. Returning the open client to the foreground did not immediately display an update. Closing the final PWA client and relaunching it exposed the waiting worker through the expected **Update ready** banner. This is consistent with the worker completing installation after the previous client session rather than evidence that storage needed clearing.
+
+Selecting **Update now** removed the banner and caused one visible reload. Settings then reported version `0.1.0`, build `a34d474`. The player still showed the same track, and Browse returned to the same catalog with artwork loaded. No browser cache, Cache Storage, local data, Library state, or installation data was manually cleared.
+
+The iOS 27 WebKit render passed the Stage 2 visual check: header labels and icons remained sharp; the header sampled content color without a black fade; the subdued mini player remained distinct; and navigation retained translucency and safe-area spacing. Evidence is stored in `docs/baselines/a34d474/` as the waiting-update view, updated player view, and verified build view.
 
 ## Service-worker visual update procedure
 
@@ -143,7 +151,8 @@ A stage fails this procedure if the Update action leaves old CSS active, reloads
 - [x] Service-worker visual update procedure
 - [x] iOS 27 Simulator Safari static Browse, album, and Settings record
 - [x] iOS 27 Simulator interactive player and installed-PWA record
-- [ ] iOS 27 Simulator accessibility, overlays, Web Inspector, and deployed-update record
+- [ ] iOS 27 Simulator accessibility, overlays, and Web Inspector record
+- [x] iOS 27 Simulator deployed-update record
 - [ ] Physical-iPhone playback, performance, and update record
 - [ ] macOS Safari record
 - [ ] Firefox fallback record
