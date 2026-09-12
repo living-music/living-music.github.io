@@ -248,6 +248,8 @@ test("keeps legacy data and explains limited storage when IndexedDB cannot open"
   expect(await page.evaluate(() => localStorage.getItem("livingMusic:userState:v1"))).not.toBeNull();
   await page.getByRole("button", { name: "Dismiss local data notice" }).click();
   await expect(page.getByText("Local data", { exact: true })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByText("Local data", { exact: true })).toHaveCount(0);
 });
 
 test("shows playlist options above sidebar chrome", async ({ page }) => {

@@ -33,6 +33,25 @@ type CatalogState =
   | { status: "error"; message: string; kind: CatalogFailureKind };
 
 const catalogClient = new CatalogClient();
+const DISMISSED_PERSISTENCE_NOTICE_KEY = "livingMusic:dismissedPersistenceNotice:v1";
+
+function visiblePersistenceNotice(message?: string): string | undefined {
+  if (!message) return undefined;
+  try {
+    return localStorage.getItem(DISMISSED_PERSISTENCE_NOTICE_KEY) === message ? undefined : message;
+  } catch {
+    return message;
+  }
+}
+
+function rememberDismissedPersistenceNotice(message?: string): void {
+  if (!message) return;
+  try {
+    localStorage.setItem(DISMISSED_PERSISTENCE_NOTICE_KEY, message);
+  } catch {
+    // The notice can still be dismissed for the current page when storage is unavailable.
+  }
+}
 
 const navigation: NavigationItem[] = [
   { id: "home", label: "Home", icon: "home" },
@@ -710,7 +729,7 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
   const [pwa, setPwa] = useState(currentPwaSnapshot);
   const [install, setInstall] = useState(currentInstallSnapshot);
   const [downloadState, setDownloadState] = useState<DownloadSnapshot>(currentDownloadSnapshot);
-  const [persistenceMessage, setPersistenceMessage] = useState<string | undefined>(initialPersistence.warning);
+  const [persistenceMessage, setPersistenceMessage] = useState<string | undefined>(() => visiblePersistenceNotice(initialPersistence.warning));
   const mainRef = useRef<HTMLElement>(null);
   const restoredQueue = useRef(false);
   const loadedCatalogOnce = useRef(false);
@@ -778,8 +797,8 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
     if (!hasMeaningfulData || requestedPersistence.current || initialPersistence.mode !== "indexeddb") return;
     requestedPersistence.current = true;
     void requestPersistentStorage().then((granted) => {
-      if (granted === false) setPersistenceMessage("Your browser may remove local data when storage is low. Export a backup to keep a copy.");
-    }, () => setPersistenceMessage("Protected storage could not be requested. Export a backup to keep a copy."));
+      if (granted === false) setPersistenceMessage(visiblePersistenceNotice("Your browser may remove local data when storage is low. Export a backup to keep a copy."));
+    }, () => setPersistenceMessage(visiblePersistenceNotice("Protected storage could not be requested. Export a backup to keep a copy.")));
   }, [userState.favorites.length, userState.librarySongs.length, userState.albums.length, userState.playlists.length]);
 
   useEffect(() => {
@@ -1115,7 +1134,10 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
         applyingUpdate={pwa.applyingUpdate}
         persistenceMessage={persistenceMessage}
         onRetry={() => setCatalogAttempt((attempt) => attempt + 1)}
-        onDismissPersistence={() => setPersistenceMessage(undefined)}
+        onDismissPersistence={() => {
+          rememberDismissedPersistenceNotice(persistenceMessage);
+          setPersistenceMessage(undefined);
+        }}
       />
 
       <aside class="sidebar">
