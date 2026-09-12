@@ -36,10 +36,10 @@ describe("routeFromHash", () => {
     expect(navigationDestination(routeFromHash("#/collection/hymns"))).toBe("browse");
   });
 
-  it("falls back to home for empty, malformed, or unknown routes", () => {
-    expect(routeFromHash("")).toEqual({ page: "home" });
-    expect(routeFromHash("#/unknown")).toEqual({ page: "home" });
-    expect(routeFromHash("#/collection/%E0%A4%A")).toEqual({ page: "home" });
+  it("lands on Browse for empty, malformed, or unknown routes", () => {
+    expect(routeFromHash("")).toEqual({ page: "browse" });
+    expect(routeFromHash("#/unknown")).toEqual({ page: "browse" });
+    expect(routeFromHash("#/collection/%E0%A4%A")).toEqual({ page: "browse" });
   });
 });
 

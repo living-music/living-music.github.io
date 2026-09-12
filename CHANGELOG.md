@@ -4,6 +4,7 @@ All notable user-visible changes to Living Music are recorded here.
 
 ## Unreleased
 
+- Made Browse the default landing page for root and unrecognized routes.
 - Added sequential playlist playback with playlist-level Play and Random controls.
 - Added right-click song context menus with matching overflow-button access.
 - Added playlist insertion from song menus and playable playlist song pages.

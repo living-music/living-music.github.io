@@ -17,7 +17,7 @@ The first Living Music prototype is split into seven independently reviewable st
 The shell owns four GitHub Pages-safe hash routes:
 
 - `#/home`
-- `#/browse`
+- `#/browse` (default when no route is present)
 - `#/search`
 - `#/library/favorites`
 - `#/library/recent`

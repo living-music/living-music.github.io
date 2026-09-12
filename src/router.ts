@@ -22,7 +22,7 @@ export function routeFromHash(hash: string): Route {
 
   if (candidate === "collection" && parts[1]) {
     const collectionId = decoded(parts.slice(1).join("/"));
-    return collectionId ? { page: "collection", collectionId } : { page: "home" };
+    return collectionId ? { page: "collection", collectionId } : { page: "browse" };
   }
 
   if (candidate === "library" && parts[1] === "album" && parts[2]) {
@@ -42,7 +42,7 @@ export function routeFromHash(hash: string): Route {
     return playlistId ? { page: "playlist", playlistId } : { page: "playlists" };
   }
 
-  return { page: destinations.has(candidate as Destination) ? candidate as Exclude<Destination, "library"> : "home" };
+  return { page: destinations.has(candidate as Destination) ? candidate as Exclude<Destination, "library"> : "browse" };
 }
 
 export function hrefFor(destination: Destination): string {
