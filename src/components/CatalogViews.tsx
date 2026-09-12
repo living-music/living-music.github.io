@@ -8,6 +8,7 @@ import type { Playlist } from "../storage";
 import type { DownloadRecord } from "../downloads";
 import type { CollectionPayload, CollectionSummary, Song } from "../types";
 import { Artwork } from "./Artwork";
+import { DownloadStatus } from "./DownloadStatus";
 import { SongContextMenu, type ContextMenuPosition } from "./SongContextMenu";
 
 export function CatalogSkeleton({ count = 6 }: { count?: number }) {
@@ -279,42 +280,44 @@ export function CollectionPage({
                       : `${song.recordings.length} ${song.recordings.length === 1 ? "recording" : "recordings"}`}
                   </span>
                 </button>
-                <button
-                  type="button"
-                  class={`song-library-button ${librarySongs.has(song.id) || savedAlbum ? "is-added" : ""}`}
-                  onClick={() => onToggleLibrarySong(song.id)}
-                  disabled={savedAlbum}
-                  aria-label={savedAlbum
-                    ? `${song.title} is included with this saved album`
-                    : librarySongs.has(song.id) ? `Remove ${song.title} from Library` : `Add ${song.title} to Library`}
-                  aria-pressed={librarySongs.has(song.id) || savedAlbum}
-                >
-                  <Icon name={librarySongs.has(song.id) || savedAlbum ? "check" : "add"} size={18} />
-                </button>
-                {download && <span class={`download-indicator is-${download.status}`} title={download.error || download.status}><Icon name={download.status === "downloaded" || download.status === "stale" ? "check" : "download"} size={15} /></span>}
-                <button
-                  type="button"
-                  class={`song-favorite-button ${favorites.has(song.id) ? "is-favorite" : ""}`}
-                  onClick={() => onToggleFavorite(song.id)}
-                  aria-label={favorites.has(song.id) ? `Remove ${song.title} from favorites` : `Add ${song.title} to favorites`}
-                  aria-pressed={favorites.has(song.id)}
-                >
-                  <Icon name="heart" filled={favorites.has(song.id)} size={18} />
-                </button>
-                {!unavailable && (
+                <div class="song-row-actions">
                   <button
                     type="button"
-                    class="song-more-button"
-                    onClick={(event) => {
-                      const rect = event.currentTarget.getBoundingClientRect();
-                      setMenu(menu?.songId === song.id ? undefined : { songId: song.id, position: { x: rect.right, y: rect.bottom } });
-                    }}
-                    aria-label={`Options for ${song.title}`}
-                    aria-expanded={menu?.songId === song.id}
+                    class={`song-library-button ${librarySongs.has(song.id) || savedAlbum ? "is-added" : ""}`}
+                    onClick={() => onToggleLibrarySong(song.id)}
+                    disabled={savedAlbum}
+                    aria-label={savedAlbum
+                      ? `${song.title} is included with this saved album`
+                      : librarySongs.has(song.id) ? `Remove ${song.title} from Library` : `Add ${song.title} to Library`}
+                    aria-pressed={librarySongs.has(song.id) || savedAlbum}
                   >
-                    <Icon name="more" size={20} />
+                    <Icon name={librarySongs.has(song.id) || savedAlbum ? "check" : "add"} size={18} />
                   </button>
-                )}
+                  <button
+                    type="button"
+                    class={`song-favorite-button ${favorites.has(song.id) ? "is-favorite" : ""}`}
+                    onClick={() => onToggleFavorite(song.id)}
+                    aria-label={favorites.has(song.id) ? `Remove ${song.title} from favorites` : `Add ${song.title} to favorites`}
+                    aria-pressed={favorites.has(song.id)}
+                  >
+                    <Icon name="heart" filled={favorites.has(song.id)} size={18} />
+                  </button>
+                  <DownloadStatus download={download} />
+                  {!unavailable && (
+                    <button
+                      type="button"
+                      class="song-more-button"
+                      onClick={(event) => {
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        setMenu(menu?.songId === song.id ? undefined : { songId: song.id, position: { x: rect.right, y: rect.bottom } });
+                      }}
+                      aria-label={`Options for ${song.title}`}
+                      aria-expanded={menu?.songId === song.id}
+                    >
+                      <Icon name="more" size={20} />
+                    </button>
+                  )}
+                </div>
                 {menu?.songId === song.id && (
                   <SongContextMenu
                     songId={song.id}

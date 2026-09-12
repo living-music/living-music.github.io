@@ -7,6 +7,7 @@ import type { Playlist } from "../storage";
 import type { DownloadRecord } from "../downloads";
 import type { CatalogIndex, SearchIndex, SearchSong } from "../types";
 import { Artwork } from "./Artwork";
+import { DownloadStatus } from "./DownloadStatus";
 import { SongContextMenu, type ContextMenuPosition } from "./SongContextMenu";
 
 export type SearchState =
@@ -178,37 +179,39 @@ export function SongResults({
                   <Icon name={active ? "pause" : "play"} filled={!active} size={15} />
                 </span>
               </button>
-              <button
-                type="button"
-                class={`library-song-button ${librarySongs.has(song.id) ? "is-added" : ""}`}
-                onClick={() => onToggleLibrarySong(song.id)}
-                aria-label={librarySongs.has(song.id) ? `Remove ${song.title} from Library` : `Add ${song.title} to Library`}
-                aria-pressed={librarySongs.has(song.id)}
-              >
-                <Icon name={librarySongs.has(song.id) ? "check" : "add"} size={19} />
-              </button>
-              <button
-                type="button"
-                class={`favorite-button ${favorites.has(song.id) ? "is-favorite" : ""}`}
-                onClick={() => onToggleFavorite(song.id)}
-                aria-label={favorites.has(song.id) ? `Remove ${song.title} from favorites` : `Add ${song.title} to favorites`}
-                aria-pressed={favorites.has(song.id)}
-              >
-                <Icon name="heart" filled={favorites.has(song.id)} size={19} />
-              </button>
-              {download && <span class={`download-indicator is-${download.status}`} title={download.error || download.status}><Icon name={download.status === "downloaded" || download.status === "stale" ? "check" : "download"} size={15} /></span>}
-              <button
-                type="button"
-                class="result-more-button"
-                onClick={(event) => {
-                  const rect = event.currentTarget.getBoundingClientRect();
-                  setMenu(menu?.songId === song.id ? undefined : { songId: song.id, position: { x: rect.right, y: rect.bottom } });
-                }}
-                aria-label={`Options for ${song.title}`}
-                aria-expanded={menu?.songId === song.id}
-              >
-                <Icon name="more" size={19} />
-              </button>
+              <div class="result-row-actions">
+                <button
+                  type="button"
+                  class={`library-song-button ${librarySongs.has(song.id) ? "is-added" : ""}`}
+                  onClick={() => onToggleLibrarySong(song.id)}
+                  aria-label={librarySongs.has(song.id) ? `Remove ${song.title} from Library` : `Add ${song.title} to Library`}
+                  aria-pressed={librarySongs.has(song.id)}
+                >
+                  <Icon name={librarySongs.has(song.id) ? "check" : "add"} size={19} />
+                </button>
+                <button
+                  type="button"
+                  class={`favorite-button ${favorites.has(song.id) ? "is-favorite" : ""}`}
+                  onClick={() => onToggleFavorite(song.id)}
+                  aria-label={favorites.has(song.id) ? `Remove ${song.title} from favorites` : `Add ${song.title} to favorites`}
+                  aria-pressed={favorites.has(song.id)}
+                >
+                  <Icon name="heart" filled={favorites.has(song.id)} size={19} />
+                </button>
+                <DownloadStatus download={download} />
+                <button
+                  type="button"
+                  class="result-more-button"
+                  onClick={(event) => {
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    setMenu(menu?.songId === song.id ? undefined : { songId: song.id, position: { x: rect.right, y: rect.bottom } });
+                  }}
+                  aria-label={`Options for ${song.title}`}
+                  aria-expanded={menu?.songId === song.id}
+                >
+                  <Icon name="more" size={19} />
+                </button>
+              </div>
               {menu?.songId === song.id && (
                 <SongContextMenu
                   songId={song.id}

@@ -2610,19 +2610,122 @@ a.collection-card:active { transform: scale(0.985); }
 }
 .album-download-button:hover { border-color: var(--accent); }
 .album-download-button:disabled { opacity: 0.5; cursor: default; }
-.download-indicator {
-  width: 1.7rem;
-  height: 1.7rem;
+.result-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.result-row-actions,
+.song-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.song-row-actions {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: 0.45rem;
+  transform: translateY(-50%);
+}
+
+.song-row-actions .song-library-button,
+.song-row-actions .song-favorite-button,
+.song-row-actions .song-more-button {
+  position: static;
+  transform: none;
+}
+
+.song-button { padding-right: 10.75rem; }
+
+.download-status {
+  width: 2.55rem;
+  height: 2.55rem;
   flex: 0 0 auto;
-  display: inline-grid;
+  display: grid;
   place-items: center;
   border-radius: 50%;
   color: var(--muted);
-  background: var(--elevated);
+  background: transparent;
 }
-.download-indicator.is-downloaded,
-.download-indicator.is-stale { color: var(--accent); }
-.download-indicator.is-downloading .icon { animation: download-pulse 1.2s ease-in-out infinite; }
-.download-indicator.is-failed { color: var(--danger, #ff6961); }
-@keyframes download-pulse { 50% { opacity: 0.35; transform: translateY(2px); } }
-@media (prefers-reduced-motion: reduce) { .download-indicator.is-downloading .icon { animation: none; } }
+
+.song-row-actions .download-status {
+  width: 2.35rem;
+  height: 2.35rem;
+}
+
+.download-status.is-empty { visibility: hidden; }
+
+.download-status-glyph {
+  position: relative;
+  width: 1.82rem;
+  height: 1.82rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.download-status .icon {
+  position: relative;
+  z-index: 1;
+}
+
+.download-status.is-downloaded {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.download-status.is-stale {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.download-status.is-failed {
+  color: var(--danger, #ff6961);
+  background: color-mix(in srgb, var(--danger, #ff6961) 10%, transparent);
+}
+
+.download-progress-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotate(-90deg);
+}
+
+.download-progress-ring circle {
+  fill: none;
+  stroke-width: 1.6;
+}
+
+.download-progress-track { stroke: var(--border); }
+
+.download-progress-value {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 180ms ease;
+}
+
+.download-progress-ring.is-indeterminate {
+  animation: download-spin 1s linear infinite;
+}
+
+.download-progress-ring.is-indeterminate .download-progress-value {
+  stroke-dasharray: 13 38;
+}
+
+@keyframes download-spin { to { transform: rotate(270deg); } }
+
+@media (max-width: 760px) {
+  .result-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .result-row-actions { gap: 0; }
+  .result-row-actions .download-status { width: 2.45rem; height: 2.45rem; }
+  .song-button { padding-right: 10.25rem; }
+  .song-row-actions { right: 0.1rem; gap: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .download-progress-ring.is-indeterminate { animation: none; }
+  .download-progress-value { transition: none; }
+}

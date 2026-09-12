@@ -325,7 +325,10 @@ test("downloads, seeks, plays, and removes a recording offline without removing 
   await expect(songButton).toBeVisible();
   await songButton.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Download", exact: true }).click();
-  await expect(page.locator(".download-indicator.is-downloaded")).toBeVisible();
+  const downloadedStatus = page.getByRole("img", { name: "Downloaded" });
+  await expect(downloadedStatus).toBeVisible();
+  await expect(downloadedStatus).toHaveClass(/is-downloaded/);
+  expect(await downloadedStatus.evaluate((element) => element.parentElement?.className)).toBe("song-row-actions");
 
   await context.setOffline(true);
   const range = await page.evaluate(async () => {
@@ -359,7 +362,7 @@ test("downloads a playlist and advances through it while offline", async ({ page
   await waitForControl(page);
   await expect(page.getByRole("heading", { name: "Offline Playlist" })).toBeVisible();
   await page.getByRole("button", { name: "Download", exact: true }).click();
-  await expect(page.locator(".download-indicator.is-downloaded")).toHaveCount(2);
+  await expect(page.locator(".download-status.is-downloaded")).toHaveCount(2);
   await context.setOffline(true);
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect(page.getByRole("button", { name: "Open Now Playing" })).toContainText("Offline Song");
@@ -399,7 +402,7 @@ test("marks interrupted downloads as failed and retryable after restart", async 
   await page.reload();
   await page.getByRole("button", { name: "Play Offline Song" }).click({ button: "right" });
   await expect(page.getByRole("menuitem", { name: "Retry Download" })).toBeVisible();
-  await expect(page.locator(".download-indicator.is-failed")).toBeVisible();
+  await expect(page.locator(".download-status.is-failed")).toBeVisible();
 });
 
 
@@ -423,8 +426,8 @@ test("marks changed catalog sources stale and lets the listener update them", as
     });
   });
   await page.goto("/?stale=1#/collection/offline-hymns");
-  await expect(page.locator(".download-indicator.is-stale").first()).toBeVisible();
+  await expect(page.locator(".download-status.is-stale").first()).toBeVisible();
   await page.getByRole("button", { name: "Play Offline Song" }).click({ button: "right" });
   await page.getByRole("menuitem", { name: "Update Download" }).click();
-  await expect(page.locator(".download-indicator.is-downloaded").first()).toBeVisible();
+  await expect(page.locator(".download-status.is-downloaded").first()).toBeVisible();
 });
