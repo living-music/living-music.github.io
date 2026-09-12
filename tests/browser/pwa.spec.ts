@@ -217,6 +217,13 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   const playToggle = page.getByRole("button", { name: "Pause", exact: true });
   await expect(playToggle).toBeVisible();
   await expect(playToggle).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  const pauseBars = await playToggle.locator("rect").evaluateAll((bars) =>
+    bars.map((bar) => ({ width: bar.getAttribute("width"), radius: bar.getAttribute("rx") })),
+  );
+  expect(pauseBars).toEqual([
+    { width: "3.5", radius: "1.2" },
+    { width: "3.5", radius: "1.2" },
+  ]);
   const nextIconPaths = await page.getByRole("button", { name: "Next song" }).locator("path").evaluateAll((paths) =>
     paths.map((path) => ({ fill: path.getAttribute("fill"), stroke: path.getAttribute("stroke") })),
   );
@@ -224,6 +231,9 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
     { fill: "currentColor", stroke: "none" },
     { fill: "currentColor", stroke: "none" },
   ]);
+  expect(await navigation.locator(".navigation-item .icon").evaluateAll((icons) =>
+    icons.map((icon) => icon.getAttribute("width")),
+  )).toEqual(["25", "25", "25", "25"]);
   await expect(page.getByRole("link", { name: "Library", exact: true })).toBeVisible();
 
   const surfaces = await Promise.all([header, navigation, miniPlayer].map((surface) => surface.evaluate((element) => {

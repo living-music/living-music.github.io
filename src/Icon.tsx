@@ -5,7 +5,7 @@ home:<><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10M9.5 20v-6h5v6"/><
 browse:<><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,
 search:<><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></>,
 heart:<path d="M20.5 9c0 5.5-8.5 10.5-8.5 10.5S3.5 14.5 3.5 9A4.5 4.5 0 0 1 12 6.9 4.5 4.5 0 0 1 20.5 9Z"/>,
-play:<path d="M6.8 5.45c0-1.08 1.2-1.73 2.13-1.14l10.5 6.27a1.65 1.65 0 0 1 0 2.84l-10.5 6.27c-.93.59-2.13-.06-2.13-1.14Z"/>,pause:<><path d="M8 5v14M16 5v14"/></>,
+play:<path d="M6.8 5.45c0-1.08 1.2-1.73 2.13-1.14l10.5 6.27a1.65 1.65 0 0 1 0 2.84l-10.5 6.27c-.93.59-2.13-.06-2.13-1.14Z"/>,pause:<><rect x="6.75" y="5" width="3.5" height="14" rx="1.2" fill="currentColor" stroke="none"/><rect x="13.75" y="5" width="3.5" height="14" rx="1.2" fill="currentColor" stroke="none"/></>,
 previous:<><path d="M6 5v14M19 6l-9 6 9 6Z"/></>,next:<><path d="M3.2 6.15c0-.94 1.06-1.5 1.83-.96l7.37 5.11a2.08 2.08 0 0 1 0 3.4l-7.37 5.11c-.77.54-1.83-.02-1.83-.96Z" fill="currentColor" stroke="none"/><path d="M10.6 6.15c0-.94 1.06-1.5 1.83-.96l7.37 5.11a2.08 2.08 0 0 1 0 3.4l-7.37 5.11c-.77.54-1.83-.02-1.83-.96Z" fill="currentColor" stroke="none"/></>,
 queue:<><path d="M4 6h11M4 12h11M4 18h7"/><path d="m17 15 4 3-4 3Z"/></>,
 close:<path d="m6 6 12 12M18 6 6 18"/>,chevron:<path d="m9 5 7 7-7 7"/>,
