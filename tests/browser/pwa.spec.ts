@@ -399,6 +399,50 @@ test("hides install promotion in standalone mode", async ({ page }) => {
 });
 
 
+test("ends the mobile content scroller above fixed playback chrome and preserves blur", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/#/collection/offline-hymns");
+  await waitForControl(page);
+  await page.getByRole("button", { name: "Play Offline Song" }).click();
+  await expect(page.locator(".mini-player")).toBeVisible();
+  await page.waitForTimeout(350);
+
+  const layout = await page.evaluate(async () => {
+    const content = document.querySelector<HTMLElement>(".content")!;
+    const player = document.querySelector<HTMLElement>(".mini-player")!;
+    const navigation = document.querySelector<HTMLElement>(".mobile-navigation")!;
+    const stylesheetUrls = Array.from(document.styleSheets)
+      .map((sheet) => sheet.href)
+      .filter((href): href is string => Boolean(href));
+    const styleText = (
+      await Promise.all(
+        stylesheetUrls.map(async (href) => {
+          const response = await fetch(href);
+          return response.text();
+        }),
+      )
+    ).join("");
+    return {
+      contentBottom: content.getBoundingClientRect().bottom,
+      playerTop: player.getBoundingClientRect().top,
+      playerBottom: player.getBoundingClientRect().bottom,
+      navigationTop: navigation.getBoundingClientRect().top,
+      contentOverflow: getComputedStyle(content).overflowY,
+      documentHeight: document.documentElement.scrollHeight,
+      viewportHeight: innerHeight,
+      styleText,
+    };
+  });
+
+  expect(Math.abs(layout.contentBottom - layout.playerTop)).toBeLessThanOrEqual(1);
+  expect(Math.abs(layout.playerBottom - layout.navigationTop)).toBeLessThanOrEqual(1);
+  expect(layout.contentOverflow).toBe("auto");
+  expect(layout.documentHeight).toBeLessThanOrEqual(layout.viewportHeight);
+  expect(layout.styleText).toMatch(/\.mobile-header\{[^}]*backdrop-filter:[^}]*blur/);
+  expect(layout.styleText).toMatch(/\.mini-player\{[^}]*backdrop-filter:[^}]*blur/);
+  expect(layout.styleText).toMatch(/\.mobile-navigation\{[^}]*backdrop-filter:[^}]*blur/);
+});
+
 test("downloads, seeks, plays, and removes a recording offline without removing it from Library", async ({ page, context }) => {
   await page.goto("/#/collection/offline-hymns");
   await waitForControl(page);
