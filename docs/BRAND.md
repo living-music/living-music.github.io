@@ -14,6 +14,9 @@ A deep forest-green field keeps the icon calm in dark-mode contexts. The mint an
 | `public/app-icon-512.png` | PWA large icon |
 | `public/app-icon-192.png` | PWA small icon and browser favicon |
 | `public/apple-touch-icon.png` | 180 px Apple home-screen icon |
+| `public/app-icon-maskable-512.png` | Android adaptive-mask install icon |
+| `public/app-icon-monochrome.svg` | Monochrome install and system-surface glyph |
+| `public/screenshots/` | Wide and phone PWA installation previews |
 
 The source artwork is full bleed and square. Do not add rounded corners; Apple platforms apply their own icon mask. Do not place text, a border, or a second logo over the mark.
 

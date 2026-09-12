@@ -1,7 +1,7 @@
 import type { RepeatMode } from "./player";
 
-const USER_STATE_KEY = "livingMusic:userState:v1";
-const LEGACY_FAVORITES_KEY = "livingMusic:favorites:v1";
+export const USER_STATE_KEY = "livingMusic:userState:v1";
+export const LEGACY_FAVORITES_KEY = "livingMusic:favorites:v1";
 const THEME_KEY = "livingMusic:theme";
 
 export type Theme = "dark" | "light" | "system";
@@ -182,6 +182,13 @@ export function writeUserState(state: UserState): boolean {
   } catch {
     return false;
   }
+}
+
+export function removeLegacyUserState(): void {
+  try {
+    localStorage.removeItem(USER_STATE_KEY);
+    localStorage.removeItem(LEGACY_FAVORITES_KEY);
+  } catch {}
 }
 
 export function readTheme(): Theme {

@@ -186,3 +186,92 @@ test("keeps the last complete manifest when a catalog release is interrupted", a
     await writeFile(manifestPath, original);
   }
 });
+
+test("migrates existing listener data into IndexedDB before rendering", async ({ page }) => {
+  const legacy = {
+    favorites: ["offline-song"],
+    favoriteAddedAt: { "offline-song": "2026-09-01T12:00:00.000Z" },
+    librarySongs: ["offline-song"],
+    librarySongAddedAt: { "offline-song": "2026-09-01T12:00:00.000Z" },
+    albums: [], albumAddedAt: {}, playlists: [], queue: [], currentQueueIndex: -1,
+    repeatMode: "off", songRecordingPreferences: {},
+  };
+  await page.addInitScript((state) => localStorage.setItem("livingMusic:userState:v1", JSON.stringify(state)), legacy);
+  await page.goto("/#/library/songs");
+  await expect(page.getByText("Offline Song", { exact: true })).toBeVisible();
+  const migrated = await page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("livingMusic", 1);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const state = await new Promise<unknown>((resolve, reject) => {
+      const request = database.transaction("listenerData").objectStore("listenerData").get("userState:v2");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    return { state, legacy: localStorage.getItem("livingMusic:userState:v1") };
+  });
+  expect(migrated).toEqual({ state: legacy, legacy: null });
+});
+
+test("keeps legacy data and explains limited storage when IndexedDB cannot open", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("livingMusic:userState:v1", JSON.stringify({ favorites: ["offline-song"] }));
+    IDBFactory.prototype.open = () => { throw new Error("storage unavailable"); };
+  });
+  await page.goto("/#/library/favorites");
+  await expect(page.getByText("Offline Song", { exact: true })).toBeVisible();
+  await expect(page.getByText("storage unavailable", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("livingMusic:userState:v1"))).not.toBeNull();
+});
+
+test("exports, clears, and restores listener data", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("livingMusic:userState:v1", JSON.stringify({
+    favorites: ["offline-song"],
+    favoriteAddedAt: { "offline-song": "2026-09-01T12:00:00.000Z" },
+    librarySongs: ["offline-song"],
+    librarySongAddedAt: { "offline-song": "2026-09-01T12:00:00.000Z" },
+  })));
+  await page.goto("/#/library/songs");
+  await expect(page.getByText("Offline Song", { exact: true })).toBeVisible();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export backup" }).click();
+  const download = await downloadPromise;
+  const backupPath = await download.path();
+  expect(backupPath).toBeTruthy();
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Clear local data" }).click();
+  await expect(page.getByRole("heading", { name: "Add songs to your Library." })).toBeVisible();
+  await page.locator('input[type="file"]').setInputFiles(backupPath!);
+  await expect(page.getByText("Backup restored.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Offline Song", { exact: true })).toBeVisible();
+});
+
+test("offers the captured browser install prompt from Library settings", async ({ page }) => {
+  await page.goto("/#/library/songs");
+  await page.evaluate(() => {
+    const event = new Event("beforeinstallprompt") as Event & {
+      prompt: () => Promise<void>;
+      userChoice: Promise<{ outcome: "accepted"; platform: string }>;
+    };
+    event.prompt = async () => { (window as Window & { installPromptOpened?: boolean }).installPromptOpened = true; };
+    event.userChoice = Promise.resolve({ outcome: "accepted", platform: "web" });
+    window.dispatchEvent(event);
+  });
+  await page.getByRole("button", { name: "Install", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as Window & { installPromptOpened?: boolean }).installPromptOpened)).toBe(true);
+});
+
+test("hides install promotion in standalone mode", async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = window.matchMedia.bind(window);
+    window.matchMedia = (query) => query === "(display-mode: standalone)"
+      ? { matches: true, media: query, onchange: null, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent: () => true }
+      : original(query);
+  });
+  await page.goto("/#/library/songs");
+  await expect(page.getByRole("heading", { name: "Local data" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Install Living Music" })).toHaveCount(0);
+});

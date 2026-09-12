@@ -1,6 +1,6 @@
 # Living Music implementation plan
 
-Status: prototype and PWA Phase 1 complete; Phase 2 planned, September 11, 2026.
+Status: prototype and PWA Phases 1–2 complete; Phase 3 planned, September 11, 2026.
 
 ## Product goal
 
@@ -482,6 +482,8 @@ Acceptance:
 
 ### Phase 2 — Installation and durable listener data
 
+Status: Complete. Automated coverage verifies exact migration, unavailable-storage fallback, versioned backup export/import, local-data clearing, manifest metadata, and browser persistence.
+
 Deliver:
 
 - An Install Living Music action shown only when relevant, using `beforeinstallprompt` where supported and concise platform instructions elsewhere.
@@ -609,7 +611,7 @@ Representative manual checks:
 - Stack: Vite + TypeScript + Preact.
 - Routing: hash routes.
 - Playback: one `HTMLAudioElement`.
-- Persistence: current versioned `localStorage`, followed by transactional migration to IndexedDB with export/import.
+- Persistence: IndexedDB with transactional migration from the prior versioned `localStorage` record and validated export/import.
 - Default recording: vocal-first with remembered overrides.
 - Offline: app shell plus cached catalog metadata first; explicit listener-selected audio downloads in a later phase.
 - Initial language: English.
@@ -618,15 +620,11 @@ Representative manual checks:
 
 ## Next implementation slice
 
-Complete the durable-data foundation of Phase 2 as the next reviewable release:
+Begin Phase 3 with a focused media-compatibility spike before adding download controls:
 
-1. Define a versioned IndexedDB schema and asynchronous persistence adapter for listener-owned state.
-2. Migrate `livingMusic:userState:v1` transactionally, retaining the readable source record until the new record is verified.
-3. Keep theme selection in `localStorage` and move Library, Favorites, albums, playlists, queue, and recording preferences to IndexedDB.
-4. Surface storage and migration failures without blocking in-memory listening.
-5. Request persistent storage only after the listener has saved meaningful data and report the result without pressure.
-6. Add validated JSON export, import, Clear Local Data, and storage-usage controls.
-7. Add migration, interrupted-write, unavailable-storage, quota, export/import, and browser-restart tests.
-8. Deploy and verify that existing production user state migrates once with IDs, timestamps, ordering, and queue position intact.
-
-Manifest promotion, maskable assets, screenshots, shortcuts, and the Install Living Music interface follow on the same Phase 2 storage foundation. Keeping them in a subsequent review prevents installation UI work from obscuring the higher-risk data migration.
+1. Test representative Church audio endpoints for CORS, `Range` requests, response types, redirects, and stable content length.
+2. Record source-policy constraints and confirm that listener-requested device storage does not republish media.
+3. Prototype one recording download into Cache Storage and store its status and source identity in the existing IndexedDB downloads store.
+4. Verify offline start, seek, pause/resume, sequential advancement, and removal in Chromium and Safari where available.
+5. Simulate interruption and quota exhaustion, ensuring partial downloads never appear complete and listener data remains intact.
+6. Use the results to finalize download state types, reconciliation rules, and storage thresholds before exposing UI.

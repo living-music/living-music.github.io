@@ -4,6 +4,11 @@ All notable user-visible changes to Living Music are recorded here.
 
 ## Unreleased
 
+- Moved listener-owned Library, Favorites, albums, playlists, queue, and recording preferences into IndexedDB with a verified, retry-safe migration from the prior local-storage record.
+- Added local storage usage, persistent-storage handling, versioned JSON backup/restore, and confirmed Clear Local Data controls.
+- Added contextual installation guidance, standalone detection, direct browser install prompting, app shortcuts, install screenshots, and dedicated maskable and monochrome icons.
+- Added browser coverage for exact migration, unavailable IndexedDB fallback, and export → clear → restore.
+
 - Added offline catalog caching, explicit connection states, listener-controlled app updates, synchronized installed-app theme colors, and production PWA browser tests.
 - Added atomic, content-addressed app-shell caching through a generated service worker.
 - Made Browse the default landing page for root and unrecognized routes.

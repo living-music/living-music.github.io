@@ -11,10 +11,12 @@ import { PlaylistDialog, PlaylistPage, PlaylistsPage, type PlaylistDialogState }
 import { AudioEngine, trackForSong, type PlayerSnapshot, type PlayerTrack } from "./player";
 import { MediaSessionController } from "./media-session";
 import { applyPwaUpdate, currentPwaSnapshot, subscribeToPwa } from "./pwa";
+import { currentInstallSnapshot, promptInstall, subscribeToInstall, type InstallSnapshot } from "./install";
+import { clearUserState, emptyUserState, exportUserState, getStorageSnapshot, importUserState, requestPersistentStorage, saveUserState, type PersistenceLoadResult, type StorageSnapshot } from "./persistence";
 import { toggleFavoriteInState } from "./library-state";
 import { addSongToPlaylist, createPlaylist as createPlaylistRecord, deletePlaylist as deletePlaylistRecord, renamePlaylist as renamePlaylistRecord } from "./playlists";
 import { hrefFor, hrefForLibrary, hrefForPlaylist, navigationDestination, routeFromHash, type Destination, type LibraryView, type Route } from "./router";
-import { readTheme, readUserState, writeTheme, writeUserState, type Playlist, type Theme, type UserState } from "./storage";
+import { readTheme, writeTheme, type Playlist, type Theme, type UserState } from "./storage";
 import type { CatalogIndex, CollectionSummary, SearchSong, Song } from "./types";
 
 interface NavigationItem {
@@ -332,10 +334,98 @@ function ThemeSelector({ theme, onChange }: { theme: Theme; onChange: (theme: Th
   );
 }
 
+
+function formatStorage(bytes?: number): string {
+  if (bytes === undefined) return "Unavailable";
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function LocalDataSettings({ userState, persistence, install, onReplaceUserState, onMessage }: {
+  userState: UserState;
+  persistence: PersistenceLoadResult;
+  install: InstallSnapshot;
+  onReplaceUserState: (state: UserState) => void;
+  onMessage: (message?: string) => void;
+}) {
+  const [storage, setStorage] = useState<StorageSnapshot>({});
+  const [busy, setBusy] = useState(false);
+  const refreshStorage = () => void getStorageSnapshot().then(setStorage);
+  useEffect(refreshStorage, [userState]);
+
+  const exportData = () => {
+    const blob = new Blob([exportUserState(userState)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `living-music-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    onMessage("Your Living Music backup was downloaded.");
+  };
+  const importData = async (event: Event) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    setBusy(true);
+    try {
+      const restored = importUserState(await file.text());
+      await saveUserState(restored);
+      onReplaceUserState(restored);
+      onMessage("Backup restored.");
+    } catch (error) {
+      onMessage(error instanceof Error ? error.message : "The backup could not be restored.");
+    } finally { setBusy(false); }
+  };
+  const clearData = async () => {
+    if (!window.confirm("Remove your Library, Favorites, playlists, queue, and playback preferences from this device?")) return;
+    setBusy(true);
+    try {
+      await clearUserState();
+      onReplaceUserState(emptyUserState());
+      onMessage("Local listener data was cleared.");
+    } catch (error) {
+      onMessage(error instanceof Error ? error.message : "Local data could not be cleared.");
+    } finally { setBusy(false); }
+  };
+  const installCopy = install.mode === "ios"
+    ? "In Safari, tap Share, then Add to Home Screen."
+    : "Use your browser’s Install app or Add to Dock command.";
+
+  return (
+    <div class="settings-stack">
+      {install.mode !== "installed" && (
+        <section class="settings-card" aria-labelledby="install-heading">
+          <div><h2 id="install-heading">Install Living Music</h2><p>{install.mode === "prompt" ? "Open Living Music like an app from your home screen or dock." : installCopy}</p></div>
+          {install.mode === "prompt" && <button type="button" class="settings-action" disabled={install.prompting} onClick={() => void promptInstall()}>{install.prompting ? "Opening…" : "Install"}</button>}
+        </section>
+      )}
+      <section class="settings-card settings-card-column" aria-labelledby="data-heading">
+        <div><h2 id="data-heading">Local data</h2><p>Your Library and playlists stay on this device. Export a backup before clearing browser data.</p></div>
+        <dl class="storage-details">
+          <div><dt>Storage</dt><dd>{formatStorage(storage.usage)}{storage.quota ? ` of ${formatStorage(storage.quota)}` : ""}</dd></div>
+          <div><dt>Protection</dt><dd>{storage.persisted ? "Persistent" : persistence.mode === "indexeddb" ? "Browser managed" : "Limited"}</dd></div>
+        </dl>
+        <div class="settings-actions">
+          <button type="button" class="settings-action" onClick={exportData}>Export backup</button>
+          <label class="settings-action">Import backup<input class="visually-hidden" type="file" accept="application/json,.json" disabled={busy} onChange={(event) => void importData(event)} /></label>
+          <button type="button" class="settings-action settings-danger" disabled={busy} onClick={() => void clearData()}>Clear local data</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function LibraryPage({
   view,
   theme,
   onThemeChange,
+  userState,
+  persistence,
+  install,
+  onReplaceUserState,
+  onPersistenceMessage,
   catalog,
   favorites,
   favoriteAddedAt,
@@ -354,6 +444,11 @@ function LibraryPage({
   view: LibraryView;
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
+  userState: UserState;
+  persistence: PersistenceLoadResult;
+  install: InstallSnapshot;
+  onReplaceUserState: (state: UserState) => void;
+  onPersistenceMessage: (message?: string) => void;
   catalog: CatalogState;
   favorites: Set<string>;
   favoriteAddedAt: Record<string, string>;
@@ -427,6 +522,13 @@ function LibraryPage({
         {view !== "favorites" && (
           <div class="library-settings">
             <ThemeSelector theme={theme} onChange={onThemeChange} />
+            <LocalDataSettings
+              userState={userState}
+              persistence={persistence}
+              install={install}
+              onReplaceUserState={onReplaceUserState}
+              onMessage={onPersistenceMessage}
+            />
           </div>
         )}
       </div>
@@ -453,15 +555,17 @@ function AppStatus({
   catalogFallback,
   updateAvailable,
   applyingUpdate,
+  persistenceMessage,
   onRetry,
 }: {
   online: boolean;
   catalogFallback: boolean;
   updateAvailable: boolean;
   applyingUpdate: boolean;
+  persistenceMessage?: string;
   onRetry: () => void;
 }) {
-  if (online && !catalogFallback && !updateAvailable) return null;
+  if (online && !catalogFallback && !updateAvailable && !persistenceMessage) return null;
   return (
     <div class="app-status-region" aria-live="polite">
       {!online && (
@@ -478,6 +582,13 @@ function AppStatus({
           <button type="button" onClick={onRetry}>Check again</button>
         </section>
       )}
+      {persistenceMessage && (
+        <section class="app-status app-status-cached">
+          <Icon name="browse" size={17} />
+          <p><strong>Local data</strong><span>{persistenceMessage}</span></p>
+          <button type="button" onClick={() => window.location.hash = "#/library/recent"}>Manage</button>
+        </section>
+      )}
       {updateAvailable && (
         <section class="app-status app-status-update">
           <Icon name="check" size={17} />
@@ -491,14 +602,14 @@ function AppStatus({
   );
 }
 
-export function App() {
+export function App({ initialPersistence }: { initialPersistence: PersistenceLoadResult }) {
   const engineRef = useRef<AudioEngine | null>(null);
   if (!engineRef.current) engineRef.current = new AudioEngine();
   const engine = engineRef.current;
   const mediaSessionRef = useRef<MediaSessionController | null>(null);
   if (!mediaSessionRef.current) mediaSessionRef.current = new MediaSessionController(engine);
   const [player, setPlayer] = useState<PlayerSnapshot>(engine.state);
-  const [userState, setUserState] = useState<UserState>(readUserState);
+  const [userState, setUserState] = useState<UserState>(initialPersistence.state);
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [playlistDialog, setPlaylistDialog] = useState<PlaylistDialogState>();
   const [route, setRoute] = useState<Route>(() => routeFromHash(window.location.hash));
@@ -507,9 +618,12 @@ export function App() {
   const [catalog, setCatalog] = useState<CatalogState>({ status: "loading" });
   const [online, setOnline] = useState(() => navigator.onLine);
   const [pwa, setPwa] = useState(currentPwaSnapshot);
+  const [install, setInstall] = useState(currentInstallSnapshot);
+  const [persistenceMessage, setPersistenceMessage] = useState<string | undefined>(initialPersistence.warning);
   const mainRef = useRef<HTMLElement>(null);
   const restoredQueue = useRef(false);
   const loadedCatalogOnce = useRef(false);
+  const requestedPersistence = useRef(false);
   const favorites = useMemo(() => new Set(userState.favorites), [userState.favorites]);
   const librarySongs = useMemo(() => new Set(userState.librarySongs), [userState.librarySongs]);
   const albums = useMemo(() => new Set(userState.albums), [userState.albums]);
@@ -517,6 +631,8 @@ export function App() {
   useEffect(() => engine.subscribe(setPlayer), [engine]);
 
   useEffect(() => subscribeToPwa(setPwa), []);
+
+  useEffect(() => subscribeToInstall(setInstall), []);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -551,8 +667,20 @@ export function App() {
   }, [engine]);
 
   useEffect(() => {
-    writeUserState(userState);
+    void saveUserState(userState).then(
+      () => setPersistenceMessage((message) => message?.includes("could not") ? undefined : message),
+      (error: unknown) => setPersistenceMessage(error instanceof Error ? error.message : "Your changes could not be saved."),
+    );
   }, [userState]);
+
+  useEffect(() => {
+    const hasMeaningfulData = userState.favorites.length > 0 || userState.librarySongs.length > 0 || userState.albums.length > 0 || userState.playlists.length > 0;
+    if (!hasMeaningfulData || requestedPersistence.current || initialPersistence.mode !== "indexeddb") return;
+    requestedPersistence.current = true;
+    void requestPersistentStorage().then((granted) => {
+      if (granted === false) setPersistenceMessage("Your browser may remove local data when storage is low. Export a backup to keep a copy.");
+    }, () => setPersistenceMessage("Protected storage could not be requested. Export a backup to keep a copy."));
+  }, [userState.favorites.length, userState.librarySongs.length, userState.albums.length, userState.playlists.length]);
 
   useEffect(() => {
     if (restoredQueue.current || catalog.status !== "ready") return;
@@ -813,6 +941,7 @@ export function App() {
         catalogFallback={pwa.catalogFallback}
         updateAvailable={pwa.updateAvailable}
         applyingUpdate={pwa.applyingUpdate}
+        persistenceMessage={persistenceMessage}
         onRetry={() => setCatalogAttempt((attempt) => attempt + 1)}
       />
 
@@ -867,6 +996,11 @@ export function App() {
             view={route.view}
             theme={theme}
             onThemeChange={changeTheme}
+            userState={userState}
+            persistence={initialPersistence}
+            install={install}
+            onReplaceUserState={setUserState}
+            onPersistenceMessage={setPersistenceMessage}
             catalog={catalog}
             favorites={favorites}
             favoriteAddedAt={userState.favoriteAddedAt}

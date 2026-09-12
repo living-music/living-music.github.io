@@ -6,7 +6,7 @@ The companion [musicapi](https://github.com/living-music/musicapi) repository pu
 
 ## Status
 
-The first seven-step prototype is complete. It supports live browsing, playback, Now Playing, an editable queue, global search, favorites, a populated Library, durable on-device listening state, and system media controls. Post-prototype work now follows a three-phase PWA roadmap: offline-ready catalog and controlled updates, installation and durable IndexedDB data, then listener-selected offline music. See the [release notes](docs/RELEASE.md), [prototype checklist](docs/PROTOTYPE.md), and [implementation plan](docs/PLAN.md#post-prototype-pwa-roadmap).
+The first seven-step prototype is complete. It supports live browsing, playback, Now Playing, an editable queue, global search, favorites, a populated Library, durable on-device listening state, and system media controls. The first two post-prototype PWA phases are complete: offline-ready catalog updates, installation polish, and durable IndexedDB listener data. Listener-selected offline music is the next phase. See the [release notes](docs/RELEASE.md), [prototype checklist](docs/PROTOTYPE.md), and [implementation plan](docs/PLAN.md#post-prototype-pwa-roadmap).
 
 ## Requirements
 
@@ -59,7 +59,9 @@ src/
   audio.ts                 Recording choice and media formatting helpers
   player.ts                Shared HTMLAudioElement engine and playback state
   media-session.ts          Lock-screen and hardware media-control integration
-  storage.ts               Defensive local user-state and theme persistence
+  storage.ts               User-state validation and synchronous theme persistence
+  persistence.ts           IndexedDB migration, backups, and storage management
+  install.ts               Install-prompt and standalone-mode handling
   types.ts                 Catalog and player data contracts
   *.test.ts                Focused unit tests
 tests/browser/             Production offline and update smoke tests
@@ -78,19 +80,25 @@ Open a collection and select any song with audio. Living Music chooses a vocal r
 
 Select the song details in the mini player to open Now Playing. This view offers large artwork, alternate recording selection, full transport controls, repeat off/all/one, and the Up Next queue. A song row’s options menu can place that song next or at the end. Queue items can play immediately, move up or down, be removed, or be cleared together.
 
-The browser Media Session API connects playback to supported lock screens, Control Center surfaces, keyboards, and headset controls. When focus is outside an interactive control, Space toggles playback. Saved songs and albums with their add timestamps, the queue, repeat mode, and recording preferences are stored under the versioned `livingMusic:userState:v1` key. On reload, valid catalog entries are restored in a paused state; removed songs or recordings are discarded or replaced safely.
+The browser Media Session API connects playback to supported lock screens, Control Center surfaces, keyboards, and headset controls. When focus is outside an interactive control, Space toggles playback. Saved songs and albums with their add timestamps, the queue, repeat mode, and recording preferences are stored in the versioned `livingMusic` IndexedDB database. On reload, valid catalog entries are restored in a paused state; removed songs or recordings are discarded or replaced safely.
 
 ## Search and Library
 
 Search opens the compact global index only when Search or Library is visited. Queries ignore case and accents, accept multiple non-adjacent words, and match song titles, numbers, artists, and collection names. Selecting a result then downloads only its collection payload before playback. Large result sets show the first 80 entries to keep rendering responsive.
 
-Heart controls in collections, search results, Library song lists, and Now Playing add songs to the fixed Favorites playlist and ensure they are also in Library. Unfavoriting leaves Library membership intact. Adjacent add/check controls manage individual Library songs, while collection pages can add whole albums. Library exposes Recently Added, Albums, and Songs in the desktop sidebar and a compact mobile switcher. Favorites appears first under Playlists as a fixed smart playlist that cannot be renamed or deleted and sorts songs by favorite date, newest first. Recently Added groups Library songs by album and sorts each album by its newest device-local add timestamp; Albums includes both explicitly added albums and albums containing Library songs. Opening an album from Library shows only its individually added songs unless the complete album was added. Existing combined saved-song data migrates into both Favorites and Library Songs so prior choices are preserved. A separate Playlists sidebar section supports locally persisted playlist creation, rename, deletion, and direct playlist routes. Right-clicking any song opens a shared context menu for favorite, Library, queue, and playlist actions; overflow buttons expose the same menu without a pointer. Songs added to a playlist appear in insertion order on its detail page. Playing any row continues through that playlist order, while the playlist Play and Random buttons start from the beginning in saved or randomized order.
+Heart controls in collections, search results, Library song lists, and Now Playing add songs to the fixed Favorites playlist and ensure they are also in Library. Unfavoriting leaves Library membership intact. Adjacent add/check controls manage individual Library songs, while collection pages can add whole albums. Library exposes Recently Added, Albums, and Songs in the desktop sidebar and a compact mobile switcher. Favorites appears first under Playlists as a fixed smart playlist that cannot be renamed or deleted and sorts songs by favorite date, newest first. Recently Added groups Library songs by album and sorts each album by its newest device-local add timestamp; Albums includes both explicitly added albums and albums containing Library songs. Opening an album from Library shows only its individually added songs unless the complete album was added. Existing combined saved-song data migrates into both Favorites and Library Songs so prior choices are preserved. Existing `livingMusic:userState:v1` data is copied and verified before its source record is removed. A separate Playlists sidebar section supports locally persisted playlist creation, rename, deletion, and direct playlist routes. Right-clicking any song opens a shared context menu for favorite, Library, queue, and playlist actions; overflow buttons expose the same menu without a pointer. Songs added to a playlist appear in insertion order on its detail page. Playing any row continues through that playlist order, while the playlist Play and Random buttons start from the beginning in saved or randomized order.
 
 ## Offline catalog and updates
 
 Production registers a generated service worker that precaches the document, hashed JavaScript and CSS, the web manifest, and local icons. Every shell file has a content-derived cache key, so deployments reuse unchanged entries and install atomically. A completed update waits for the listener to select **Update now**, preventing routine releases from interrupting active playback.
 
 The service worker maintains a separate `living-music-catalog-v1` runtime cache. `/musicapi/index.json` uses network-first loading with the last complete manifest as fallback; its referenced index must be available before that fallback is replaced. Revisioned catalog indexes, search data, and opened collections use cache-first loading, retaining the two newest responses for each logical path. The interface identifies offline, saved-catalog, upstream, unsupported-schema, and malformed-data states and retries the catalog automatically when connectivity returns. Church-hosted artwork and audio remain outside automatic caching.
+
+## Installation and local data
+
+Living Music can be installed from the Local data area below Library settings. Browsers with an install prompt provide a direct **Install** action; iPhone and iPad show Safari’s Share → Add to Home Screen instructions. Installed windows hide this promotion. The manifest launches into Browse and includes shortcuts for Browse, Search, Favorites, and Playlists.
+
+Library, Favorites, albums, playlists, queue position, repeat mode, and recording choices live in IndexedDB. Theme stays in `localStorage` so the correct appearance can be applied before rendering. After meaningful listener data is created, the app asks the browser for persistent storage and reports a denial without interrupting playback. Library settings show storage use and provide versioned JSON export, validated import, and a confirmed Clear Local Data action. Browsers without IndexedDB retain the prior local-storage record and show limited-storage status.
 
 ## Catalog contract
 
