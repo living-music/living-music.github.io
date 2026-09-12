@@ -576,6 +576,10 @@ h1 {
 @media (max-width: 760px) {
   .sidebar { display: none; }
 
+  .app-shell.is-ios-standalone {
+    --mobile-header-height: 4.5rem;
+  }
+
   .mobile-header {
     position: fixed;
     z-index: 20;
@@ -595,6 +599,11 @@ h1 {
     background: transparent;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
+  }
+
+  .app-shell.is-ios-standalone .mobile-header {
+    align-items: flex-end;
+    padding-bottom: 0.65rem;
   }
 
   .mobile-header.is-standalone::before {

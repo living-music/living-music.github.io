@@ -1142,9 +1142,11 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
   const collection = collectionRoute && catalog.status === "ready"
     ? catalog.index.collections.find((entry) => entry.id === route.collectionId)
     : undefined;
+  const iosStandalone = install.mode === "installed"
+    && Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
 
   return (
-    <div class={`app-shell ${player.track ? "has-player" : ""}`}>
+    <div class={`app-shell ${player.track ? "has-player" : ""} ${iosStandalone ? "is-ios-standalone" : ""}`}>
       <a class="skip-link" href="#main-content">Skip to content</a>
       <AppStatus
         online={online}

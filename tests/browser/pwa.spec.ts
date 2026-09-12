@@ -376,6 +376,7 @@ test("offers the captured browser install prompt from Settings", async ({ page }
 test("hides install promotion in standalone mode", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
+    Object.defineProperty(navigator, "standalone", { configurable: true, value: true });
     const original = window.matchMedia.bind(window);
     window.matchMedia = (query) => query === "(display-mode: standalone)"
       ? { matches: true, media: query, onchange: null, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent: () => true }
@@ -383,7 +384,9 @@ test("hides install promotion in standalone mode", async ({ page }) => {
   });
   await page.goto("/#/settings");
   const standaloneHeader = page.locator(".mobile-header");
+  await expect(page.locator(".app-shell")).toHaveClass(/is-ios-standalone/);
   await expect(standaloneHeader).toHaveClass(/is-standalone/);
+  expect((await standaloneHeader.boundingBox())?.height).toBeGreaterThanOrEqual(71);
   await expect.poll(() => standaloneHeader.evaluate((element) => getComputedStyle(element).backdropFilter)).toBe("none");
   await expect.poll(() => standaloneHeader.evaluate((element) => getComputedStyle(element, "::before").content)).not.toBe("none");
   await expect(page.getByRole("heading", { name: "Installation" })).toBeVisible();
