@@ -196,6 +196,7 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
     edge: getComputedStyle(element, "::before").boxShadow,
     depth: getComputedStyle(element, "::before").backgroundImage,
     blur: getComputedStyle(element).getPropertyValue("--glass-material-blur").trim(),
+    renderedFilter: getComputedStyle(element, "::before").backdropFilter,
   }))));
   expect(capsuleShape.every(({ radius, height }) => radius >= height / 2)).toBe(true);
   expect(capsuleShape.every(({ edge }) => edge.includes("0.5px") && edge.includes("1.25px 1.1px"))).toBe(true);
@@ -203,6 +204,10 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   expect(capsuleShape.every(({ edge }) => !edge.includes("0px 0px 0px 1px"))).toBe(true);
   expect(capsuleShape.every(({ depth }) => depth.match(/radial-gradient/g)?.length === 1 && depth.includes("linear-gradient"))).toBe(true);
   expect(capsuleShape.map(({ blur }) => blur)).toEqual(["13px", "10px"]);
+  expect(capsuleShape.map(({ renderedFilter }) => renderedFilter)).toEqual([
+    "blur(13px) saturate(1.8)",
+    "blur(10px) saturate(1.65)",
+  ]);
   await expect(page.locator(".mini-progress")).toBeHidden();
 
   const contentPaddingBottom = await page.locator(".content").evaluate((element) =>
