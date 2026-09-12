@@ -158,6 +158,7 @@ Implementation record — September 12, 2026:
 - Balanced the upper and lower inset glows around matching geometry: the upper refraction is softer, while the mirrored lower refraction remains slightly dimmer to preserve the top-lit appearance.
 - Reduced mobile capsule blur again so underlying color and form remain more legible through the material, strengthening the liquid-lens effect without changing saturation or edge lighting.
 - Increased mobile capsule transparency with dedicated dark- and light-mode tints, and lowered blur once more so more artwork color and page structure refracts through the floating controls.
+- Simplified mobile playback controls by removing the accent circle behind play/pause, rounding the play glyph itself, and replacing the barred next-track symbol with a compact double-forward glyph.
 
 ## Stage 4 — Controls, menus, and interaction response
 

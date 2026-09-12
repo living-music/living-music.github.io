@@ -214,7 +214,16 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   expect(compactNavigationBox?.x).toBeGreaterThanOrEqual(17);
   expect((compactNavigationBox?.x ?? 0) + (compactNavigationBox?.width ?? 0)).toBeLessThanOrEqual(303);
   expect(compactPlayerBox?.x).toBe(compactNavigationBox?.x);
-  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  const playToggle = page.getByRole("button", { name: "Pause", exact: true });
+  await expect(playToggle).toBeVisible();
+  await expect(playToggle).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  const nextIconPaths = await page.getByRole("button", { name: "Next song" }).locator("path").evaluateAll((paths) =>
+    paths.map((path) => ({ fill: path.getAttribute("fill"), stroke: path.getAttribute("stroke") })),
+  );
+  expect(nextIconPaths).toEqual([
+    { fill: "currentColor", stroke: "none" },
+    { fill: "currentColor", stroke: "none" },
+  ]);
   await expect(page.getByRole("link", { name: "Library", exact: true })).toBeVisible();
 
   const surfaces = await Promise.all([header, navigation, miniPlayer].map((surface) => surface.evaluate((element) => {

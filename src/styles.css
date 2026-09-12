@@ -1374,6 +1374,12 @@ a.collection-card:active { transform: scale(0.985); }
   .mini-controls { gap: 0; }
   .mini-controls button { width: 2.5rem; height: 2.5rem; }
   .mini-controls button:first-child { display: none; }
+  .mini-controls .play-toggle,
+  .mini-controls .play-toggle:hover:not(:disabled) {
+    color: var(--text);
+    background: transparent;
+    filter: none;
+  }
 
   .song-button {
     grid-template-columns: 2rem 2.7rem minmax(0, 1fr) 2rem;
