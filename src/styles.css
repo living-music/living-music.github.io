@@ -713,7 +713,7 @@ h1 {
   .page { min-height: calc(100dvh - 13rem); }
 
   .mobile-navigation {
-    --glass-material-blur: 22px;
+    --glass-material-blur: 16px;
     --glass-material-saturation: 180%;
     position: fixed;
     z-index: 30;
@@ -1327,7 +1327,7 @@ a.collection-card:active { transform: scale(0.985); }
   }
 
   .mini-player {
-    --glass-material-blur: 18px;
+    --glass-material-blur: 13px;
     --glass-material-saturation: 165%;
     inset: auto calc(var(--mobile-chrome-inset) + env(safe-area-inset-right) + 1px)
       calc(var(--mobile-nav-height) + max(var(--mobile-chrome-inset), env(safe-area-inset-bottom)) + var(--mobile-chrome-gap))

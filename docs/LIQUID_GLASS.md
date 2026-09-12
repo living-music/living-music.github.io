@@ -156,6 +156,7 @@ Implementation record — September 12, 2026:
 - Tightened the internal refraction into a shallower, quieter band while preserving the narrow top glint. Mobile chrome now uses less blur so content reads through the material more clearly, and mini-player artwork is slightly smaller to give the capsule more breathing room.
 - Narrowed both floating mobile capsules by two pixels and introduced a restrained lower-edge reflection above a softer depth shadow, mirroring the small secondary highlight visible in iOS Liquid Glass.
 - Balanced the upper and lower inset glows around matching geometry: the upper refraction is softer, while the mirrored lower refraction remains slightly dimmer to preserve the top-lit appearance.
+- Reduced mobile capsule blur again so underlying color and form remain more legible through the material, strengthening the liquid-lens effect without changing saturation or edge lighting.
 
 ## Stage 4 — Controls, menus, and interaction response
 
