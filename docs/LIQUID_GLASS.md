@@ -166,6 +166,7 @@ Implementation record — September 12, 2026:
 - Moved the mobile Living Music and Settings row into normal page flow above Browse and Library titles. Other destinations no longer render that header, and content no longer reserves space for or scrolls beneath a fixed top material.
 - Added one rem of installed-iOS-only top clearance above the normal safe-area inset, keeping brand controls and page eyebrow text below the PWA's top compositing fade while leaving browser-mode spacing unchanged.
 - Restored Chromium backdrop blur by placing the unprefixed `backdrop-filter` after its WebKit-prefixed fallback. Vite's production CSS optimizer otherwise retained only the final prefixed declaration; browser coverage now asserts the capsules' computed filters rather than only their blur variables.
+- Released the mini-player's entrance transform when its animation completes. Chromium kept the filter in computed styles but could not sample the page backdrop while the outer glass element remained in a retained transformed layer; coverage now verifies that the persistent player returns to `transform: none`.
 
 ## Stage 4 — Controls, menus, and interaction response
 

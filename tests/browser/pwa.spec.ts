@@ -166,6 +166,7 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   await expect(header).toHaveCount(0);
   await expect(navigation).toHaveClass(/glass-surface--clear/);
   await expect(miniPlayer).toHaveClass(/glass-surface--regular/);
+  await expect.poll(() => miniPlayer.evaluate((element) => getComputedStyle(element).transform)).toBe("none");
   await expect.poll(async () => {
     const [navigationBounds, playerBounds] = await Promise.all([
       navigation.boundingBox(),
