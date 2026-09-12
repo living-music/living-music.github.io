@@ -636,12 +636,17 @@ h1 {
   .mobile-settings-button { margin-left: auto; }
 
   .content {
-    height: calc(100dvh - var(--mobile-nav-height) - env(safe-area-inset-bottom));
+    height: 100dvh;
     margin-left: 0;
     padding: calc(var(--mobile-header-height) + env(safe-area-inset-top) + 2rem)
       calc(1rem + env(safe-area-inset-right))
-      2.3rem
+      calc(var(--mobile-nav-height) + env(safe-area-inset-bottom) + 2.3rem)
       calc(1rem + env(safe-area-inset-left));
+  }
+
+  .content::-webkit-scrollbar-track {
+    margin-top: calc(var(--mobile-header-height) + env(safe-area-inset-top));
+    margin-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
   }
 
   .page { min-height: calc(100dvh - 13rem); }
@@ -1026,8 +1031,12 @@ a.collection-card:active { transform: scale(0.985); }
 .song-button:active .song-play-icon { transform: scale(0.9); }
 
 .has-player .content {
-  height: calc(100dvh - var(--desktop-player-height) - env(safe-area-inset-bottom));
-  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  height: 100dvh;
+  padding-bottom: calc(var(--desktop-player-height) + env(safe-area-inset-bottom) + 2rem);
+}
+
+.has-player .content::-webkit-scrollbar-track {
+  margin-bottom: calc(var(--desktop-player-height) + env(safe-area-inset-bottom));
 }
 
 .app-shell.now-playing-open .content,
@@ -1223,8 +1232,12 @@ a.collection-card:active { transform: scale(0.985); }
 
 @media (max-width: 760px) {
   .has-player .content {
-    height: calc(100dvh - var(--mobile-nav-height) - var(--mobile-player-height) - env(safe-area-inset-bottom));
-    padding-bottom: 2.3rem;
+    height: 100dvh;
+    padding-bottom: calc(var(--mobile-nav-height) + var(--mobile-player-height) + env(safe-area-inset-bottom) + 2.3rem);
+  }
+
+  .has-player .content::-webkit-scrollbar-track {
+    margin-bottom: calc(var(--mobile-nav-height) + var(--mobile-player-height) + env(safe-area-inset-bottom));
   }
 
   .mini-player {

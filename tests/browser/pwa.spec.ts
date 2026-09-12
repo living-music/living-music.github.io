@@ -399,11 +399,15 @@ test("hides install promotion in standalone mode", async ({ page }) => {
 });
 
 
-test("ends the mobile content scroller above fixed playback chrome and preserves blur", async ({ page }) => {
+test("keeps translucent mobile chrome over content and bounds the scrollbar track", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "standalone", { configurable: true, value: true });
+  });
   await page.goto("/#/collection/offline-hymns");
   await waitForControl(page);
   await page.getByRole("button", { name: "Play Offline Song" }).click();
+  await expect(page.locator(".app-shell")).toHaveClass(/is-ios-standalone/);
   await expect(page.locator(".mini-player")).toBeVisible();
   await page.waitForTimeout(350);
 
@@ -411,6 +415,8 @@ test("ends the mobile content scroller above fixed playback chrome and preserves
     const content = document.querySelector<HTMLElement>(".content")!;
     const player = document.querySelector<HTMLElement>(".mini-player")!;
     const navigation = document.querySelector<HTMLElement>(".mobile-navigation")!;
+    const header = document.querySelector<HTMLElement>(".mobile-header")!;
+    const scrollbarTrack = getComputedStyle(content, "::-webkit-scrollbar-track");
     const stylesheetUrls = Array.from(document.styleSheets)
       .map((sheet) => sheet.href)
       .filter((href): href is string => Boolean(href));
@@ -423,18 +429,25 @@ test("ends the mobile content scroller above fixed playback chrome and preserves
       )
     ).join("");
     return {
+      contentTop: content.getBoundingClientRect().top,
       contentBottom: content.getBoundingClientRect().bottom,
+      headerBottom: header.getBoundingClientRect().bottom,
       playerTop: player.getBoundingClientRect().top,
       playerBottom: player.getBoundingClientRect().bottom,
       navigationTop: navigation.getBoundingClientRect().top,
       contentOverflow: getComputedStyle(content).overflowY,
+      scrollbarMarginTop: Number.parseFloat(scrollbarTrack.marginTop),
+      scrollbarMarginBottom: Number.parseFloat(scrollbarTrack.marginBottom),
       documentHeight: document.documentElement.scrollHeight,
       viewportHeight: innerHeight,
       styleText,
     };
   });
 
-  expect(Math.abs(layout.contentBottom - layout.playerTop)).toBeLessThanOrEqual(1);
+  expect(layout.contentTop).toBe(0);
+  expect(layout.contentBottom).toBe(layout.viewportHeight);
+  expect(layout.scrollbarMarginTop).toBeGreaterThanOrEqual(layout.headerBottom - 1);
+  expect(layout.scrollbarMarginBottom).toBeGreaterThanOrEqual(layout.viewportHeight - layout.playerTop - 1);
   expect(Math.abs(layout.playerBottom - layout.navigationTop)).toBeLessThanOrEqual(1);
   expect(layout.contentOverflow).toBe("auto");
   expect(layout.documentHeight).toBeLessThanOrEqual(layout.viewportHeight);
