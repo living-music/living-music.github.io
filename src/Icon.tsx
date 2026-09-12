@@ -20,7 +20,7 @@ add:<path d="M12 5v14M5 12h14"/>,
 check:<path d="m5 12 4.5 4.5L19 7"/>,
 shuffle:<><path d="M4 7h3c4 0 6 10 10 10h3"/><path d="m17 14 3 3-3 3"/><path d="M4 17h3c1.7 0 3-1.8 4.2-3.9M13.2 8.9C14.4 7.8 15.6 7 17 7h3"/><path d="m17 4 3 3-3 3"/></>,
 download:<><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 20h14"/></>,
-settings:<><circle cx="12" cy="12" r="3.2"/><path d="M12 2v2.2M12 19.8V22M4.93 4.93l1.56 1.56M17.51 17.51l1.56 1.56M2 12h2.2M19.8 12H22M4.93 19.07l1.56-1.56M17.51 6.49l1.56-1.56"/></>
+settings:<><path d="M9.67 4.14a2.34 2.34 0 0 1 4.66 0 2.34 2.34 0 0 0 3.32 1.91 2.34 2.34 0 0 1 2.33 4.03 2.34 2.34 0 0 0 0 3.84 2.34 2.34 0 0 1-2.33 4.03 2.34 2.34 0 0 0-3.32 1.91 2.34 2.34 0 0 1-4.66 0 2.34 2.34 0 0 0-3.32-1.91 2.34 2.34 0 0 1-2.33-4.03 2.34 2.34 0 0 0 0-3.84 2.34 2.34 0 0 1 2.33-4.03 2.34 2.34 0 0 0 3.32-1.91Z"/><circle cx="12" cy="12" r="3"/></>
 };
 export function Icon({name,filled=false,size=22}:{name:IconName;filled?:boolean;size?:number}){
 return <svg aria-hidden="true" class="icon" width={size} height={size} viewBox="0 0 24 24" fill={filled?"currentColor":"none"} stroke="currentColor" stroke-width={filled?1.4:1.8} stroke-linecap="round" stroke-linejoin="round">{paths[name]}</svg>
