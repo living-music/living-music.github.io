@@ -18,7 +18,7 @@
   --accent-strong: #48cd79;
   --accent-ink: #062312;
   --sidebar-width: 15.5rem;
-  --mobile-header-height: 4.25rem;
+  --mobile-header-height: 3.5rem;
   --mobile-nav-height: 3.75rem;
   --content-width: 78rem;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -582,8 +582,8 @@ h1 {
     inset: 0 0 auto;
     min-height: calc(var(--mobile-header-height) + env(safe-area-inset-top));
     display: flex;
-    align-items: end;
-    padding: env(safe-area-inset-top) 1rem 0.65rem;
+    align-items: center;
+    padding: env(safe-area-inset-top) 1rem 0;
     border-bottom: 1px solid var(--border);
     background: color-mix(in srgb, var(--background) 78%, transparent);
     backdrop-filter: blur(24px) saturate(140%);

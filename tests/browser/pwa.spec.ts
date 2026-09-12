@@ -304,6 +304,9 @@ test("opens dedicated Settings from the sidebar and mobile header", async ({ pag
   await page.goto("/#/browse");
   const mobileSettings = page.locator(".mobile-settings-button");
   await expect(mobileSettings).toBeVisible();
+  const mobileHeader = page.locator(".mobile-header");
+  await expect(mobileHeader).toBeVisible();
+  expect((await mobileHeader.boundingBox())?.height).toBeLessThanOrEqual(58);
   const mobileNavigation = page.locator(".mobile-navigation");
   await expect(mobileNavigation).toBeVisible();
   expect((await mobileNavigation.boundingBox())?.height).toBeLessThanOrEqual(62);
@@ -337,6 +340,22 @@ test("exports, clears, and restores listener data", async ({ page }) => {
   await expect(page.getByText("Backup restored.", { exact: true })).toBeVisible();
   await page.evaluate(() => { window.location.hash = "#/library/songs"; });
   await expect(page.getByText("Offline Song", { exact: true })).toBeVisible();
+});
+
+test("formats large storage quotas in GB and reports browser-managed protection", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator.storage, "estimate", {
+      configurable: true,
+      value: async () => ({ usage: 512 * 1024 * 1024, quota: 20 * 1024 * 1024 * 1024 }),
+    });
+    Object.defineProperty(navigator.storage, "persisted", {
+      configurable: true,
+      value: async () => false,
+    });
+  });
+  await page.goto("/#/settings");
+  await expect(page.getByText("512.0 MB of 20 GB", { exact: true })).toBeVisible();
+  await expect(page.getByText("Browser managed", { exact: true })).toBeVisible();
 });
 
 test("offers the captured browser install prompt from Settings", async ({ page }) => {
