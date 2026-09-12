@@ -107,6 +107,26 @@ describe("AudioEngine", () => {
     expect(engine.state.track?.song.id).toBe("two");
   });
 
+  it("recovers a stalled background source and restores its position", async () => {
+    const media = new FakeAudio();
+    const engine = new AudioEngine(media as unknown as HTMLAudioElement);
+    engine.playCollection([song("one")], collection, "one");
+    await Promise.resolve();
+
+    media.currentTime = 73;
+    media.dispatchEvent(new Event("stalled"));
+    expect(engine.state.status).toBe("loading");
+
+    engine.play();
+    expect(media.load).toHaveBeenCalledTimes(2);
+    expect(media.play).toHaveBeenCalledTimes(2);
+    media.dispatchEvent(new Event("loadedmetadata"));
+    await Promise.resolve();
+
+    expect(media.currentTime).toBe(73);
+    expect(engine.state.status).toBe("playing");
+  });
+
   it("surfaces rejected play requests", async () => {
     const media = new FakeAudio();
     media.play.mockRejectedValueOnce(new Error("blocked"));

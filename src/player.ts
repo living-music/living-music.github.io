@@ -78,6 +78,7 @@ export class AudioEngine {
     this.media.addEventListener("play", this.handlePlay);
     this.media.addEventListener("pause", this.handlePause);
     this.media.addEventListener("waiting", this.handleWaiting);
+    this.media.addEventListener("stalled", this.handleWaiting);
     this.media.addEventListener("canplay", this.handleCanPlay);
     this.media.addEventListener("loadedmetadata", this.handleDuration);
     this.media.addEventListener("durationchange", this.handleDuration);
@@ -210,14 +211,28 @@ export class AudioEngine {
     this.refreshQueue();
   }
 
+  play(): void {
+    if (!this.snapshot.track) return;
+    if (this.snapshot.status === "loading" || this.snapshot.status === "error") {
+      this.recoverCurrent();
+      return;
+    }
+    void this.requestPlay();
+  }
+
+  pause(): void {
+    if (!this.snapshot.track) return;
+    this.playRequest += 1;
+    this.media.pause();
+    this.setState({ status: "paused" });
+  }
+
   toggle(): void {
     if (!this.snapshot.track) return;
     if (this.snapshot.status === "playing" || this.snapshot.status === "loading") {
-      this.playRequest += 1;
-      this.media.pause();
-      this.setState({ status: "paused" });
+      this.pause();
     } else {
-      void this.requestPlay();
+      this.play();
     }
   }
 
@@ -256,6 +271,7 @@ export class AudioEngine {
     this.media.removeEventListener("play", this.handlePlay);
     this.media.removeEventListener("pause", this.handlePause);
     this.media.removeEventListener("waiting", this.handleWaiting);
+    this.media.removeEventListener("stalled", this.handleWaiting);
     this.media.removeEventListener("canplay", this.handleCanPlay);
     this.media.removeEventListener("loadedmetadata", this.handleDuration);
     this.media.removeEventListener("durationchange", this.handleDuration);
@@ -285,6 +301,29 @@ export class AudioEngine {
     };
     this.emit();
     if (autoplay) void this.requestPlay();
+  }
+
+  private recoverCurrent(): void {
+    const track = this.tracks[this.index];
+    if (!track) return;
+    const resumeAt = Number.isFinite(this.media.currentTime) ? this.media.currentTime : this.snapshot.currentTime;
+    const trackKey = `${track.song.id}:${track.recording.id}`;
+    this.playRequest += 1;
+    this.media.pause();
+    this.media.src = this.sourceResolver(track);
+    this.media.load();
+    if (resumeAt > 0) {
+      this.media.addEventListener("loadedmetadata", () => {
+        const current = this.tracks[this.index];
+        if (`${current?.song.id}:${current?.recording.id}` !== trackKey) return;
+        try {
+          this.media.currentTime = Math.min(resumeAt, this.duration() || resumeAt);
+        } catch {
+          // A fresh network response may not be seekable until playback begins.
+        }
+      }, { once: true });
+    }
+    void this.requestPlay();
   }
 
   private async requestPlay(): Promise<void> {

@@ -52,7 +52,8 @@ describe("MediaSessionController", () => {
     };
     const engine = {
       state: snapshot(),
-      toggle: vi.fn(),
+      play: vi.fn(),
+      pause: vi.fn(),
       previous: vi.fn(),
       next: vi.fn(),
       seek: vi.fn(),
@@ -67,6 +68,8 @@ describe("MediaSessionController", () => {
       album: "A Collection",
       artwork: [{ src: "https://example.test/art.jpg" }],
     });
+    expect(session.playbackState).toBe("playing");
+    controller.update(snapshot({ status: "loading" }));
     expect(session.playbackState).toBe("playing");
     expect(session.setPositionState).toHaveBeenCalledWith({ duration: 100, playbackRate: 1, position: 100 });
 
@@ -83,7 +86,8 @@ describe("MediaSessionController", () => {
     };
     const engine = {
       state: snapshot(),
-      toggle: vi.fn(),
+      play: vi.fn(),
+      pause: vi.fn(),
       previous: vi.fn(),
       next: vi.fn(),
       seek: vi.fn(),
@@ -95,7 +99,9 @@ describe("MediaSessionController", () => {
     handlers.get("nexttrack")?.({});
     handlers.get("seekforward")?.({ seekOffset: 15 });
 
-    expect(engine.toggle).toHaveBeenCalledOnce();
+    handlers.get("pause")?.({});
+    expect(engine.play).toHaveBeenCalledOnce();
+    expect(engine.pause).toHaveBeenCalledOnce();
     expect(engine.next).toHaveBeenCalledOnce();
     expect(engine.seek).toHaveBeenCalledWith(27);
 

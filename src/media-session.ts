@@ -73,14 +73,8 @@ export class MediaSessionController {
     if (!session) return;
 
     const handlers: Record<MediaAction, (details: MediaActionDetails) => void> = {
-      play: () => {
-        if (this.snapshot.track && this.snapshot.status !== "playing" && this.snapshot.status !== "loading") {
-          this.engine.toggle();
-        }
-      },
-      pause: () => {
-        if (this.snapshot.status === "playing" || this.snapshot.status === "loading") this.engine.toggle();
-      },
+      play: () => this.engine.play(),
+      pause: () => this.engine.pause(),
       previoustrack: () => this.engine.previous(),
       nexttrack: () => this.engine.next(),
       seekbackward: (details) => this.engine.seek(this.snapshot.currentTime - (details.seekOffset || 10)),
@@ -122,7 +116,7 @@ export class MediaSessionController {
     }
 
     try {
-      this.session.playbackState = snapshot.status === "playing"
+      this.session.playbackState = snapshot.status === "playing" || snapshot.status === "loading"
         ? "playing"
         : track ? "paused" : "none";
     } catch {

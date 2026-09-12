@@ -81,7 +81,7 @@ Open a collection and select any song with audio. Living Music chooses a vocal r
 
 Select the song details in the mini player to open Now Playing. This view offers large artwork, alternate recording selection, full transport controls, repeat off/all/one, and the Up Next queue. A song row’s options menu can place that song next or at the end. Queue items can play immediately, move up or down, be removed, or be cleared together.
 
-The browser Media Session API connects playback to supported lock screens, Control Center surfaces, keyboards, and headset controls. When focus is outside an interactive control, Space toggles playback. Saved songs and albums with their add timestamps, the queue, repeat mode, and recording preferences are stored in the versioned `livingMusic` IndexedDB database. On reload, valid catalog entries are restored in a paused state; removed songs or recordings are discarded or replaced safely.
+The browser Media Session API connects playback to supported lock screens, Control Center surfaces, keyboards, and headset controls. Buffering retains an active playback session, and a lock-screen Play command can recover a stalled or failed source while restoring its last position. When focus is outside an interactive control, Space toggles playback. Saved songs and albums with their add timestamps, the queue, repeat mode, and recording preferences are stored in the versioned `livingMusic` IndexedDB database. On reload, valid catalog entries are restored in a paused state; removed songs or recordings are discarded or replaced safely.
 
 ## Search and Library
 
