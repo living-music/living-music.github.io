@@ -74,7 +74,8 @@ docs/BRAND.md              App icon concept, assets, and usage rules
 docs/PROTOTYPE.md          Seven-step delivery checklist and current behavior
 docs/RELEASE.md            Prototype scope, QA record, limits, and release process
 CHANGELOG.md               User-visible release history
-.github/workflows/pages.yml  Tested GitHub Pages build and deployment
+.github/workflows/pages.yml  Fast GitHub Pages build and deployment
+.github/workflows/checks.yml  Manually requested unit and browser checks
 ```
 
 ## Playback
@@ -120,7 +121,9 @@ Catalog payloads are untrusted network input. The client validates collection su
 
 ## Deployment
 
-A push to `main` runs type-checking, unit tests, and a Vite production build. GitHub Actions uploads only `dist/` and deploys it to [living-music.github.io](https://living-music.github.io/). GitHub Pages must use **GitHub Actions** as its publishing source.
+A push to `main` installs the locked dependencies, builds and type-checks the static app, uploads only `dist/`, and deploys it to [living-music.github.io](https://living-music.github.io/). Unit and browser tests are kept out of the publishing path so a release does not wait for the Playwright runtime.
+
+To run the complete check suite on demand, open **Actions → Run Living Music checks → Run workflow** in GitHub. The manual workflow runs unit tests, performs the production build and type-check, installs Chromium, and exercises the built PWA with Playwright. GitHub Pages must use **GitHub Actions** as its publishing source.
 
 Everything in `dist/` is public. Never place credentials in source files, Vite environment variables, or Pages artifacts.
 

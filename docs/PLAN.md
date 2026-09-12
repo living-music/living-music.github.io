@@ -121,10 +121,11 @@ The Pages workflow will:
 
 1. Check out `main`.
 2. Install the locked dependencies with `npm ci`.
-3. Run type checking and tests.
-4. Build the static app into `dist/`.
-5. Upload `dist/` with `actions/upload-pages-artifact`.
-6. Deploy with `actions/deploy-pages`.
+3. Build and type-check the static app into `dist/`.
+4. Upload `dist/` with `actions/upload-pages-artifact`.
+5. Deploy with `actions/deploy-pages`.
+
+Keep the complete verification suite in a separate manually dispatched workflow. It runs unit tests, the production build and type-check, and the Playwright PWA suite when a maintainer requests it from the Actions page. Browser installation and tests do not delay routine Pages publishing.
 
 Use root-relative app paths because the site owns `https://living-music.github.io/`. The API is on the same origin at `/musicapi/`, so the production base is:
 

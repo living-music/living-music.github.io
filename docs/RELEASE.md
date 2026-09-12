@@ -46,7 +46,7 @@ For this release, 59 unit tests and 16 Chromium browser tests pass and Vite prod
 
 ## Deployment and rollback
 
-A push to `main` runs the complete release gate in `.github/workflows/pages.yml` and deploys only `dist/` through GitHub Pages. The repository's Pages source must remain **GitHub Actions**.
+A push to `main` builds and type-checks the app in `.github/workflows/pages.yml`, then deploys only `dist/` through GitHub Pages. The full unit and Playwright suite lives in `.github/workflows/checks.yml` and can be started when needed from **Actions → Run Living Music checks → Run workflow**. The repository's Pages source must remain **GitHub Actions**.
 
 To roll back, revert the problem commit on `main` and push the revert. The workflow rebuilds and redeploys the prior source. Catalog releases are independent; musicapi's stable manifest selects its current revision.
 
