@@ -164,6 +164,7 @@ Implementation record — September 12, 2026:
 - Reordered mobile navigation to Home, Browse, Library, Search and replaced the angular Home outline with a softly rounded filled-house silhouette modeled after the iOS tab-bar treatment.
 - Filled the Browse tile grid and kept the Library heart filled at rest, using color rather than outline weight to distinguish the active destination.
 - Moved the mobile Living Music and Settings row into normal page flow above Browse and Library titles. Other destinations no longer render that header, and content no longer reserves space for or scrolls beneath a fixed top material.
+- Added one rem of installed-iOS-only top clearance above the normal safe-area inset, keeping brand controls and page eyebrow text below the PWA's top compositing fade while leaving browser-mode spacing unchanged.
 
 ## Stage 4 — Controls, menus, and interaction response
 

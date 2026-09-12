@@ -700,6 +700,10 @@ h1 {
       calc(1rem + env(safe-area-inset-left));
   }
 
+  .app-shell.is-ios-standalone .content {
+    padding-top: calc(2.15rem + env(safe-area-inset-top));
+  }
+
   .page { min-height: calc(100dvh - 13rem); }
 
   .mobile-navigation {

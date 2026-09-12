@@ -482,6 +482,9 @@ test("hides install promotion in standalone mode", async ({ page }) => {
   await page.goto("/#/settings");
   await expect(page.locator(".app-shell")).toHaveClass(/is-ios-standalone/);
   await expect(page.locator(".mobile-header")).toHaveCount(0);
+  await expect.poll(() => page.locator(".content").evaluate((element) =>
+    Number.parseFloat(getComputedStyle(element).paddingTop),
+  )).toBeGreaterThanOrEqual(34);
   await expect(page.getByRole("heading", { name: "Installation" })).toBeVisible();
   await expect(page.getByText("Living Music is installed on this device.", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Local data" })).toBeVisible();
