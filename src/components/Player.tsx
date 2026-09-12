@@ -61,7 +61,7 @@ export function MiniPlayer({
   const progress = Math.min(player.currentTime, duration || player.currentTime);
 
   return (
-    <section class="mini-player" aria-label="Player">
+    <section class="mini-player glass-surface glass-surface--subdued" aria-label="Player">
       <SeekBar player={player} onSeek={onSeek} />
 
       <button id="now-playing-trigger" type="button" class="mini-track" onClick={onOpen} aria-label="Open Now Playing">

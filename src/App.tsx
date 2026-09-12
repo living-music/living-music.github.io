@@ -119,7 +119,7 @@ function Navigation({
     ? [...navigation, { id: "library", label: "Library", icon: "heart" }]
     : navigation;
   return (
-    <nav class={mobile ? "mobile-navigation" : "sidebar-navigation"} aria-label="Primary">
+    <nav class={mobile ? "mobile-navigation glass-surface glass-surface--regular" : "sidebar-navigation"} aria-label="Primary">
       {items.map((item) => (
         <a
           class={`navigation-item ${current === item.id ? "is-current" : ""}`}
@@ -1207,7 +1207,7 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
         </div>
       </aside>
 
-      <header class={"mobile-header " + (install.mode === "installed" ? "is-standalone" : "")}>
+      <header class={`mobile-header glass-surface glass-surface--regular ${install.mode === "installed" ? "is-standalone" : ""}`}>
         <a class="mobile-brand" href="#/home" aria-label="Living Music home">
           <img src="/app-icon-192.png" alt="" />
           <span>Living Music</span>

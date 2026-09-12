@@ -147,6 +147,68 @@ test("isolates the desktop sidebar material and honors reduced transparency", as
   })).toEqual({ background: "rgb(24, 24, 28)", filters: ["none", "none"] });
 });
 
+test("layers persistent mobile chrome without changing its geometry", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/#/collection/offline-hymns");
+  await page.getByRole("button", { name: "Play Offline Song" }).click();
+
+  const header = page.locator(".mobile-header");
+  const navigation = page.locator(".mobile-navigation");
+  const miniPlayer = page.locator(".mini-player");
+  await expect(header).toHaveClass(/glass-surface--regular/);
+  await expect(navigation).toHaveClass(/glass-surface--regular/);
+  await expect(miniPlayer).toHaveClass(/glass-surface--subdued/);
+  await expect.poll(async () => {
+    const [navigationBounds, playerBounds] = await Promise.all([
+      navigation.boundingBox(),
+      miniPlayer.boundingBox(),
+    ]);
+    return Math.abs((playerBounds?.y ?? 0) + (playerBounds?.height ?? 0) - (navigationBounds?.y ?? 0));
+  }).toBeLessThan(1);
+
+  const [headerBox, navigationBox, playerBox] = await Promise.all([
+    header.boundingBox(),
+    navigation.boundingBox(),
+    miniPlayer.boundingBox(),
+  ]);
+  expect(headerBox?.height).toBeLessThanOrEqual(58);
+  expect(navigationBox?.height).toBeLessThanOrEqual(62);
+  expect(playerBox?.height).toBeLessThanOrEqual(76);
+
+  const surfaces = await Promise.all([header, navigation, miniPlayer].map((surface) => surface.evaluate((element) => {
+    const container = getComputedStyle(element);
+    const layer = getComputedStyle(element, "::before");
+    return {
+      background: container.backgroundColor,
+      material: layer.backgroundColor,
+      pointerEvents: layer.pointerEvents,
+      contentZIndex: getComputedStyle(element.firstElementChild!).zIndex,
+    };
+  })));
+  expect(surfaces).toEqual([
+    { background: "rgba(0, 0, 0, 0)", material: "rgba(24, 24, 28, 0.66)", pointerEvents: "none", contentZIndex: "1" },
+    { background: "rgba(0, 0, 0, 0)", material: "rgba(24, 24, 28, 0.66)", pointerEvents: "none", contentZIndex: "1" },
+    { background: "rgba(0, 0, 0, 0)", material: "rgba(29, 29, 34, 0.78)", pointerEvents: "none", contentZIndex: "1" },
+  ]);
+
+  const session = await page.context().newCDPSession(page);
+  await session.send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-transparency", value: "reduce" }],
+  });
+  await expect.poll(() => Promise.all([header, navigation, miniPlayer].map((surface) => surface.evaluate((element) => {
+    const layer = getComputedStyle(element, "::before");
+    return {
+      background: layer.backgroundColor,
+      filters: [layer.backdropFilter, layer.getPropertyValue("-webkit-backdrop-filter")]
+        .map((filter) => filter || "none"),
+    };
+  })))).toEqual([
+    { background: "rgb(24, 24, 28)", filters: ["none", "none"] },
+    { background: "rgb(24, 24, 28)", filters: ["none", "none"] },
+    { background: "rgb(29, 29, 34)", filters: ["none", "none"] },
+  ]);
+});
+
 test("retains only the two newest revisions for each catalog path", async ({ page }) => {
   await page.goto("/#/browse");
   await waitForControl(page);

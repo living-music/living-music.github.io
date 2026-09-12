@@ -1,6 +1,6 @@
 # Liquid Glass implementation plan
 
-Status: Stage 1 candidate implemented and locally validated. Automated Chromium, iOS 27 Simulator Safari comparisons, and the interactive installed-PWA baseline are recorded. The baseline found a landscape Now Playing defect; remaining Simulator accessibility/update checks and physical-device validation are still required. See [Stage 0 baseline](LIQUID_GLASS_BASELINE.md). Baseline UI: commit `7279cca` as restored by `8787b20`.
+Status: Stage 2 candidate implemented and locally validated. Automated Chromium, iOS 27 Simulator Safari comparisons, and the interactive installed-PWA baseline are recorded. The baseline found a landscape Now Playing defect; remaining Simulator accessibility/update checks and physical-device validation are still required. See [Stage 0 baseline](LIQUID_GLASS_BASELINE.md). Baseline UI: commit `7279cca` as restored by `8787b20`.
 
 ## Goal
 
@@ -96,6 +96,16 @@ Acceptance:
 - Opening a playlist menu still places it above the independent-project bar and other fixed chrome.
 
 Rollback boundary: revert the three surfaces to their Stage 1 backgrounds without changing layout.
+
+Implementation record — September 12, 2026:
+
+- Applied regular glass to the mobile header and bottom navigation, including the taller iOS Home Screen header.
+- Applied the more opaque subdued material to the mini player so track information remains distinct above navigation.
+- Replaced each surface's direct filter with the shared pseudo-element layer, keeping labels, artwork, controls, and the seek bar above the blur.
+- Preserved the existing header, navigation, mini-player, safe-area, content-padding, and stacking geometry.
+- Limited edge light and shadow to the adjoining edges of the bottom navigation and mini player; the header uses a restrained lower separator.
+- Consolidated all three surfaces onto the shared solid fallback for Reduced Transparency and browsers without filter support.
+- Validated dark and light installed-size renders, exact player-to-navigation placement after animation, TypeScript, 60 unit tests, and the production build. The deployed iOS 27 PWA update check remains the release gate for this stage.
 
 ## Stage 3 — Floating geometry and scroll edges
 
