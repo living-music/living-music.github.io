@@ -126,6 +126,14 @@ Selecting **Update now** removed the banner and caused one visible reload. Setti
 
 The iOS 27 WebKit render passed the Stage 2 visual check: header labels and icons remained sharp; the header sampled content color without a black fade; the subdued mini player remained distinct; and navigation retained translucency and safe-area spacing. Evidence is stored in `docs/baselines/a34d474/` as the waiting-update view, updated player view, and verified build view.
 
+### September 12, 2026 — Stage 3 floating chrome
+
+Apple Music iOS 27 screenshots supplied by the project owner established the resting reference: separate player and navigation capsules with equal side insets, a narrow gap, continuous curvature, and artwork color visible through both materials. They also record Apple's compact scrolled arrangement as a later interaction reference.
+
+Living Music build `4a73898` was deployed and applied through the installed PWA's **Update now** action. The resulting player and navigation use matching 16 px horizontal insets and an 8 px gap above the safe-area floor. The existing track remained loaded, Settings reported build `4a73898`, and no storage was cleared.
+
+The installed iOS 27 render passed the Stage 3 geometry check in portrait. Underlying album artwork visibly affects the player material; labels, icons, and the progress control remain sharp; all four destinations remain visible; the player and navigation do not overlap; and content remains visible through the gap and around the capsules. Evidence is stored in `docs/baselines/4a73898/`.
+
 ## Service-worker visual update procedure
 
 1. Install and open deployed build A. In Settings, record its version and build ID.

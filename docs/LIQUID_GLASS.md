@@ -1,6 +1,6 @@
 # Liquid Glass implementation plan
 
-Status: Stage 3 candidate implemented and locally validated after Stage 2 was deployed and verified in the installed iOS 27 Simulator PWA. Automated Chromium, iOS 27 Simulator Safari comparisons, and the interactive installed-PWA baseline are recorded. The baseline found a landscape Now Playing defect; remaining Simulator accessibility checks and physical-device validation are still required. See [Stage 0 baseline](LIQUID_GLASS_BASELINE.md). Baseline UI: commit `7279cca` as restored by `8787b20`.
+Status: Stage 3 implemented, deployed, and verified in the installed iOS 27 Simulator PWA. Automated Chromium, iOS 27 Simulator Safari comparisons, and the interactive installed-PWA baseline are recorded. The baseline found a landscape Now Playing defect; remaining Simulator accessibility checks and physical-device validation are still required. See [Stage 0 baseline](LIQUID_GLASS_BASELINE.md). Baseline UI: commit `7279cca` as restored by `8787b20`.
 
 ## Goal
 
@@ -144,7 +144,8 @@ Implementation record — September 12, 2026:
 - Added independent fixed scroll-edge fades behind the header and bottom chrome. They do not own blur, intercept input, or alter document scroll ownership.
 - Increased mobile content clearance for the floating gaps so the end of every page remains reachable above persistent controls.
 - Kept the desktop sidebar geometry and borderless macOS 27 treatment unchanged.
-- Validated TypeScript, 60 unit tests, the production build, 22 browser tests, exact player/navigation alignment, and usable controls at 320 px. The deployed installed-iOS 27 check remains the release gate for this stage.
+- Validated TypeScript, 60 unit tests, the production build, 22 browser tests, exact player/navigation alignment, and usable controls at 320 px.
+- Verified the deployed update from `a34d474` to `4a73898` in the installed iOS 27 PWA without clearing storage. Settings reported the new build, the prior track remained in the mini player, and artwork visibly influenced the floating player material. Stage 3 is complete in the simulator.
 
 ## Stage 4 — Controls, menus, and interaction response
 
