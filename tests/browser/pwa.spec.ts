@@ -190,9 +190,9 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
     depth: getComputedStyle(element, "::before").backgroundImage,
   }))));
   expect(capsuleShape.every(({ radius, height }) => radius >= height / 2)).toBe(true);
-  expect(capsuleShape.every(({ edge }) => edge.includes("0.75px") && edge.includes("3.5px"))).toBe(true);
+  expect(capsuleShape.every(({ edge }) => edge.includes("0.5px") && edge.includes("1.5px"))).toBe(true);
   expect(capsuleShape.every(({ edge }) => !edge.includes("0px 0px 0px 1px"))).toBe(true);
-  expect(capsuleShape.every(({ depth }) => depth.match(/radial-gradient/g)?.length === 3 && depth.includes("linear-gradient"))).toBe(true);
+  expect(capsuleShape.every(({ depth }) => depth.match(/radial-gradient/g)?.length === 1 && depth.includes("linear-gradient"))).toBe(true);
   await expect(page.locator(".mini-progress")).toBeHidden();
 
   const contentPaddingBottom = await page.locator(".content").evaluate((element) =>
