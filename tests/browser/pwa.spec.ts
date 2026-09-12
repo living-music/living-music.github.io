@@ -156,7 +156,9 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   const navigation = page.locator(".mobile-navigation");
   const miniPlayer = page.locator(".mini-player");
   expect(await navigation.locator(".navigation-item").allTextContents()).toEqual(["Home", "Browse", "Library", "Search"]);
-  await expect(navigation.getByRole("link", { name: "Home", exact: true }).locator("path")).toHaveAttribute("fill-rule", "evenodd");
+  const homePath = navigation.getByRole("link", { name: "Home", exact: true }).locator("path");
+  await expect(homePath).toHaveAttribute("fill", "currentColor");
+  await expect(homePath).not.toHaveAttribute("fill-rule", "evenodd");
   await expect(header).toHaveClass(/glass-surface--regular/);
   await expect(navigation).toHaveClass(/glass-surface--clear/);
   await expect(miniPlayer).toHaveClass(/glass-surface--regular/);

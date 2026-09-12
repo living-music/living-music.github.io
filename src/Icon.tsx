@@ -1,7 +1,7 @@
 import type { JSX } from "preact";
 export type IconName="home"|"browse"|"search"|"heart"|"play"|"pause"|"previous"|"next"|"queue"|"close"|"chevron"|"music"|"back"|"more"|"up"|"down"|"repeat"|"trash"|"video"|"add"|"check"|"shuffle"|"download"|"settings";
 const paths:Record<IconName,JSX.Element>={
-home:<path d="M3.6 10.35 10.55 4.5a2.25 2.25 0 0 1 2.9 0l6.95 5.85a1.7 1.7 0 0 1 .6 1.3v7.15a2.2 2.2 0 0 1-2.2 2.2H5.2A2.2 2.2 0 0 1 3 18.8v-7.15a1.7 1.7 0 0 1 .6-1.3ZM10 21v-5.1a2 2 0 0 1 4 0V21Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" stroke="none"/>,
+home:<path d="M3.6 10.35 10.55 4.5a2.25 2.25 0 0 1 2.9 0l6.95 5.85a1.7 1.7 0 0 1 .6 1.3v7.15a2.2 2.2 0 0 1-2.2 2.2H14v-5.1a2 2 0 0 0-4 0V21H5.2A2.2 2.2 0 0 1 3 18.8v-7.15a1.7 1.7 0 0 1 .6-1.3Z" fill="currentColor" stroke="none"/>,
 browse:<><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,
 search:<><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></>,
 heart:<path d="M20.5 9c0 5.5-8.5 10.5-8.5 10.5S3.5 14.5 3.5 9A4.5 4.5 0 0 1 12 6.9 4.5 4.5 0 0 1 20.5 9Z"/>,
