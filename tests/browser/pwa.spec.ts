@@ -374,6 +374,7 @@ test("offers the captured browser install prompt from Settings", async ({ page }
 });
 
 test("hides install promotion in standalone mode", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
     const original = window.matchMedia.bind(window);
     window.matchMedia = (query) => query === "(display-mode: standalone)"
@@ -381,6 +382,10 @@ test("hides install promotion in standalone mode", async ({ page }) => {
       : original(query);
   });
   await page.goto("/#/settings");
+  const standaloneHeader = page.locator(".mobile-header");
+  await expect(standaloneHeader).toHaveClass(/is-standalone/);
+  await expect.poll(() => standaloneHeader.evaluate((element) => getComputedStyle(element).backdropFilter)).toBe("none");
+  await expect.poll(() => standaloneHeader.evaluate((element) => getComputedStyle(element, "::before").content)).not.toBe("none");
   await expect(page.getByRole("heading", { name: "Installation" })).toBeVisible();
   await expect(page.getByText("Living Music is installed on this device.", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Local data" })).toBeVisible();

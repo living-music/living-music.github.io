@@ -1186,7 +1186,7 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
         </div>
       </aside>
 
-      <header class="mobile-header">
+      <header class={"mobile-header " + (install.mode === "installed" ? "is-standalone" : "")}>
         <a class="mobile-brand" href="#/home" aria-label="Living Music home">
           <img src="/app-icon-192.png" alt="" />
           <span>Living Music</span>
