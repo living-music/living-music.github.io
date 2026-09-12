@@ -155,6 +155,7 @@ Implementation record — September 12, 2026:
 - Rebalanced that curve after installed review: removed the luminous side bands, reduced the perimeter to a faint half-pixel boundary, concentrated a smaller and shinier specular highlight along the top, and softened both lower refraction and ambient lift. The resulting surface follows Apple Music's top-lit glass rather than tracing the entire pill.
 - Tightened the internal refraction into a shallower, quieter band while preserving the narrow top glint. Mobile chrome now uses less blur so content reads through the material more clearly, and mini-player artwork is slightly smaller to give the capsule more breathing room.
 - Narrowed both floating mobile capsules by two pixels and introduced a restrained lower-edge reflection above a softer depth shadow, mirroring the small secondary highlight visible in iOS Liquid Glass.
+- Balanced the upper and lower inset glows around matching geometry: the upper refraction is softer, while the mirrored lower refraction remains slightly dimmer to preserve the top-lit appearance.
 
 ## Stage 4 — Controls, menus, and interaction response
 

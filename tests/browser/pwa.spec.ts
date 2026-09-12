@@ -192,8 +192,8 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
     blur: getComputedStyle(element).getPropertyValue("--glass-material-blur").trim(),
   }))));
   expect(capsuleShape.every(({ radius, height }) => radius >= height / 2)).toBe(true);
-  expect(capsuleShape.every(({ edge }) => edge.includes("0.5px") && edge.includes("1.5px"))).toBe(true);
-  expect(capsuleShape.every(({ edge }) => edge.includes("-0.75px 0.8px"))).toBe(true);
+  expect(capsuleShape.every(({ edge }) => edge.includes("0.5px") && edge.includes("1.25px 1.1px"))).toBe(true);
+  expect(capsuleShape.every(({ edge }) => edge.includes("-1.25px 1.1px"))).toBe(true);
   expect(capsuleShape.every(({ edge }) => !edge.includes("0px 0px 0px 1px"))).toBe(true);
   expect(capsuleShape.every(({ depth }) => depth.match(/radial-gradient/g)?.length === 1 && depth.includes("linear-gradient"))).toBe(true);
   expect(capsuleShape.map(({ blur }) => blur)).toEqual(["22px", "18px"]);
