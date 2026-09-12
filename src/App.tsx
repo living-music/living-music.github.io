@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { createPortal } from "preact/compat";
 import { CatalogClient } from "./api";
 import { chooseRecording } from "./audio";
 import { catalogFailure, type CatalogFailureKind } from "./connectivity";
@@ -72,7 +73,28 @@ function Navigation({
   onDeletePlaylist: (playlist: Playlist) => void;
   mobile?: boolean;
 }) {
-  const [openPlaylistMenu, setOpenPlaylistMenu] = useState<string>();
+  const [openPlaylistMenu, setOpenPlaylistMenu] = useState<{ id: string; left: number; top: number }>();
+  const playlistMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!openPlaylistMenu) return;
+    const close = (event: Event) => {
+      if (event.target instanceof Node && playlistMenuRef.current?.contains(event.target)) return;
+      setOpenPlaylistMenu(undefined);
+    };
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenPlaylistMenu(undefined);
+    };
+    window.addEventListener("pointerdown", close, true);
+    window.addEventListener("keydown", keydown);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("pointerdown", close, true);
+      window.removeEventListener("keydown", keydown);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [openPlaylistMenu]);
   const items: NavigationItem[] = mobile
     ? [...navigation, { id: "library", label: "Library", icon: "heart" }]
     : navigation;
@@ -133,17 +155,39 @@ function Navigation({
               <button
                 type="button"
                 class="playlist-more-button"
-                onClick={() => setOpenPlaylistMenu(openPlaylistMenu === playlist.id ? undefined : playlist.id)}
+                onClick={(event) => {
+                  if (openPlaylistMenu?.id === playlist.id) {
+                    setOpenPlaylistMenu(undefined);
+                    return;
+                  }
+                  const bounds = event.currentTarget.getBoundingClientRect();
+                  const menuWidth = 128;
+                  const menuHeight = 80;
+                  setOpenPlaylistMenu({
+                    id: playlist.id,
+                    left: Math.max(8, Math.min(bounds.right - menuWidth, window.innerWidth - menuWidth - 8)),
+                    top: bounds.bottom + menuHeight + 8 > window.innerHeight
+                      ? Math.max(8, bounds.top - menuHeight - 4)
+                      : bounds.bottom + 4,
+                  });
+                }}
                 aria-label={`Options for ${playlist.name}`}
-                aria-expanded={openPlaylistMenu === playlist.id}
+                aria-expanded={openPlaylistMenu?.id === playlist.id}
               >
                 <Icon name="more" size={17} />
               </button>
-              {openPlaylistMenu === playlist.id && (
-                <div class="playlist-navigation-menu">
-                  <button type="button" onClick={() => { setOpenPlaylistMenu(undefined); onRenamePlaylist(playlist); }}>Rename</button>
-                  <button type="button" class="is-destructive" onClick={() => { setOpenPlaylistMenu(undefined); onDeletePlaylist(playlist); }}>Delete</button>
-                </div>
+              {openPlaylistMenu?.id === playlist.id && createPortal(
+                <div
+                  ref={playlistMenuRef}
+                  class="playlist-navigation-menu"
+                  style={{ left: `${openPlaylistMenu.left}px`, top: `${openPlaylistMenu.top}px` }}
+                  role="menu"
+                  aria-label={`Options for ${playlist.name}`}
+                >
+                  <button type="button" role="menuitem" onClick={() => { setOpenPlaylistMenu(undefined); onRenamePlaylist(playlist); }}>Rename</button>
+                  <button type="button" role="menuitem" class="is-destructive" onClick={() => { setOpenPlaylistMenu(undefined); onDeletePlaylist(playlist); }}>Delete</button>
+                </div>,
+                document.body,
               )}
             </div>
           ))}
@@ -596,6 +640,7 @@ function AppStatus({
   applyingUpdate,
   persistenceMessage,
   onRetry,
+  onDismissPersistence,
 }: {
   online: boolean;
   catalogFallback: boolean;
@@ -603,6 +648,7 @@ function AppStatus({
   applyingUpdate: boolean;
   persistenceMessage?: string;
   onRetry: () => void;
+  onDismissPersistence: () => void;
 }) {
   if (online && !catalogFallback && !updateAvailable && !persistenceMessage) return null;
   return (
@@ -625,7 +671,12 @@ function AppStatus({
         <section class="app-status app-status-cached">
           <Icon name="browse" size={17} />
           <p><strong>Local data</strong><span>{persistenceMessage}</span></p>
-          <button type="button" onClick={() => window.location.hash = "#/library/recent"}>Manage</button>
+          <div class="app-status-actions">
+            <button type="button" onClick={() => window.location.hash = "#/library/recent"}>Manage</button>
+            <button type="button" class="app-status-dismiss" onClick={onDismissPersistence} aria-label="Dismiss local data notice" title="Dismiss">
+              <Icon name="close" size={15} />
+            </button>
+          </div>
         </section>
       )}
       {updateAvailable && (
@@ -1064,6 +1115,7 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
         applyingUpdate={pwa.applyingUpdate}
         persistenceMessage={persistenceMessage}
         onRetry={() => setCatalogAttempt((attempt) => attempt + 1)}
+        onDismissPersistence={() => setPersistenceMessage(undefined)}
       />
 
       <aside class="sidebar">

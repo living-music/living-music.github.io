@@ -2185,10 +2185,8 @@ a.collection-card:active { transform: scale(0.985); }
 .playlist-navigation-row > a.is-current .icon { color: var(--accent); }
 
 .playlist-navigation-menu {
-  position: absolute;
-  z-index: 30;
-  top: 2rem;
-  right: 0;
+  position: fixed;
+  z-index: 90;
   width: 8rem;
   padding: 0.3rem;
   border: 1px solid var(--border);
@@ -2485,6 +2483,23 @@ a.collection-card:active { transform: scale(0.985); }
 }
 
 .app-status button:disabled { cursor: wait; opacity: 0.65; }
+
+.app-status-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.app-status .app-status-dismiss {
+  width: 2rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background: var(--surface-hover);
+}
+
+.app-status .app-status-dismiss:hover { color: var(--text); }
 
 @keyframes status-enter {
   from { opacity: 0; transform: translateY(-0.4rem); }

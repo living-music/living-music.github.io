@@ -246,6 +246,23 @@ test("keeps legacy data and explains limited storage when IndexedDB cannot open"
   await expect(page.getByText("Offline Song", { exact: true })).toBeVisible();
   await expect(page.getByText("storage unavailable", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem("livingMusic:userState:v1"))).not.toBeNull();
+  await page.getByRole("button", { name: "Dismiss local data notice" }).click();
+  await expect(page.getByText("Local data", { exact: true })).toHaveCount(0);
+});
+
+test("shows playlist options above sidebar chrome", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("livingMusic:userState:v1", JSON.stringify({
+    playlists: [{ id: "sidebar-playlist", name: "Sunday Music", createdAt: "2026-09-01T12:00:00.000Z", updatedAt: "2026-09-01T12:00:00.000Z", songIds: [] }],
+  })));
+  await page.goto("/#/browse");
+  await page.getByRole("button", { name: "Options for Sunday Music" }).click();
+  const menu = page.getByRole("menu", { name: "Options for Sunday Music" });
+  await expect(menu).toBeVisible();
+  expect(await menu.evaluate((element) => ({
+    parent: element.parentElement?.tagName,
+    position: getComputedStyle(element).position,
+    zIndex: Number(getComputedStyle(element).zIndex),
+  }))).toEqual({ parent: "BODY", position: "fixed", zIndex: 90 });
 });
 
 test("exports, clears, and restores listener data", async ({ page }) => {
