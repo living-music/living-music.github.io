@@ -5,8 +5,6 @@ type MediaAction =
   | "pause"
   | "previoustrack"
   | "nexttrack"
-  | "seekbackward"
-  | "seekforward"
   | "seekto";
 
 interface MediaActionDetails {
@@ -35,8 +33,6 @@ const actions: MediaAction[] = [
   "pause",
   "previoustrack",
   "nexttrack",
-  "seekbackward",
-  "seekforward",
   "seekto",
 ];
 
@@ -61,7 +57,6 @@ function browserMetadataFactory(): MetadataFactory | undefined {
 
 /** Keeps lock-screen, Control Center, and hardware media controls in sync with the shared audio engine. */
 export class MediaSessionController {
-  private snapshot: PlayerSnapshot;
   private metadataKey: string | undefined;
 
   constructor(
@@ -69,7 +64,6 @@ export class MediaSessionController {
     private readonly session = browserSession(),
     private readonly makeMetadata = browserMetadataFactory(),
   ) {
-    this.snapshot = engine.state;
     if (!session) return;
 
     const handlers: Record<MediaAction, (details: MediaActionDetails) => void> = {
@@ -77,8 +71,6 @@ export class MediaSessionController {
       pause: () => this.engine.pause(),
       previoustrack: () => this.engine.previous(),
       nexttrack: () => this.engine.next(),
-      seekbackward: (details) => this.engine.seek(this.snapshot.currentTime - (details.seekOffset || 10)),
-      seekforward: (details) => this.engine.seek(this.snapshot.currentTime + (details.seekOffset || 10)),
       seekto: (details) => {
         if (typeof details.seekTime === "number") this.engine.seek(details.seekTime);
       },
@@ -94,7 +86,6 @@ export class MediaSessionController {
   }
 
   update(snapshot: PlayerSnapshot): void {
-    this.snapshot = snapshot;
     if (!this.session) return;
 
     const track = snapshot.track;

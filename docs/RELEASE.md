@@ -12,7 +12,7 @@ This release completes the first Living Music prototype at [living-music.github.
 - Responsive Now Playing, alternate recordings, repeat modes, and an editable Up Next queue
 - Accent- and case-insensitive global search over the compact search index
 - IndexedDB-backed Library, favorites, playlists, queue, repeat mode, and recording preferences with verified migration and JSON backup/restore
-- Media Session metadata and play, pause, previous, next, and seek handlers where browsers support them
+- Media Session metadata and play, pause, previous-track, next-track, and timeline-seek handlers where browsers support them
 - Install guidance, shortcuts, screenshots, dedicated icon purposes, social metadata, safe-area layouts, reduced-motion/transparency, contrast, and forced-colors adaptations
 - Explicit song, album, and playlist downloads with offline playback, seeking, recovery, source reconciliation, and independent cleanup
 

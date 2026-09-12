@@ -96,14 +96,17 @@ describe("MediaSessionController", () => {
     controller.update(snapshot());
 
     handlers.get("play")?.({});
+    handlers.get("previoustrack")?.({});
     handlers.get("nexttrack")?.({});
-    handlers.get("seekforward")?.({ seekOffset: 15 });
 
     handlers.get("pause")?.({});
     expect(engine.play).toHaveBeenCalledOnce();
     expect(engine.pause).toHaveBeenCalledOnce();
+    expect(engine.previous).toHaveBeenCalledOnce();
     expect(engine.next).toHaveBeenCalledOnce();
-    expect(engine.seek).toHaveBeenCalledWith(27);
+    expect([...handlers.keys()]).toEqual(["play", "pause", "previoustrack", "nexttrack", "seekto"]);
+    expect(handlers.has("seekbackward")).toBe(false);
+    expect(handlers.has("seekforward")).toBe(false);
 
     controller.destroy();
     expect([...handlers.values()].every((handler) => handler === null)).toBe(true);
