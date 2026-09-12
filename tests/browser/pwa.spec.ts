@@ -314,6 +314,9 @@ test("opens dedicated Settings from the sidebar and mobile header", async ({ pag
   await expect(page).toHaveURL(/#\/settings$/);
   await expect(page.getByRole("heading", { name: "Installation" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Local data" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "About" })).toBeVisible();
+  await expect(page.getByText("0.1.0", { exact: true })).toBeVisible();
+  await expect(page.locator(".settings-build-id")).toHaveText(/^[0-9a-f]{7}$/);
 });
 
 test("exports, clears, and restores listener data", async ({ page }) => {

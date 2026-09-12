@@ -97,7 +97,7 @@ The service worker maintains a separate `living-music-catalog-v1` runtime cache.
 
 ## Installation and local data
 
-The gear beside the sidebar’s project links opens a dedicated Settings page; the mobile header provides the same shortcut. Settings contains appearance, installation guidance, and local storage controls. Browsers with an install prompt provide a direct **Install** action; iPhone and iPad show Safari’s Share → Add to Home Screen instructions. Installed windows report the current installation state. The manifest launches into Browse and includes shortcuts for Browse, Search, Favorites, and Playlists.
+The gear beside the sidebar’s project links opens a dedicated Settings page; the mobile header provides the same shortcut. Settings contains appearance, installation guidance, local storage controls, and the semantic version plus commit-derived build ID. Browsers with an install prompt provide a direct **Install** action; iPhone and iPad show Safari’s Share → Add to Home Screen instructions. Installed windows report the current installation state. The manifest launches into Browse and includes shortcuts for Browse, Search, Favorites, and Playlists.
 
 Library, Favorites, albums, playlists, queue position, repeat mode, and recording choices live in IndexedDB. Theme stays in `localStorage` so the correct appearance can be applied before rendering. After meaningful listener data is created, the app asks the browser for persistent storage and reports a denial without interrupting playback. Settings shows storage use and provides versioned JSON export, validated import, download removal, and a confirmed Clear Local Data action. Browsers without IndexedDB retain the prior local-storage record and show limited-storage status.
 

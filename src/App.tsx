@@ -507,6 +507,24 @@ function LocalDataSettings({ userState, persistence, install, downloads, onClear
   );
 }
 
+function AboutSettings() {
+  const version = import.meta.env.VITE_APP_VERSION || "Development";
+  const buildId = import.meta.env.VITE_BUILD_ID || "local";
+
+  return (
+    <section class="settings-card settings-card-column" aria-labelledby="about-heading">
+      <div>
+        <h2 id="about-heading">About</h2>
+        <p>Version and build information for this installation of Living Music.</p>
+      </div>
+      <dl class="storage-details settings-about-details">
+        <div><dt>Version</dt><dd>{version}</dd></div>
+        <div><dt>Build</dt><dd class="settings-build-id">{buildId}</dd></div>
+      </dl>
+    </section>
+  );
+}
+
 function SettingsPage({
   theme,
   onThemeChange,
@@ -546,6 +564,7 @@ function SettingsPage({
           onReplaceUserState={onReplaceUserState}
           onMessage={onPersistenceMessage}
         />
+        <AboutSettings />
       </div>
     </div>
   );
