@@ -4,6 +4,8 @@ All notable user-visible changes to Living Music are recorded here.
 
 ## Unreleased
 
+- Added opt-in Google Analytics page views with a required first-run choice, sanitized routes, disabled advertising features, and a Settings privacy control.
+
 - Added explicit song, album, and playlist downloads with queued, active, completed, failed, interrupted, and stale-source states.
 - Added a Downloaded Library view, offline-aware playback, cached byte-range seeking, and sequential offline playlist playback.
 - Added quota-safe storage accounting, per-recording removal, Remove All Downloads, and cleanup that preserves Library and playlist membership.

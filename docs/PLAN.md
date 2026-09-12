@@ -600,7 +600,7 @@ Representative manual checks:
 - Ship no secrets; all GitHub Pages files are public.
 - Treat API strings as untrusted text and render them without `innerHTML`.
 - Permit only expected HTTPS media and artwork URLs.
-- Collect no analytics in the first release.
+- Collect only consented, sanitized page-view analytics; exclude song titles, search text, playlist names, Library contents, and route identifiers.
 - Store listening state only in the browser and provide a Clear Local Data action.
 - Do not proxy or redistribute Church-hosted audio or artwork. Enable listener-selected device caching only after source terms, CORS, and playback behavior have been reviewed.
 - Keep the independent-project notice and official source links visible.
@@ -619,7 +619,7 @@ Representative manual checks:
 - Offline: app shell and catalog metadata plus explicit listener-selected recording downloads; streamed audio is never cached automatically.
 - Initial language: English.
 - Initial appearance: dark, with light and system-following options.
-- Initial analytics: none.
+- Analytics: optional GA4 page views after an explicit first-run choice, with advertising features disabled and an in-app off switch.
 
 ## Next implementation slice
 

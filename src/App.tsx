@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { createPortal } from "preact/compat";
 import { CatalogClient } from "./api";
+import { isAnalyticsConfigured, readAnalyticsConsent, setAnalyticsEnabled, trackPageView } from "./analytics";
 import { chooseRecording } from "./audio";
 import { catalogFailure, type CatalogFailureKind } from "./connectivity";
 import { CatalogError, CatalogSkeleton, CollectionGrid, CollectionPage } from "./components/CatalogViews";
@@ -545,6 +546,45 @@ function AboutSettings() {
   );
 }
 
+function PrivacySettings({ analyticsEnabled, onAnalyticsChange }: {
+  analyticsEnabled: boolean;
+  onAnalyticsChange: (enabled: boolean) => void;
+}) {
+  return (
+    <section class="settings-card" aria-labelledby="privacy-heading">
+      <div>
+        <h2 id="privacy-heading">Privacy</h2>
+        <p>Optionally share anonymous page visits with Google Analytics. Living Music does not send song titles, searches, playlist names, or Library contents.</p>
+      </div>
+      <button
+        type="button"
+        class="settings-switch"
+        role="switch"
+        aria-checked={analyticsEnabled}
+        aria-label="Share anonymous usage analytics"
+        onClick={() => onAnalyticsChange(!analyticsEnabled)}
+      >
+        <span aria-hidden="true" />
+      </button>
+    </section>
+  );
+}
+
+function AnalyticsConsentBanner({ onChoose }: { onChoose: (enabled: boolean) => void }) {
+  return (
+    <section class="analytics-consent glass-surface glass-surface--regular" role="region" aria-labelledby="analytics-consent-heading">
+      <div>
+        <h2 id="analytics-consent-heading">Help improve Living Music?</h2>
+        <p>Allow anonymous page-view analytics through Google Analytics. Song titles, searches, playlists, and your Library are never shared.</p>
+      </div>
+      <div class="analytics-consent-actions">
+        <button type="button" class="analytics-consent-decline" onClick={() => onChoose(false)}>No thanks</button>
+        <button type="button" class="analytics-consent-allow" onClick={() => onChoose(true)}>Allow analytics</button>
+      </div>
+    </section>
+  );
+}
+
 function SettingsPage({
   theme,
   onThemeChange,
@@ -555,6 +595,9 @@ function SettingsPage({
   onClearDownloads,
   onReplaceUserState,
   onPersistenceMessage,
+  analyticsEnabled,
+  analyticsAvailable,
+  onAnalyticsChange,
 }: {
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
@@ -565,6 +608,9 @@ function SettingsPage({
   onClearDownloads: () => Promise<void>;
   onReplaceUserState: (state: UserState) => void;
   onPersistenceMessage: (message?: string) => void;
+  analyticsEnabled: boolean;
+  analyticsAvailable: boolean;
+  onAnalyticsChange: (enabled: boolean) => void;
 }) {
   return (
     <div class="page settings-page">
@@ -575,6 +621,7 @@ function SettingsPage({
       />
       <div class="settings-page-content">
         <ThemeSelector theme={theme} onChange={onThemeChange} />
+        {analyticsAvailable && <PrivacySettings analyticsEnabled={analyticsEnabled} onAnalyticsChange={onAnalyticsChange} />}
         <LocalDataSettings
           userState={userState}
           persistence={persistence}
@@ -789,6 +836,8 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
   const [install, setInstall] = useState(currentInstallSnapshot);
   const [downloadState, setDownloadState] = useState<DownloadSnapshot>(currentDownloadSnapshot);
   const [persistenceMessage, setPersistenceMessage] = useState<string | undefined>(() => visiblePersistenceNotice(initialPersistence.warning));
+  const [analyticsConsent, setAnalyticsConsent] = useState<boolean | undefined>(readAnalyticsConsent);
+  const analyticsAvailable = isAnalyticsConfigured();
   const mainRef = useRef<HTMLElement>(null);
   const restoredQueue = useRef(false);
   const loadedCatalogOnce = useRef(false);
@@ -955,6 +1004,7 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
             ? "Playlists"
             : pageTitles[route.page];
     document.title = `${collectionTitle || fallbackTitle} · Living Music`;
+    trackPageView(window.location.hash);
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [route, catalog, userState.playlists]);
 
@@ -1184,6 +1234,10 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
     : undefined;
   const iosStandalone = install.mode === "installed"
     && Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+  const chooseAnalytics = (enabled: boolean) => {
+    setAnalyticsEnabled(enabled);
+    setAnalyticsConsent(enabled);
+  };
 
   return (
     <div class={`app-shell ${player.track ? "has-player" : ""} ${iosStandalone ? "is-ios-standalone" : ""}`}>
@@ -1259,6 +1313,9 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
             onClearDownloads={clearAllDownloads}
             onReplaceUserState={setUserState}
             onPersistenceMessage={setPersistenceMessage}
+            analyticsEnabled={analyticsConsent === true}
+            analyticsAvailable={analyticsAvailable}
+            onAnalyticsChange={chooseAnalytics}
           />
         )}
         {route.page === "library" && (
@@ -1405,6 +1462,8 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
         onDeletePlaylist={(playlist) => setPlaylistDialog({ mode: "delete", playlist })}
         mobile
       />
+
+      {analyticsAvailable && analyticsConsent === undefined && <AnalyticsConsentBanner onChoose={chooseAnalytics} />}
     </div>
   );
 }

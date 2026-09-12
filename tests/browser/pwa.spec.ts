@@ -11,6 +11,23 @@ async function waitForControl(page: import("@playwright/test").Page): Promise<vo
 test.beforeAll(writeCatalogFixture);
 test.afterAll(removeCatalogFixture);
 
+test("loads Google Analytics only after the listener allows it", async ({ page }) => {
+  await page.route("https://www.googletagmanager.com/**", (route) => route.fulfill({
+    contentType: "application/javascript",
+    body: "",
+  }));
+  await page.goto("/#/browse");
+
+  const banner = page.getByRole("region", { name: "Help improve Living Music?" });
+  await expect(banner).toBeVisible();
+  await expect(page.locator('script[src*="googletagmanager.com"]')).toHaveCount(0);
+
+  await banner.getByRole("button", { name: "Allow analytics" }).click();
+  await expect(banner).toHaveCount(0);
+  await expect(page.locator('script[src*="googletagmanager.com/gtag/js?id=G-28F9HDLPNC"]')).toHaveCount(1);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("livingMusic:analyticsEnabled:v1"))).toBe("true");
+});
+
 test("reloads Browse and an opened collection from catalog cache while offline", async ({ page, context }) => {
   await page.goto("/#/browse");
   await waitForControl(page);
@@ -381,12 +398,14 @@ test("shows playlist options above sidebar chrome", async ({ page }) => {
 
 test("opens dedicated Settings and scopes the mobile content header", async ({ page }) => {
   await page.goto("/#/browse");
+  await page.getByRole("button", { name: "No thanks" }).click();
   const desktopSettings = page.locator(".sidebar-settings-button");
   await expect(desktopSettings).toBeVisible();
   await desktopSettings.click();
   await expect(page).toHaveURL(/#\/settings$/);
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Appearance" })).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Share anonymous usage analytics" })).toHaveAttribute("aria-checked", "false");
   await expect(desktopSettings).toHaveAttribute("aria-current", "page");
 
   await page.setViewportSize({ width: 390, height: 844 });

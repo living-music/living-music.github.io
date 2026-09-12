@@ -18,7 +18,7 @@ This release completes the first Living Music prototype at [living-music.github.
 
 ## Architecture
 
-The Pages artifact is produced from `index.html`, `src/`, and `public/`. Hash routes keep direct navigation compatible with a static root domain. The app requests `/musicapi/index.json`, follows revisioned links declared by that response, and downloads full collection records only when playback or a collection page requires them. No server, account, analytics, cookie, or remote application database is involved.
+The Pages artifact is produced from `index.html`, `src/`, and `public/`. Hash routes keep direct navigation compatible with a static root domain. The app requests `/musicapi/index.json`, follows revisioned links declared by that response, and downloads full collection records only when playback or a collection page requires them. No server, account, or remote application database is involved. Production can report sanitized page views to Google Analytics 4 after an explicit listener choice; Settings provides an off switch, advertising features are disabled, and private content and identifiers are excluded.
 
 Audio and artwork remain on Church-managed media hosts. Living Music stores only catalog references and the listener's preferences in the browser's IndexedDB storage. A reload restores the queue paused and never attempts autoplay.
 
@@ -33,7 +33,7 @@ The release gate is:
 5. Desktop and 390 px responsive smoke tests against the production bundle
 6. Live checks for the root document, revisioned catalog, search, playback controls, persistence, and absence of horizontal overflow
 
-For this release, 59 unit tests and 16 Chromium browser tests pass and Vite produces the production artifact with no type errors. Automated browser checks use current Chromium. Safari 27 is the WebKit reference on macOS; the implementation uses standard HTML audio and treats Media Session, backdrop blur, and install affordances as progressive enhancements. Firefox should retain the full in-page player even when operating-system media surfaces vary.
+For this release, 62 unit tests and 23 Chromium browser tests pass and Vite produces the production artifact with no type errors. Automated browser checks use current Chromium. Safari 27 is the WebKit reference on macOS; the implementation uses standard HTML audio and treats Media Session, backdrop blur, and install affordances as progressive enhancements. Firefox should retain the full in-page player even when operating-system media surfaces vary.
 
 ## Known limits
 
