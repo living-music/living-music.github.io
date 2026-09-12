@@ -304,6 +304,9 @@ test("opens dedicated Settings from the sidebar and mobile header", async ({ pag
   await page.goto("/#/browse");
   const mobileSettings = page.locator(".mobile-settings-button");
   await expect(mobileSettings).toBeVisible();
+  const mobileNavigation = page.locator(".mobile-navigation");
+  await expect(mobileNavigation).toBeVisible();
+  expect((await mobileNavigation.boundingBox())?.height).toBeLessThanOrEqual(62);
   await mobileSettings.click();
   await expect(page).toHaveURL(/#\/settings$/);
   await expect(page.getByRole("heading", { name: "Installation" })).toBeVisible();
