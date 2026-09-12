@@ -734,7 +734,7 @@ h1 {
       inset 0 0 0 0.5px color-mix(in srgb, var(--glass-border) 42%, transparent),
       inset 0 1.5px 1.25px -0.25px var(--glass-lens-highlight),
       inset 0 3px 4px -3px var(--glass-lens-sheen),
-      inset 0 -0.75px 0.8px color-mix(in srgb, var(--glass-lens-highlight) 20%, transparent),
+      inset 0 -0.75px 0.8px color-mix(in srgb, var(--glass-lens-highlight) 82%, transparent),
       inset 0 -1.75px 2.5px -1px color-mix(in srgb, var(--glass-lens-shadow) 52%, transparent),
       0 0.16rem 0.38rem rgba(0, 0, 0, 0.13),
       0 0.65rem 1.9rem rgba(0, 0, 0, 0.18);
@@ -1345,7 +1345,7 @@ a.collection-card:active { transform: scale(0.985); }
       inset 0 0 0 0.5px color-mix(in srgb, var(--glass-border) 42%, transparent),
       inset 0 1.5px 1.25px -0.25px var(--glass-lens-highlight),
       inset 0 3px 4px -3px var(--glass-lens-sheen),
-      inset 0 -0.75px 0.8px color-mix(in srgb, var(--glass-lens-highlight) 20%, transparent),
+      inset 0 -0.75px 0.8px color-mix(in srgb, var(--glass-lens-highlight) 82%, transparent),
       inset 0 -1.75px 2.5px -1px color-mix(in srgb, var(--glass-lens-shadow) 52%, transparent),
       0 0.16rem 0.38rem rgba(0, 0, 0, 0.14),
       0 0.65rem 1.9rem rgba(0, 0, 0, 0.2);
