@@ -146,6 +146,8 @@ Implementation record — September 12, 2026:
 - Kept the desktop sidebar geometry and borderless macOS 27 treatment unchanged.
 - Validated TypeScript, 60 unit tests, the production build, 22 browser tests, exact player/navigation alignment, and usable controls at 320 px.
 - Verified the deployed update from `a34d474` to `4a73898` in the installed iOS 27 PWA without clearing storage. Settings reported the new build, the prior track remained in the mini player, and artwork visibly influenced the floating player material. Stage 3 is complete in the simulator.
+- Refined both mobile surfaces to full pill curvature after installed-iOS comparison. Reduced the mini player to a 56 px target height, scaled its artwork and controls with it, and removed the mini seek line on mobile to match Apple Music's resting player. The full Now Playing seek control remains available and draggable.
+- Recalculated the bottom fade and page clearance from the actual player, navigation, gap, and safe-area values after shortening the player.
 
 ## Stage 4 — Controls, menus, and interaction response
 

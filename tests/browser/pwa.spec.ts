@@ -173,12 +173,19 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   ]);
   expect(headerBox?.height).toBeLessThanOrEqual(58);
   expect(navigationBox?.height).toBeLessThanOrEqual(62);
-  expect(playerBox?.height).toBeLessThanOrEqual(76);
+  expect(playerBox?.height).toBeLessThanOrEqual(58);
   expect(navigationBox?.x).toBeGreaterThanOrEqual(15);
   expect((navigationBox?.x ?? 0) + (navigationBox?.width ?? 0)).toBeLessThanOrEqual(375);
   expect(playerBox?.x).toBe(navigationBox?.x);
   expect(playerBox?.width).toBe(navigationBox?.width);
   expect(844 - ((navigationBox?.y ?? 0) + (navigationBox?.height ?? 0))).toBeGreaterThanOrEqual(15);
+
+  const capsuleShape = await Promise.all([navigation, miniPlayer].map((surface) => surface.evaluate((element) => ({
+    radius: Number.parseFloat(getComputedStyle(element).borderRadius),
+    height: element.getBoundingClientRect().height,
+  }))));
+  expect(capsuleShape.every(({ radius, height }) => radius >= height / 2)).toBe(true);
+  await expect(page.locator(".mini-progress")).toBeHidden();
 
   const contentPaddingBottom = await page.locator(".content").evaluate((element) =>
     Number.parseFloat(getComputedStyle(element).paddingBottom),
