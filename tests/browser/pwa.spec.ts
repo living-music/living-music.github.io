@@ -147,7 +147,7 @@ test("isolates the desktop sidebar material and honors reduced transparency", as
   })).toEqual({ background: "rgb(24, 24, 28)", filters: ["none", "none"] });
 });
 
-test("layers persistent mobile chrome without changing its geometry", async ({ page }) => {
+test("floats persistent mobile chrome while keeping content reachable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/#/collection/offline-hymns");
   await page.getByRole("button", { name: "Play Offline Song" }).click();
@@ -163,8 +163,8 @@ test("layers persistent mobile chrome without changing its geometry", async ({ p
       navigation.boundingBox(),
       miniPlayer.boundingBox(),
     ]);
-    return Math.abs((playerBounds?.y ?? 0) + (playerBounds?.height ?? 0) - (navigationBounds?.y ?? 0));
-  }).toBeLessThan(1);
+    return (navigationBounds?.y ?? 0) - ((playerBounds?.y ?? 0) + (playerBounds?.height ?? 0));
+  }).toBeGreaterThanOrEqual(7);
 
   const [headerBox, navigationBox, playerBox] = await Promise.all([
     header.boundingBox(),
@@ -174,6 +174,29 @@ test("layers persistent mobile chrome without changing its geometry", async ({ p
   expect(headerBox?.height).toBeLessThanOrEqual(58);
   expect(navigationBox?.height).toBeLessThanOrEqual(62);
   expect(playerBox?.height).toBeLessThanOrEqual(76);
+  expect(navigationBox?.x).toBeGreaterThanOrEqual(15);
+  expect((navigationBox?.x ?? 0) + (navigationBox?.width ?? 0)).toBeLessThanOrEqual(375);
+  expect(playerBox?.x).toBe(navigationBox?.x);
+  expect(playerBox?.width).toBe(navigationBox?.width);
+  expect(844 - ((navigationBox?.y ?? 0) + (navigationBox?.height ?? 0))).toBeGreaterThanOrEqual(15);
+
+  const contentPaddingBottom = await page.locator(".content").evaluate((element) =>
+    Number.parseFloat(getComputedStyle(element).paddingBottom),
+  );
+  expect(contentPaddingBottom).toBeGreaterThan(
+    (navigationBox?.height ?? 0) + (playerBox?.height ?? 0),
+  );
+
+  await page.setViewportSize({ width: 320, height: 700 });
+  const [compactNavigationBox, compactPlayerBox] = await Promise.all([
+    navigation.boundingBox(),
+    miniPlayer.boundingBox(),
+  ]);
+  expect(compactNavigationBox?.x).toBeGreaterThanOrEqual(15);
+  expect((compactNavigationBox?.x ?? 0) + (compactNavigationBox?.width ?? 0)).toBeLessThanOrEqual(305);
+  expect(compactPlayerBox?.x).toBe(compactNavigationBox?.x);
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Library", exact: true })).toBeVisible();
 
   const surfaces = await Promise.all([header, navigation, miniPlayer].map((surface) => surface.evaluate((element) => {
     const container = getComputedStyle(element);

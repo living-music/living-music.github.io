@@ -1,6 +1,6 @@
 # Liquid Glass implementation plan
 
-Status: Stage 2 implemented, deployed, and verified in the installed iOS 27 Simulator PWA. Automated Chromium, iOS 27 Simulator Safari comparisons, and the interactive installed-PWA baseline are recorded. The baseline found a landscape Now Playing defect; remaining Simulator accessibility checks and physical-device validation are still required. See [Stage 0 baseline](LIQUID_GLASS_BASELINE.md). Baseline UI: commit `7279cca` as restored by `8787b20`.
+Status: Stage 3 candidate implemented and locally validated after Stage 2 was deployed and verified in the installed iOS 27 Simulator PWA. Automated Chromium, iOS 27 Simulator Safari comparisons, and the interactive installed-PWA baseline are recorded. The baseline found a landscape Now Playing defect; remaining Simulator accessibility checks and physical-device validation are still required. See [Stage 0 baseline](LIQUID_GLASS_BASELINE.md). Baseline UI: commit `7279cca` as restored by `8787b20`.
 
 ## Goal
 
@@ -130,6 +130,21 @@ Acceptance:
 - Any scroll-edge effect disappears when no pinned control requires separation.
 
 Rollback boundary: material styling remains, while geometry returns to the existing full-width bars.
+
+Reference direction — Apple Music on iOS 27:
+
+- The resting layout uses separate player and navigation capsules with the same horizontal inset, a narrow visible gap, continuous corner curvature, and enough translucency for nearby artwork color to influence both materials.
+- The compact scrolled layout splits navigation into circular destination controls and a central playback pill. Treat this as a later interaction refinement after the resting two-capsule layout passes installed-WebKit geometry, accessibility, and playback checks.
+- Living Music keeps its draggable progress control and four primary destinations, so dimensions follow the reference hierarchy without copying Apple Music's exact tab count or controls.
+
+Implementation record — September 12, 2026:
+
+- Floated the mobile navigation 16 px from the viewport sides and safe-area floor, with continuous capsule curvature, a full perimeter edge light, and a compact ambient shadow.
+- Matched the mini player's horizontal inset to navigation and separated the two surfaces by 8 px, while retaining the subdued player material and draggable progress control.
+- Added independent fixed scroll-edge fades behind the header and bottom chrome. They do not own blur, intercept input, or alter document scroll ownership.
+- Increased mobile content clearance for the floating gaps so the end of every page remains reachable above persistent controls.
+- Kept the desktop sidebar geometry and borderless macOS 27 treatment unchanged.
+- Validated TypeScript, 60 unit tests, the production build, 22 browser tests, exact player/navigation alignment, and usable controls at 320 px. The deployed installed-iOS 27 check remains the release gate for this stage.
 
 ## Stage 4 — Controls, menus, and interaction response
 
