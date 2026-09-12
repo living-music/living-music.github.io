@@ -1,6 +1,6 @@
 # Liquid Glass implementation plan
 
-Status: Stage 0 in progress. Automated Chromium, iOS 27 Simulator Safari comparisons, and the interactive installed-PWA baseline are recorded. The baseline found a landscape Now Playing defect; remaining Simulator accessibility/update checks and physical-device validation are still required. See [Stage 0 baseline](LIQUID_GLASS_BASELINE.md). Baseline UI: commit `7279cca` as restored by `8787b20`.
+Status: Stage 1 candidate implemented and locally validated. Automated Chromium, iOS 27 Simulator Safari comparisons, and the interactive installed-PWA baseline are recorded. The baseline found a landscape Now Playing defect; remaining Simulator accessibility/update checks and physical-device validation are still required. See [Stage 0 baseline](LIQUID_GLASS_BASELINE.md). Baseline UI: commit `7279cca` as restored by `8787b20`.
 
 ## Goal
 
@@ -62,6 +62,15 @@ Acceptance:
 - Unsupported blur and Reduced Transparency both produce a deliberate opaque surface.
 
 Rollback boundary: remove the shared material class and token block.
+
+Implementation record — September 12, 2026:
+
+- Added dark and light semantic tokens for regular, clear, and subdued tint, fallback color, blur, saturation, border, edge highlight, and shadow.
+- Added a reusable `glass-surface` primitive whose non-interactive pseudo-element owns the material while direct content remains in a sharp layer above it.
+- Kept the solid material as the base rule and enabled blur only inside the standards/WebKit `@supports` gate.
+- Applied regular glass only to the desktop sidebar; its width, padding, fixed position, scroll behavior, and stacking level are unchanged.
+- Added explicit Reduced Transparency, increased-contrast, and forced-colors behavior.
+- Validated the candidate with TypeScript, 60 unit tests, the production build, 21 browser tests, dark/light Chromium captures, and a dark macOS Safari inspection.
 
 ## Stage 2 — Persistent navigation and player chrome
 

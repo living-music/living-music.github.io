@@ -1180,7 +1180,7 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
         }}
       />
 
-      <aside class="sidebar">
+      <aside class="sidebar glass-surface glass-surface--regular">
         <a class="brand" href="#/home" aria-label="Living Music home">
           <img src="/app-icon-192.png" alt="" />
           <span>Living Music</span>

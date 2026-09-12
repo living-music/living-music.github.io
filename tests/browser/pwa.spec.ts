@@ -101,6 +101,50 @@ test("applies saved light and system appearance to the browser theme color", asy
   await expect.poll(() => page.locator('meta[name="theme-color"]').getAttribute("content")).toBe("#f2f2f7");
 });
 
+test("isolates the desktop sidebar material and honors reduced transparency", async ({ page }) => {
+  await page.goto("/#/browse");
+  const sidebar = page.locator(".sidebar");
+  await expect(sidebar).toHaveClass(/glass-surface--regular/);
+
+  const material = await sidebar.evaluate((element) => {
+    const root = getComputedStyle(document.documentElement);
+    const surface = getComputedStyle(element);
+    const layer = getComputedStyle(element, "::before");
+    const firstChild = getComputedStyle(element.firstElementChild!);
+    return {
+      variants: ["regular", "clear", "subdued"].map((variant) => ({
+        tint: root.getPropertyValue(`--glass-tint-${variant}`).trim(),
+        fallback: root.getPropertyValue(`--glass-fallback-${variant}`).trim(),
+      })),
+      surfaceBackground: surface.backgroundColor,
+      layerBackground: layer.backgroundColor,
+      enhancedSupport: CSS.supports("(backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))"),
+      pointerEvents: layer.pointerEvents,
+      childZIndex: firstChild.zIndex,
+    };
+  });
+  expect(new Set(material.variants.map((variant) => variant.tint)).size).toBe(3);
+  expect(new Set(material.variants.map((variant) => variant.fallback)).size).toBe(3);
+  expect(material.surfaceBackground).toBe("rgba(0, 0, 0, 0)");
+  expect(material.layerBackground).toBe("rgba(24, 24, 28, 0.66)");
+  expect(material.enhancedSupport).toBe(true);
+  expect(material.pointerEvents).toBe("none");
+  expect(material.childZIndex).toBe("1");
+
+  const session = await page.context().newCDPSession(page);
+  await session.send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-transparency", value: "reduce" }],
+  });
+  await expect.poll(() => sidebar.evaluate((element) => {
+    const layer = getComputedStyle(element, "::before");
+    return {
+      background: layer.backgroundColor,
+      filters: [layer.backdropFilter, layer.getPropertyValue("-webkit-backdrop-filter")]
+        .map((filter) => filter || "none"),
+    };
+  })).toEqual({ background: "rgb(24, 24, 28)", filters: ["none", "none"] });
+});
+
 test("retains only the two newest revisions for each catalog path", async ({ page }) => {
   await page.goto("/#/browse");
   await waitForControl(page);
