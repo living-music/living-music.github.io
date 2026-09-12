@@ -15,8 +15,8 @@ const collection = {
   title: "Offline Hymns",
   artworkUrl: null,
   sourceUrl: "https://example.test/offline-hymns",
-  songCount: 1,
-  playableSongCount: 1,
+  songCount: 2,
+  playableSongCount: 2,
   revision: "sha256:collection",
   href: "collections/offline-hymns.json?v=collection",
 };
@@ -24,8 +24,8 @@ const catalog = {
   schemaVersion: 1,
   language: "eng",
   collections: [collection],
-  stats: { collectionCount: 1, songCount: 1, playableSongCount: 1 },
-  search: { revision: "sha256:search", href: "search.json?v=search", songCount: 1 },
+  stats: { collectionCount: 1, songCount: 2, playableSongCount: 2 },
+  search: { revision: "sha256:search", href: "search.json?v=search", songCount: 2 },
   revision: "sha256:index",
 };
 const song = {
@@ -43,30 +43,52 @@ const song = {
     id: "offline-recording",
     type: "AUDIO_VOCAL",
     label: "Vocal",
-    url: "https://example.test/offline.mp3",
+    url: "http://127.0.0.1:4173/musicapi/offline.wav",
     language: "eng",
   }],
 };
+const secondSong = {
+  ...song,
+  id: "offline-song-two",
+  slug: "offline-song-two",
+  title: "Second Offline Song",
+  recordings: [{ ...song.recordings[0], id: "offline-recording-two", url: "http://127.0.0.1:4173/musicapi/offline-two.wav" }],
+};
+
+function silentWav(seconds = 2): Uint8Array {
+  const sampleRate = 8000;
+  const dataSize = sampleRate * seconds * 2;
+  const bytes = new Uint8Array(44 + dataSize);
+  const view = new DataView(bytes.buffer);
+  const text = (offset: number, value: string) => [...value].forEach((character, index) => bytes[offset + index] = character.charCodeAt(0));
+  text(0, "RIFF"); view.setUint32(4, 36 + dataSize, true); text(8, "WAVE"); text(12, "fmt ");
+  view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true); view.setUint16(34, 16, true); text(36, "data"); view.setUint32(40, dataSize, true);
+  return bytes;
+}
 
 async function writeCatalogFixture(): Promise<void> {
   await mkdir(`${dist}/musicapi/v1/collections`, { recursive: true });
   await writeFile(`${dist}/musicapi/index.json`, JSON.stringify(manifest));
+  await writeFile(`${dist}/musicapi/offline.wav`, silentWav());
+  await writeFile(`${dist}/musicapi/offline-two.wav`, silentWav());
   await writeFile(`${dist}/musicapi/v1/index.json`, JSON.stringify(catalog));
   await writeFile(`${dist}/musicapi/v1/search.json`, JSON.stringify({
     schemaVersion: 1,
-    songs: [{
-      id: song.id,
-      title: song.title,
+    songs: [song, secondSong].map((entry) => ({
+      id: entry.id,
+      title: entry.title,
       collectionId: collection.id,
       artists: [],
       recordingTypes: ["AUDIO_VOCAL"],
-    }],
+    })),
     revision: "sha256:search",
   }));
   await writeFile(`${dist}/musicapi/v1/collections/offline-hymns.json`, JSON.stringify({
     schemaVersion: 1,
     collection,
-    songs: [song],
+    songs: [song, secondSong],
     revision: "sha256:collection",
   }));
 }
@@ -92,8 +114,8 @@ test("reloads Browse and an opened collection from catalog cache while offline",
   await expect(page.getByText("Offline", { exact: true })).toBeVisible();
 
   await page.evaluate(() => { window.location.hash = "#/search"; });
-  await expect(page.getByRole("heading", { name: "Search" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Search 1 songs." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Search", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Search 2 songs." })).toBeVisible();
 });
 
 test("shows a dedicated first-use offline state when no catalog is cached", async ({ page, context }) => {
@@ -274,4 +296,116 @@ test("hides install promotion in standalone mode", async ({ page }) => {
   await page.goto("/#/library/songs");
   await expect(page.getByRole("heading", { name: "Local data" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Install Living Music" })).toHaveCount(0);
+});
+
+
+test("downloads, seeks, plays, and removes a recording offline without removing it from Library", async ({ page, context }) => {
+  await page.goto("/#/collection/offline-hymns");
+  await waitForControl(page);
+  const songButton = page.getByRole("button", { name: "Play Offline Song" });
+  await expect(songButton).toBeVisible();
+  await songButton.click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Download", exact: true }).click();
+  await expect(page.locator(".download-indicator.is-downloaded")).toBeVisible();
+
+  await context.setOffline(true);
+  const range = await page.evaluate(async () => {
+    const response = await fetch("/musicapi/offline.wav", { headers: { Range: "bytes=44-87" } });
+    return { status: response.status, length: (await response.arrayBuffer()).byteLength, range: response.headers.get("content-range") };
+  });
+  expect(range).toEqual({ status: 206, length: 44, range: "bytes 44-87/32044" });
+
+  await page.evaluate(() => { window.location.hash = "#/library/downloaded"; });
+  await expect(page.getByRole("heading", { name: "Downloaded", exact: true }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Play Offline Song" }).click();
+  await expect(page.getByRole("button", { name: "Open Now Playing" })).toBeVisible();
+  const seek = page.getByRole("slider", { name: "Playback position" });
+  await expect(seek).toBeEnabled();
+  await seek.fill("1");
+  await expect(seek).toHaveAttribute("aria-valuetext", /0:01 of 0:02/);
+
+  await page.getByRole("button", { name: "Play Offline Song" }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Remove Download" }).click();
+  await expect(page.getByRole("heading", { name: "Download music for offline listening." })).toBeVisible();
+  await page.evaluate(() => { window.location.hash = "#/library/songs"; });
+  await expect(page.getByRole("button", { name: "Play Offline Song" })).toBeVisible();
+});
+
+
+test("downloads a playlist and advances through it while offline", async ({ page, context }) => {
+  await page.addInitScript(() => localStorage.setItem("livingMusic:userState:v1", JSON.stringify({
+    playlists: [{ id: "offline-playlist", name: "Offline Playlist", createdAt: "2026-09-01T12:00:00.000Z", updatedAt: "2026-09-01T12:00:00.000Z", songIds: ["offline-song", "offline-song-two"] }],
+  })));
+  await page.goto("/#/playlist/offline-playlist");
+  await waitForControl(page);
+  await expect(page.getByRole("heading", { name: "Offline Playlist" })).toBeVisible();
+  await page.getByRole("button", { name: "Download", exact: true }).click();
+  await expect(page.locator(".download-indicator.is-downloaded")).toHaveCount(2);
+  await context.setOffline(true);
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Open Now Playing" })).toContainText("Offline Song");
+  await expect(page.getByRole("button", { name: "Open Now Playing" })).toContainText("Second Offline Song", { timeout: 7000 });
+});
+
+test("keeps listener data intact when quota prevents a download", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator.storage, "estimate", { configurable: true, value: async () => ({ usage: 9, quota: 10 }) });
+  });
+  await page.goto("/#/collection/offline-hymns");
+  await page.getByRole("button", { name: "Play Offline Song" }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Download", exact: true }).click();
+  await expect(page.getByText("This device does not have enough browser storage for that recording.", { exact: true })).toBeVisible();
+  await page.evaluate(() => { window.location.hash = "#/library/songs"; });
+  await expect(page.getByRole("button", { name: "Play Offline Song" })).toBeVisible();
+});
+
+test("marks interrupted downloads as failed and retryable after restart", async ({ page }) => {
+  await page.goto("/#/collection/offline-hymns");
+  await page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("livingMusic", 1);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction("downloads", "readwrite");
+      transaction.objectStore("downloads").put({
+        recordingId: "offline-recording", songId: "offline-song", collectionId: "offline-hymns",
+        songTitle: "Offline Song", collectionTitle: "Offline Hymns", recordingLabel: "Vocal",
+        sourceUrl: "http://127.0.0.1:4173/musicapi/offline.wav", status: "downloading", bytesReceived: 100,
+      });
+      transaction.oncomplete = () => resolve(); transaction.onerror = () => reject(transaction.error);
+    });
+  });
+  await page.reload();
+  await page.getByRole("button", { name: "Play Offline Song" }).click({ button: "right" });
+  await expect(page.getByRole("menuitem", { name: "Retry Download" })).toBeVisible();
+  await expect(page.locator(".download-indicator.is-failed")).toBeVisible();
+});
+
+
+test("marks changed catalog sources stale and lets the listener update them", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(async () => {
+    const oldUrl = "http://127.0.0.1:4173/musicapi/old-offline.wav";
+    const cache = await caches.open("living-music-downloads-v1");
+    await cache.put(oldUrl, new Response(new Uint8Array([1, 2, 3]), { headers: { "content-type": "audio/wav" } }));
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("livingMusic", 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
+    });
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction("downloads", "readwrite");
+      transaction.objectStore("downloads").put({
+        recordingId: "offline-recording", songId: "offline-song", collectionId: "offline-hymns",
+        songTitle: "Offline Song", collectionTitle: "Offline Hymns", recordingLabel: "Vocal",
+        sourceUrl: oldUrl, status: "downloaded", bytesReceived: 3, totalBytes: 3, downloadedAt: "2026-09-01T12:00:00.000Z",
+      });
+      transaction.oncomplete = () => resolve(); transaction.onerror = () => reject(transaction.error);
+    });
+  });
+  await page.goto("/?stale=1#/collection/offline-hymns");
+  await expect(page.locator(".download-indicator.is-stale").first()).toBeVisible();
+  await page.getByRole("button", { name: "Play Offline Song" }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Update Download" }).click();
+  await expect(page.locator(".download-indicator.is-downloaded").first()).toBeVisible();
 });

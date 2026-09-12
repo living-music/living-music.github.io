@@ -2578,3 +2578,36 @@ a.collection-card:active { transform: scale(0.985); }
   .settings-card { align-items: stretch; flex-direction: column; }
   .settings-action { width: 100%; }
 }
+
+.album-download-button {
+  min-height: 2.65rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.62rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--elevated);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 680;
+}
+.album-download-button:hover { border-color: var(--accent); }
+.album-download-button:disabled { opacity: 0.5; cursor: default; }
+.download-indicator {
+  width: 1.7rem;
+  height: 1.7rem;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--muted);
+  background: var(--elevated);
+}
+.download-indicator.is-downloaded,
+.download-indicator.is-stale { color: var(--accent); }
+.download-indicator.is-downloading .icon { animation: download-pulse 1.2s ease-in-out infinite; }
+.download-indicator.is-failed { color: var(--danger, #ff6961); }
+@keyframes download-pulse { 50% { opacity: 0.35; transform: translateY(2px); } }
+@media (prefers-reduced-motion: reduce) { .download-indicator.is-downloading .icon { animation: none; } }

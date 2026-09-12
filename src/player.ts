@@ -60,6 +60,7 @@ export class AudioEngine {
   private index = -1;
   private playRequest = 0;
   private repeatMode: RepeatMode = "off";
+  private sourceResolver: (track: PlayerTrack) => string = (track) => track.recording.url;
   private snapshot: PlayerSnapshot = {
     status: "idle",
     currentTime: 0,
@@ -87,6 +88,10 @@ export class AudioEngine {
 
   get state(): PlayerSnapshot {
     return this.snapshot;
+  }
+
+  setSourceResolver(resolver: (track: PlayerTrack) => string): void {
+    this.sourceResolver = resolver;
   }
 
   subscribe(listener: Listener): () => void {
@@ -264,7 +269,7 @@ export class AudioEngine {
     const track = this.tracks[this.index];
     if (!track) return;
     this.playRequest += 1;
-    this.media.src = track.recording.url;
+    this.media.src = this.sourceResolver(track);
     this.media.currentTime = 0;
     this.media.load();
     this.snapshot = {

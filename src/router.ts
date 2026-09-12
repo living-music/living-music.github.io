@@ -1,5 +1,5 @@
 export type Destination = "home" | "browse" | "search" | "library";
-export type LibraryView = "favorites" | "recent" | "albums" | "songs" | "videos";
+export type LibraryView = "favorites" | "recent" | "albums" | "songs" | "videos" | "downloaded";
 
 export type Route =
   | { page: Exclude<Destination, "library"> }
@@ -10,7 +10,7 @@ export type Route =
   | { page: "collection"; collectionId: string };
 
 const destinations = new Set<Destination>(["home", "browse", "search", "library"]);
-const libraryViews = new Set<LibraryView>(["favorites", "recent", "albums", "songs", "videos"]);
+const libraryViews = new Set<LibraryView>(["favorites", "recent", "albums", "songs", "videos", "downloaded"]);
 
 function decoded(value: string): string | undefined {
   try { return decodeURIComponent(value); } catch { return undefined; }

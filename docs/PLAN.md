@@ -1,6 +1,6 @@
 # Living Music implementation plan
 
-Status: prototype and PWA Phases 1–2 complete; Phase 3 planned, September 11, 2026.
+Status: prototype and PWA Phases 1–3 complete, September 11, 2026.
 
 ## Product goal
 
@@ -504,7 +504,9 @@ Acceptance:
 
 ### Phase 3 — Listener-selected offline music
 
-Begin only after testing Church media CORS behavior, byte-range playback, source terms, and browser quota behavior.
+Status: Complete. Live-host checks cover CORS-readable and opaque Church responses; automated Chromium coverage verifies download, cached range seeking, offline playlist advancement, removal, quota safety, interruption recovery, and stale-source updates. See [Offline media compatibility](OFFLINE_MEDIA.md).
+
+Implementation followed testing of Church media CORS behavior, byte-range playback, source terms, and browser quota behavior.
 
 Deliver:
 
@@ -613,18 +615,18 @@ Representative manual checks:
 - Playback: one `HTMLAudioElement`.
 - Persistence: IndexedDB with transactional migration from the prior versioned `localStorage` record and validated export/import.
 - Default recording: vocal-first with remembered overrides.
-- Offline: app shell plus cached catalog metadata first; explicit listener-selected audio downloads in a later phase.
+- Offline: app shell and catalog metadata plus explicit listener-selected recording downloads; streamed audio is never cached automatically.
 - Initial language: English.
 - Initial appearance: dark, with light and system-following options.
 - Initial analytics: none.
 
 ## Next implementation slice
 
-Begin Phase 3 with a focused media-compatibility spike before adding download controls:
+Harden the completed PWA through production use and device coverage:
 
-1. Test representative Church audio endpoints for CORS, `Range` requests, response types, redirects, and stable content length.
-2. Record source-policy constraints and confirm that listener-requested device storage does not republish media.
-3. Prototype one recording download into Cache Storage and store its status and source identity in the existing IndexedDB downloads store.
-4. Verify offline start, seek, pause/resume, sequential advancement, and removal in Chromium and Safari where available.
-5. Simulate interruption and quota exhaustion, ensuring partial downloads never appear complete and listener data remains intact.
-6. Use the results to finalize download state types, reconciliation rules, and storage thresholds before exposing UI.
+1. Run the offline-download checklist on current Safari for macOS and iPhone/iPad, plus installed Chrome on Android.
+2. Verify opaque-response playback, seeking, background audio, Media Session controls, interruption recovery, and storage cleanup on each device.
+3. Monitor the catalog for new media hosts or changed CORS/range behavior and alert when a host falls outside the tested strategies.
+4. Collect usability feedback on download discovery, progress language, and storage management before changing the interaction model.
+5. Profile large album and video downloads, then tune concurrency and warning thresholds from measured device behavior.
+6. Keep cloud accounts, automatic media caching, and shared playlists deferred until real use demonstrates a need.

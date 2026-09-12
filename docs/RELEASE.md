@@ -14,6 +14,7 @@ This release completes the first Living Music prototype at [living-music.github.
 - IndexedDB-backed Library, favorites, playlists, queue, repeat mode, and recording preferences with verified migration and JSON backup/restore
 - Media Session metadata and play, pause, previous, next, and seek handlers where browsers support them
 - Install guidance, shortcuts, screenshots, dedicated icon purposes, social metadata, safe-area layouts, reduced-motion/transparency, contrast, and forced-colors adaptations
+- Explicit song, album, and playlist downloads with offline playback, seeking, recovery, source reconciliation, and independent cleanup
 
 ## Architecture
 
@@ -32,13 +33,13 @@ The release gate is:
 5. Desktop and 390 px responsive smoke tests against the production bundle
 6. Live checks for the root document, revisioned catalog, search, playback controls, persistence, and absence of horizontal overflow
 
-For this release, 58 unit tests and 11 Chromium browser tests pass and Vite produces the production artifact with no type errors. Automated browser checks use current Chromium. Safari 27 is the WebKit reference on macOS; the implementation uses standard HTML audio and treats Media Session, backdrop blur, and install affordances as progressive enhancements. Firefox should retain the full in-page player even when operating-system media surfaces vary.
+For this release, 59 unit tests and 16 Chromium browser tests pass and Vite produces the production artifact with no type errors. Automated browser checks use current Chromium. Safari 27 is the WebKit reference on macOS; the implementation uses standard HTML audio and treats Media Session, backdrop blur, and install affordances as progressive enhancements. Firefox should retain the full in-page player even when operating-system media surfaces vary.
 
 ## Known limits
 
 - Listener data is local to one browser profile and does not sync across devices; JSON backup and restore supports manual transfer.
 - Search renders at most 80 results per query, while still reporting the complete result count.
-- The application shell can load from its versioned service-worker cache, but offline listening remains unavailable and audio is never pre-cached.
+- Church-hosted audio is cached only after an explicit Download action. CORS-readable media supports precise progress and cached range seeking; opaque media has indeterminate progress and relies on full-response playback.
 - Playback and artwork depend on the continued public availability and cross-origin behavior of Church media hosts.
 - Media Session controls and home-screen installation vary by browser and operating system.
 - The interface and catalog currently use English metadata.
@@ -51,6 +52,6 @@ To roll back, revert the problem commit on `main` and push the revert. The workf
 
 ## Project status
 
-This prototype is suitable for everyday browsing, queueing, favorites, and listening. The next product cycle can focus on feedback from real use, larger-library navigation, richer collection grouping, and listener-selected offline music.
+The PWA is suitable for everyday browsing, queueing, favorites, listening, installation, and listener-selected offline music. The next product cycle focuses on real-device Safari and Android verification, production feedback, and media-host compatibility monitoring.
 
 Living Music is an independent project and is not affiliated with or endorsed by The Church of Jesus Christ of Latter-day Saints.

@@ -3,6 +3,7 @@ import type { CatalogClient } from "../api";
 import { Icon } from "../Icon";
 import type { PlayerStatus } from "../player";
 import type { Playlist } from "../storage";
+import type { DownloadRecord } from "../downloads";
 import { hrefForLibraryAlbum, type LibraryView } from "../router";
 import type { CatalogIndex, CollectionSummary, SearchIndex, SearchSong } from "../types";
 import { Artwork } from "./Artwork";
@@ -165,6 +166,10 @@ export function LibraryViews({
   onToggleFavorite,
   onToggleLibrarySong,
   onAddToPlaylist,
+  downloads,
+  downloadedSongIds,
+  onDownload,
+  onRemoveDownload,
   onPlay,
 }: {
   view: LibraryView;
@@ -182,10 +187,14 @@ export function LibraryViews({
   onToggleFavorite: (songId: string) => void;
   onToggleLibrarySong: (songId: string) => void;
   onAddToPlaylist: (playlistId: string, songId: string) => void;
+  downloads: Map<string, DownloadRecord>;
+  downloadedSongIds: Set<string>;
+  onDownload: (song: SearchSong) => void;
+  onRemoveDownload: (songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   const [visibleCount, setVisibleCount] = useState(100);
-  const needsSearch = favorites.size > 0 || librarySongs.size > 0;
+  const needsSearch = favorites.size > 0 || librarySongs.size > 0 || downloadedSongIds.size > 0;
   const search = useSearchIndex(client, needsSearch);
 
   useEffect(() => setVisibleCount(100), [view]);
@@ -207,7 +216,14 @@ export function LibraryViews({
   const songs = searchIndex ? savedSongs(searchIndex, librarySongs) : [];
   const videos = searchIndex ? savedSongs(searchIndex, librarySongs, true) : [];
   const favoriteSongs = searchIndex ? favoriteSongsByAddedDate(searchIndex, favorites, favoriteAddedAt) : [];
-  const activeSongs = view === "favorites" ? favoriteSongs : view === "videos" ? videos : songs;
+  const downloadedSongs = searchIndex ? [
+    ...savedSongs(searchIndex, downloadedSongIds),
+    ...[...downloads.values()].flatMap((record) => {
+      if ((record.status !== "downloaded" && record.status !== "stale") || !record.song || searchIndex.songs.some((song) => song.id === record.songId)) return [];
+      return [{ id: record.song.id, title: record.song.title, number: record.song.number, collectionId: record.collectionId, artists: record.song.artists, recordingTypes: record.song.recordings.map((entry) => entry.type) }];
+    }),
+  ].sort((left, right) => left.title.localeCompare(right.title, undefined, { sensitivity: "base" })) : [];
+  const activeSongs = view === "favorites" ? favoriteSongs : view === "videos" ? videos : view === "downloaded" ? downloadedSongs : songs;
 
   return (
     <section class="library-browser" aria-label="Saved library">
@@ -233,6 +249,9 @@ export function LibraryViews({
                   onToggleFavorite={onToggleFavorite}
                   onToggleLibrarySong={onToggleLibrarySong}
                   onAddToPlaylist={onAddToPlaylist}
+                  downloads={downloads}
+                  onDownload={onDownload}
+                  onRemoveDownload={onRemoveDownload}
                   onPlay={onPlay}
                 />
                 {visibleCount < favoriteSongs.length && (
@@ -256,11 +275,14 @@ export function LibraryViews({
         {view === "videos" && !librarySongs.size && (
           <LibraryEmpty icon="video" title="Add a music video." description="Video-backed songs you add to your Library will appear here." href="#/search" action="Find music videos" />
         )}
-        {(view === "songs" || view === "videos") && searchIndex && librarySongs.size > 0 && (
+        {view === "downloaded" && !downloadedSongIds.size && (
+          <LibraryEmpty icon="browse" title="Download music for offline listening." description="Open a song, album, or playlist menu and choose Download." href="#/browse" action="Browse music" />
+        )}
+        {(view === "songs" || view === "videos" || view === "downloaded") && searchIndex && (view === "downloaded" ? downloadedSongIds.size > 0 : librarySongs.size > 0) && (
           activeSongs.length ? (
             <div class="library-song-view">
               <div class="results-heading">
-                <h2>{view === "videos" ? "Music Videos" : "Songs"}</h2>
+                <h2>{view === "videos" ? "Music Videos" : view === "downloaded" ? "Downloaded" : "Songs"}</h2>
                 <p>{activeSongs.length.toLocaleString()} saved</p>
               </div>
               <SongResults
@@ -274,6 +296,9 @@ export function LibraryViews({
                 onToggleFavorite={onToggleFavorite}
                 onToggleLibrarySong={onToggleLibrarySong}
                 onAddToPlaylist={onAddToPlaylist}
+                downloads={downloads}
+                onDownload={onDownload}
+                onRemoveDownload={onRemoveDownload}
                 onPlay={onPlay}
               />
               {visibleCount < activeSongs.length && (

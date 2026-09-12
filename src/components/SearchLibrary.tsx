@@ -4,6 +4,7 @@ import { catalogFailure, type CatalogFailureKind } from "../connectivity";
 import { Icon } from "../Icon";
 import type { PlayerStatus } from "../player";
 import type { Playlist } from "../storage";
+import type { DownloadRecord } from "../downloads";
 import type { CatalogIndex, SearchIndex, SearchSong } from "../types";
 import { Artwork } from "./Artwork";
 import { SongContextMenu, type ContextMenuPosition } from "./SongContextMenu";
@@ -97,6 +98,9 @@ export function SongResults({
   onToggleFavorite,
   onToggleLibrarySong,
   onAddToPlaylist,
+  downloads = new Map(),
+  onDownload,
+  onRemoveDownload,
   onPlay,
 }: {
   songs: SearchSong[];
@@ -109,6 +113,9 @@ export function SongResults({
   onToggleFavorite: (songId: string) => void;
   onToggleLibrarySong: (songId: string) => void;
   onAddToPlaylist: (playlistId: string, songId: string) => void;
+  downloads?: Map<string, DownloadRecord>;
+  onDownload?: (song: SearchSong) => void;
+  onRemoveDownload?: (songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   const [pendingId, setPendingId] = useState<string>();
@@ -140,6 +147,7 @@ export function SongResults({
           const current = currentSongId === song.id;
           const active = current && (playerStatus === "playing" || playerStatus === "loading");
           const playable = song.recordingTypes.length > 0;
+          const download = downloads.get(song.id);
           return (
             <li
               class={`result-row ${current ? "is-current" : ""}`}
@@ -188,6 +196,7 @@ export function SongResults({
               >
                 <Icon name="heart" filled={favorites.has(song.id)} size={19} />
               </button>
+              {download && <span class={`download-indicator is-${download.status}`} title={download.error || download.status}><Icon name={download.status === "downloaded" || download.status === "stale" ? "check" : "download"} size={15} /></span>}
               <button
                 type="button"
                 class="result-more-button"
@@ -211,6 +220,9 @@ export function SongResults({
                   onFavorite={() => onToggleFavorite(song.id)}
                   onToggleLibrary={() => onToggleLibrarySong(song.id)}
                   onAddToPlaylist={(playlistId) => onAddToPlaylist(playlistId, song.id)}
+                  download={download}
+                  onDownload={onDownload ? () => onDownload(song) : undefined}
+                  onRemoveDownload={onRemoveDownload ? () => onRemoveDownload(song.id) : undefined}
                   onClose={() => setMenu(undefined)}
                 />
               )}
@@ -233,6 +245,9 @@ export function SearchExperience({
   onToggleFavorite,
   onToggleLibrarySong,
   onAddToPlaylist,
+  downloads,
+  onDownload,
+  onRemoveDownload,
   onPlay,
 }: {
   client: CatalogClient;
@@ -245,6 +260,9 @@ export function SearchExperience({
   onToggleFavorite: (songId: string) => void;
   onToggleLibrarySong: (songId: string) => void;
   onAddToPlaylist: (playlistId: string, songId: string) => void;
+  downloads?: Map<string, DownloadRecord>;
+  onDownload?: (song: SearchSong) => void;
+  onRemoveDownload?: (songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   const search = useSearchIndex(client);
@@ -309,6 +327,9 @@ export function SearchExperience({
             onToggleFavorite={onToggleFavorite}
             onToggleLibrarySong={onToggleLibrarySong}
             onAddToPlaylist={onAddToPlaylist}
+            downloads={downloads}
+            onDownload={onDownload}
+            onRemoveDownload={onRemoveDownload}
             onPlay={onPlay}
           />
         </section>

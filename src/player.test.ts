@@ -204,3 +204,13 @@ it("restores a saved queue paused without requesting autoplay", () => {
   expect(engine.state.repeatMode).toBe("all");
   expect(media.play).not.toHaveBeenCalled();
 });
+
+
+it("uses a resolved offline source without changing catalog metadata", () => {
+  const media = new FakeAudio();
+  const engine = new AudioEngine(media as unknown as HTMLAudioElement);
+  engine.setSourceResolver((track) => `https://offline.test/${track.recording.id}`);
+  engine.playCollection([song("one")], collection, "one");
+  expect(media.src).toBe("https://offline.test/one:vocal");
+  expect(engine.state.track?.recording.url).toBe("https://example.test/one.mp3");
+});

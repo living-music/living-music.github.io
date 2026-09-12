@@ -4,6 +4,7 @@ import { Icon } from "../Icon";
 import type { PlayerStatus } from "../player";
 import { hrefForLibrary, hrefForPlaylist } from "../router";
 import type { Playlist } from "../storage";
+import type { DownloadRecord } from "../downloads";
 import type { CatalogIndex, SearchSong } from "../types";
 import { randomizePlaylistSongs, resolvePlaylistSongs } from "../playlists";
 import { ResultsError, ResultsSkeleton, SongResults, useSearchIndex } from "./SearchLibrary";
@@ -149,6 +150,10 @@ export function PlaylistPage({
   onToggleLibrarySong,
   onAddToPlaylist,
   onPlaySongs,
+  downloads,
+  onDownload,
+  onRemoveDownload,
+  onDownloadPlaylist,
   onRename,
   onDelete,
 }: {
@@ -164,6 +169,10 @@ export function PlaylistPage({
   onToggleLibrarySong: (songId: string) => void;
   onAddToPlaylist: (playlistId: string, songId: string) => void;
   onPlaySongs: (songs: SearchSong[], songId?: string) => Promise<void>;
+  downloads: Map<string, DownloadRecord>;
+  onDownload: (song: SearchSong) => void;
+  onRemoveDownload: (songId: string) => void;
+  onDownloadPlaylist: (songs: SearchSong[], remove: boolean) => void;
   onRename: () => void;
   onDelete: () => void;
 }) {
@@ -174,6 +183,11 @@ export function PlaylistPage({
     if (search.status !== "ready") return [];
     return resolvePlaylistSongs(search.index.songs, playlist.songIds);
   }, [search, playlist.songIds]);
+  const downloadedCount = songs.filter((song) => {
+    const record = downloads.get(song.id);
+    return record?.status === "downloaded" || record?.status === "stale";
+  }).length;
+  const playlistDownloaded = songs.length > 0 && downloadedCount === songs.length;
 
   const start = async (orderedSongs: SearchSong[], songId?: string) => {
     setStarting(true);
@@ -201,6 +215,9 @@ export function PlaylistPage({
             </button>
             <button type="button" disabled={!songs.length || starting} onClick={() => void start(randomizePlaylistSongs(songs))}>
               <Icon name="shuffle" size={18} /> Random
+            </button>
+            <button type="button" disabled={!songs.length} onClick={() => onDownloadPlaylist(songs, playlistDownloaded)}>
+              <Icon name={playlistDownloaded ? "check" : "download"} size={18} /> {playlistDownloaded ? "Remove Downloads" : downloadedCount ? "Download Remaining" : "Download"}
             </button>
           </div>
         )}
@@ -234,6 +251,9 @@ export function PlaylistPage({
               onToggleFavorite={onToggleFavorite}
               onToggleLibrarySong={onToggleLibrarySong}
               onAddToPlaylist={onAddToPlaylist}
+              downloads={downloads}
+              onDownload={onDownload}
+              onRemoveDownload={onRemoveDownload}
               onPlay={(song) => start(songs, song.id)}
             />
           </div>

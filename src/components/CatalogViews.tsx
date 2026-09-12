@@ -5,6 +5,7 @@ import { Icon } from "../Icon";
 import type { PlayerStatus } from "../player";
 import { hrefForCollection } from "../router";
 import type { Playlist } from "../storage";
+import type { DownloadRecord } from "../downloads";
 import type { CollectionPayload, CollectionSummary, Song } from "../types";
 import { Artwork } from "./Artwork";
 import { SongContextMenu, type ContextMenuPosition } from "./SongContextMenu";
@@ -108,6 +109,11 @@ export function CollectionPage({
   onToggleLibrarySong,
   playlists,
   onAddToPlaylist,
+  downloads,
+  onDownload,
+  onRemoveDownload,
+  onDownloadAlbum,
+  onCollectionLoaded,
   visibleSongIds,
   libraryContext = false,
   savedAlbum,
@@ -126,6 +132,11 @@ export function CollectionPage({
   onToggleLibrarySong: (songId: string) => void;
   playlists: Playlist[];
   onAddToPlaylist: (playlistId: string, songId: string) => void;
+  downloads: Map<string, DownloadRecord>;
+  onDownload: (song: Song, collection: CollectionSummary) => void;
+  onRemoveDownload: (songId: string) => void;
+  onDownloadAlbum: (songs: Song[], collection: CollectionSummary, remove: boolean) => void;
+  onCollectionLoaded: (songs: Song[]) => void;
   visibleSongIds?: Set<string>;
   libraryContext?: boolean;
   savedAlbum: boolean;
@@ -139,14 +150,16 @@ export function CollectionPage({
     let active = true;
     setState({ status: "loading" });
     client.loadCollection(summary).then(
-      (payload) => active && setState({ status: "ready", payload }),
+      (payload) => {
+        if (active) { setState({ status: "ready", payload }); onCollectionLoaded(payload.songs); }
+      },
       (error: unknown) => {
         const failure = catalogFailure(error, "An unexpected catalog error occurred.");
         if (active) setState({ status: "error", ...failure });
       },
     );
     return () => { active = false; };
-  }, [client, summary.id, request]);
+  }, [client, summary.id, request, onCollectionLoaded]);
 
   if (state.status === "loading") {
     return (
@@ -175,6 +188,12 @@ export function CollectionPage({
 
   const { collection, songs: collectionSongs } = state.payload;
   const songs = visibleCollectionSongs(collectionSongs, visibleSongIds);
+  const downloadableSongs = songs.filter((song) => song.recordings.length > 0);
+  const downloadedCount = downloadableSongs.filter((song) => {
+    const record = downloads.get(song.id);
+    return record?.status === "downloaded" || record?.status === "stale";
+  }).length;
+  const albumDownloaded = downloadableSongs.length > 0 && downloadedCount === downloadableSongs.length;
 
   return (
     <div class="page collection-page">
@@ -198,6 +217,10 @@ export function CollectionPage({
             >
               <Icon name={savedAlbum ? "check" : "add"} size={17} />
               {savedAlbum ? "Added to Library" : "Add Album to Library"}
+            </button>
+            <button type="button" class="album-download-button" onClick={() => onDownloadAlbum(downloadableSongs, collection, albumDownloaded)} disabled={!downloadableSongs.length}>
+              <Icon name={albumDownloaded ? "check" : "download"} size={17} />
+              {albumDownloaded ? "Remove Downloads" : downloadedCount ? `Download Remaining (${downloadedCount}/${downloadableSongs.length})` : "Download Album"}
             </button>
             <a class="source-link" href={collection.sourceUrl}>
               View in the official music library <Icon name="chevron" size={16} />
@@ -225,6 +248,7 @@ export function CollectionPage({
             const isCurrent = currentSongId === song.id;
             const isPlaying = isCurrent && (playerStatus === "playing" || playerStatus === "loading");
             const unavailable = song.recordings.length === 0;
+            const download = downloads.get(song.id);
             return (
               <li
                 class={`song-row ${isCurrent ? "is-current" : ""}`}
@@ -267,6 +291,7 @@ export function CollectionPage({
                 >
                   <Icon name={librarySongs.has(song.id) || savedAlbum ? "check" : "add"} size={18} />
                 </button>
+                {download && <span class={`download-indicator is-${download.status}`} title={download.error || download.status}><Icon name={download.status === "downloaded" || download.status === "stale" ? "check" : "download"} size={15} /></span>}
                 <button
                   type="button"
                   class={`song-favorite-button ${favorites.has(song.id) ? "is-favorite" : ""}`}
@@ -304,6 +329,9 @@ export function CollectionPage({
                     onPlayNext={() => onPlayNext(song, collection)}
                     onAddToQueue={() => onAddToQueue(song, collection)}
                     onAddToPlaylist={(playlistId) => onAddToPlaylist(playlistId, song.id)}
+                    download={download}
+                    onDownload={() => onDownload(song, collection)}
+                    onRemoveDownload={() => onRemoveDownload(song.id)}
                     onClose={() => setMenu(undefined)}
                   />
                 )}

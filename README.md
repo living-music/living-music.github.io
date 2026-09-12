@@ -6,7 +6,7 @@ The companion [musicapi](https://github.com/living-music/musicapi) repository pu
 
 ## Status
 
-The first seven-step prototype is complete. It supports live browsing, playback, Now Playing, an editable queue, global search, favorites, a populated Library, durable on-device listening state, and system media controls. The first two post-prototype PWA phases are complete: offline-ready catalog updates, installation polish, and durable IndexedDB listener data. Listener-selected offline music is the next phase. See the [release notes](docs/RELEASE.md), [prototype checklist](docs/PROTOTYPE.md), and [implementation plan](docs/PLAN.md#post-prototype-pwa-roadmap).
+The first seven-step prototype is complete. It supports live browsing, playback, Now Playing, an editable queue, global search, favorites, a populated Library, durable on-device listening state, and system media controls. All three post-prototype PWA phases are complete: offline-ready catalog updates, installation polish, durable IndexedDB listener data, and listener-selected offline music. See the [release notes](docs/RELEASE.md), [prototype checklist](docs/PROTOTYPE.md), and [implementation plan](docs/PLAN.md#post-prototype-pwa-roadmap).
 
 ## Requirements
 
@@ -62,6 +62,7 @@ src/
   storage.ts               User-state validation and synchronous theme persistence
   persistence.ts           IndexedDB migration, backups, and storage management
   install.ts               Install-prompt and standalone-mode handling
+  downloads.ts             Explicit media downloads, progress, recovery, and reconciliation
   types.ts                 Catalog and player data contracts
   *.test.ts                Focused unit tests
 tests/browser/             Production offline and update smoke tests
@@ -92,13 +93,22 @@ Heart controls in collections, search results, Library song lists, and Now Playi
 
 Production registers a generated service worker that precaches the document, hashed JavaScript and CSS, the web manifest, and local icons. Every shell file has a content-derived cache key, so deployments reuse unchanged entries and install atomically. A completed update waits for the listener to select **Update now**, preventing routine releases from interrupting active playback.
 
-The service worker maintains a separate `living-music-catalog-v1` runtime cache. `/musicapi/index.json` uses network-first loading with the last complete manifest as fallback; its referenced index must be available before that fallback is replaced. Revisioned catalog indexes, search data, and opened collections use cache-first loading, retaining the two newest responses for each logical path. The interface identifies offline, saved-catalog, upstream, unsupported-schema, and malformed-data states and retries the catalog automatically when connectivity returns. Church-hosted artwork and audio remain outside automatic caching.
+The service worker maintains a separate `living-music-catalog-v1` runtime cache. `/musicapi/index.json` uses network-first loading with the last complete manifest as fallback; its referenced index must be available before that fallback is replaced. Revisioned catalog indexes, search data, and opened collections use cache-first loading, retaining the two newest responses for each logical path. The interface identifies offline, saved-catalog, upstream, unsupported-schema, and malformed-data states and retries the catalog automatically when connectivity returns. Church-hosted audio remains outside automatic caching. Artwork uses a separate bounded cache on view.
 
 ## Installation and local data
 
 Living Music can be installed from the Local data area below Library settings. Browsers with an install prompt provide a direct **Install** action; iPhone and iPad show Safari’s Share → Add to Home Screen instructions. Installed windows hide this promotion. The manifest launches into Browse and includes shortcuts for Browse, Search, Favorites, and Playlists.
 
 Library, Favorites, albums, playlists, queue position, repeat mode, and recording choices live in IndexedDB. Theme stays in `localStorage` so the correct appearance can be applied before rendering. After meaningful listener data is created, the app asks the browser for persistent storage and reports a denial without interrupting playback. Library settings show storage use and provide versioned JSON export, validated import, and a confirmed Clear Local Data action. Browsers without IndexedDB retain the prior local-storage record and show limited-storage status.
+
+
+## Offline music
+
+Choose **Download** from a song’s right-click or overflow menu, or use the Download action on an album or playlist. Living Music saves the selected recording directly from its official Church URL and adds the song to Library. Downloaded, queued, active, failed, and stale states appear beside song rows and in their menus. **Library → Downloaded** collects the recordings available without a connection.
+
+Downloads remain local to the current browser profile. Readable media responses show byte progress and support cached byte-range seeking; non-CORS media uses opaque browser caching with indeterminate progress. Interrupted downloads become retryable after restart. When the catalog changes a recording URL, the old copy stays playable and is marked for an optional update. Removing audio leaves Library, Favorites, albums, and playlists intact.
+
+Library settings report downloaded-audio size and overall browser usage, and can remove all downloads or clear all local listener data. Artwork caching is bounded to 60 recently viewed or downloaded images. See the [media compatibility record](docs/OFFLINE_MEDIA.md) for tested hosts, browser behavior, and the personal-use boundary.
 
 ## Catalog contract
 

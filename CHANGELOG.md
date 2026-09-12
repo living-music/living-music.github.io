@@ -4,6 +4,12 @@ All notable user-visible changes to Living Music are recorded here.
 
 ## Unreleased
 
+- Added explicit song, album, and playlist downloads with queued, active, completed, failed, interrupted, and stale-source states.
+- Added a Downloaded Library view, offline-aware playback, cached byte-range seeking, and sequential offline playlist playback.
+- Added quota-safe storage accounting, per-recording removal, Remove All Downloads, and cleanup that preserves Library and playlist membership.
+- Added bounded artwork caching and live compatibility documentation for CORS-readable, opaque, and redirected Church media hosts.
+- Added browser coverage for offline download/play/seek/remove, playlist advancement, quota failure, interruption recovery, and catalog-source updates.
+
 - Moved listener-owned Library, Favorites, albums, playlists, queue, and recording preferences into IndexedDB with a verified, retry-safe migration from the prior local-storage record.
 - Added local storage usage, persistent-storage handling, versioned JSON backup/restore, and confirmed Clear Local Data controls.
 - Added contextual installation guidance, standalone detection, direct browser install prompting, app shortcuts, install screenshots, and dedicated maskable and monochrome icons.

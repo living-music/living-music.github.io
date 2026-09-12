@@ -41,6 +41,9 @@ const CATALOG_CACHE_NAME = CATALOG_CACHE_PREFIX + "v1";
 const CATALOG_PATH_PREFIX = "/musicapi/";
 const CATALOG_MANIFEST_PATH = "/musicapi/index.json";
 const CATALOG_REVISIONS_PER_PATH = 2;
+const DOWNLOAD_CACHE_NAME = "living-music-downloads-v1";
+const ARTWORK_CACHE_NAME = "living-music-artwork-v1";
+const MAX_ARTWORK_ENTRIES = 60;
 const PRECACHE = ${JSON.stringify(entries)};
 const ROOT_ENTRY = PRECACHE.find((entry) => entry.url === "/");
 const BY_PATH = new Map(PRECACHE.map((entry) => [new URL(entry.url, self.location.origin).pathname, entry]));
@@ -142,9 +145,51 @@ self.addEventListener("message", (event) => {
   if (event.data?.type === "LIVING_MUSIC_SKIP_WAITING") void self.skipWaiting();
 });
 
+async function downloadedMedia(request) {
+  const cache = await caches.open(DOWNLOAD_CACHE_NAME);
+  const cached = await cache.match(request.url, { ignoreVary: true });
+  if (!cached) return fetch(request);
+  const range = request.headers.get("range");
+  if (!range || cached.type === "opaque") return cached;
+  const match = /^bytes=(\\d+)-(\\d*)$/.exec(range);
+  if (!match) return cached;
+  const body = await cached.arrayBuffer();
+  const start = Number(match[1]);
+  const requestedEnd = match[2] ? Number(match[2]) : body.byteLength - 1;
+  if (start >= body.byteLength) return new Response(null, { status: 416, headers: { "Content-Range": "bytes */" + body.byteLength } });
+  const end = Math.min(requestedEnd, body.byteLength - 1);
+  const headers = new Headers(cached.headers);
+  headers.set("Content-Range", "bytes " + start + "-" + end + "/" + body.byteLength);
+  headers.set("Content-Length", String(end - start + 1));
+  headers.set("Accept-Ranges", "bytes");
+  return new Response(body.slice(start, end + 1), { status: 206, statusText: "Partial Content", headers });
+}
+
+async function artworkCacheOnUse(request) {
+  const cache = await caches.open(ARTWORK_CACHE_NAME);
+  const cached = await cache.match(request.url, { ignoreVary: true });
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.ok || response.type === "opaque") {
+    await cache.put(request, response.clone());
+    const keys = await cache.keys();
+    await Promise.all(keys.slice(0, Math.max(0, keys.length - MAX_ARTWORK_ENTRIES)).map((key) => cache.delete(key)));
+  }
+  return response;
+}
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
+  const mediaPath = /\\.(?:mp3|m4a|aac|wav|ogg|mp4|m4v|webm)$/i.test(url.pathname);
+  if (event.request.destination === "audio" || event.request.destination === "video" || mediaPath) {
+    event.respondWith(downloadedMedia(event.request));
+    return;
+  }
+  if (event.request.destination === "image" && url.origin !== self.location.origin) {
+    event.respondWith(artworkCacheOnUse(event.request));
+    return;
+  }
   if (url.origin !== self.location.origin) return;
 
   if (url.pathname === CATALOG_MANIFEST_PATH) {

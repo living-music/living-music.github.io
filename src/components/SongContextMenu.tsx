@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "preact/hooks";
 import { createPortal } from "preact/compat";
 import { Icon } from "../Icon";
 import type { Playlist } from "../storage";
+import type { DownloadRecord } from "../downloads";
 
 export interface ContextMenuPosition { x: number; y: number }
 
@@ -18,6 +19,9 @@ export function SongContextMenu({
   onPlayNext,
   onAddToQueue,
   onAddToPlaylist,
+  download,
+  onDownload,
+  onRemoveDownload,
   onClose,
 }: {
   songId: string;
@@ -32,6 +36,9 @@ export function SongContextMenu({
   onPlayNext?: () => void;
   onAddToQueue?: () => void;
   onAddToPlaylist: (playlistId: string) => void;
+  download?: DownloadRecord;
+  onDownload?: () => void;
+  onRemoveDownload?: () => void;
   onClose: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -87,6 +94,11 @@ export function SongContextMenu({
       onContextMenu={(event) => event.preventDefault()}
     >
       <p>{title}</p>
+      {onDownload && !download && <button type="button" role="menuitem" onClick={() => run(onDownload)}><Icon name="download" size={17} /> Download</button>}
+      {onDownload && download?.status === "failed" && <button type="button" role="menuitem" onClick={() => run(onDownload)}><Icon name="download" size={17} /> Retry Download</button>}
+      {onDownload && download?.status === "stale" && <button type="button" role="menuitem" onClick={() => run(onDownload)}><Icon name="download" size={17} /> Update Download</button>}
+      {download && (download.status === "queued" || download.status === "downloading") && <button type="button" role="menuitem" disabled><Icon name="download" size={17} /> {download.totalBytes ? `${Math.round(((download.bytesReceived || 0) / download.totalBytes) * 100)}% Downloaded` : download.status === "queued" ? "Queued" : "Downloading…"}</button>}
+      {download && onRemoveDownload && <button type="button" role="menuitem" onClick={() => run(onRemoveDownload)}><Icon name="close" size={17} /> {download.status === "queued" || download.status === "downloading" ? "Cancel Download" : download.status === "failed" ? "Remove Failed Download" : "Remove Download"}</button>}
       {onPlayNext && <button type="button" role="menuitem" onClick={() => run(onPlayNext)}><Icon name="next" size={17} /> Play Next</button>}
       {onAddToQueue && <button type="button" role="menuitem" onClick={() => run(onAddToQueue)}><Icon name="queue" size={17} /> Add to End</button>}
       <button type="button" role="menuitem" onClick={() => run(onFavorite)}>

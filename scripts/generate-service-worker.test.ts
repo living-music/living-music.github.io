@@ -41,6 +41,10 @@ describe("service worker generation", () => {
     expect(worker).toContain("Catalog index has no search link");
     expect(worker).toContain("await cache.put(manifestKey, response.clone())");
     expect(worker).toContain("LIVING_MUSIC_CATALOG_FALLBACK");
+    expect(worker).toContain('DOWNLOAD_CACHE_NAME = "living-music-downloads-v1"');
+    expect(worker).toContain('const match = /^bytes=(\\d+)-(\\d*)$/');
+    expect(worker).toContain('status: 206');
+    expect(worker).toContain('ARTWORK_CACHE_NAME = "living-music-artwork-v1"');
   });
 
   it("waits for listener approval before activating an update", () => {

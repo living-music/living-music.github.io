@@ -11,6 +11,7 @@ import { PlaylistDialog, PlaylistPage, PlaylistsPage, type PlaylistDialogState }
 import { AudioEngine, trackForSong, type PlayerSnapshot, type PlayerTrack } from "./player";
 import { MediaSessionController } from "./media-session";
 import { applyPwaUpdate, currentPwaSnapshot, subscribeToPwa } from "./pwa";
+import { clearAllDownloads, currentDownloadSnapshot, downloadMany, downloadRecording, downloadedBytes, downloadedSongIds, initializeDownloads, playbackUrl, reconcileDownloads, removeSongDownloads, subscribeToDownloads, type DownloadRecord, type DownloadSnapshot } from "./downloads";
 import { currentInstallSnapshot, promptInstall, subscribeToInstall, type InstallSnapshot } from "./install";
 import { clearUserState, emptyUserState, exportUserState, getStorageSnapshot, importUserState, requestPersistentStorage, saveUserState, type PersistenceLoadResult, type StorageSnapshot } from "./persistence";
 import { toggleFavoriteInState } from "./library-state";
@@ -42,6 +43,7 @@ const libraryNavigation: { id: LibraryView; label: string }[] = [
   { id: "recent", label: "Recently Added" },
   { id: "albums", label: "Albums" },
   { id: "songs", label: "Songs" },
+  { id: "downloaded", label: "Downloaded" },
 ];
 
 const pageTitles: Record<Destination, string> = {
@@ -265,6 +267,9 @@ function SearchPage({
   onToggleFavorite,
   onToggleLibrarySong,
   onAddToPlaylist,
+  downloads,
+  onDownload,
+  onRemoveDownload,
   onPlay,
 }: {
   catalog: CatalogState;
@@ -276,6 +281,9 @@ function SearchPage({
   onToggleFavorite: (songId: string) => void;
   onToggleLibrarySong: (songId: string) => void;
   onAddToPlaylist: (playlistId: string, songId: string) => void;
+  downloads: Map<string, DownloadRecord>;
+  onDownload: (song: SearchSong) => void;
+  onRemoveDownload: (songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   return (
@@ -299,6 +307,9 @@ function SearchPage({
           onToggleFavorite={onToggleFavorite}
           onToggleLibrarySong={onToggleLibrarySong}
           onAddToPlaylist={onAddToPlaylist}
+          downloads={downloads}
+          onDownload={onDownload}
+          onRemoveDownload={onRemoveDownload}
           onPlay={onPlay}
         />
       )}
@@ -337,14 +348,17 @@ function ThemeSelector({ theme, onChange }: { theme: Theme; onChange: (theme: Th
 
 function formatStorage(bytes?: number): string {
   if (bytes === undefined) return "Unavailable";
+  if (bytes === 0) return "0 KB";
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function LocalDataSettings({ userState, persistence, install, onReplaceUserState, onMessage }: {
+function LocalDataSettings({ userState, persistence, install, downloads, onClearDownloads, onReplaceUserState, onMessage }: {
   userState: UserState;
   persistence: PersistenceLoadResult;
   install: InstallSnapshot;
+  downloads: DownloadSnapshot;
+  onClearDownloads: () => Promise<void>;
   onReplaceUserState: (state: UserState) => void;
   onMessage: (message?: string) => void;
 }) {
@@ -382,6 +396,7 @@ function LocalDataSettings({ userState, persistence, install, onReplaceUserState
     if (!window.confirm("Remove your Library, Favorites, playlists, queue, and playback preferences from this device?")) return;
     setBusy(true);
     try {
+      await onClearDownloads();
       await clearUserState();
       onReplaceUserState(emptyUserState());
       onMessage("Local listener data was cleared.");
@@ -405,11 +420,16 @@ function LocalDataSettings({ userState, persistence, install, onReplaceUserState
         <div><h2 id="data-heading">Local data</h2><p>Your Library and playlists stay on this device. Export a backup before clearing browser data.</p></div>
         <dl class="storage-details">
           <div><dt>Storage</dt><dd>{formatStorage(storage.usage)}{storage.quota ? ` of ${formatStorage(storage.quota)}` : ""}</dd></div>
+          <div><dt>Downloaded audio</dt><dd>{formatStorage(downloadedBytes(downloads))}</dd></div>
           <div><dt>Protection</dt><dd>{storage.persisted ? "Persistent" : persistence.mode === "indexeddb" ? "Browser managed" : "Limited"}</dd></div>
         </dl>
         <div class="settings-actions">
           <button type="button" class="settings-action" onClick={exportData}>Export backup</button>
           <label class="settings-action">Import backup<input class="visually-hidden" type="file" accept="application/json,.json" disabled={busy} onChange={(event) => void importData(event)} /></label>
+          {downloads.records.length > 0 && <button type="button" class="settings-action" disabled={busy} onClick={() => {
+            if (!window.confirm("Remove every downloaded recording from this device? Your Library and playlists will stay intact.")) return;
+            setBusy(true); void onClearDownloads().then(() => onMessage("All downloads were removed."), () => onMessage("Some downloads could not be removed.")).finally(() => setBusy(false));
+          }}>Remove all downloads</button>}
           <button type="button" class="settings-action settings-danger" disabled={busy} onClick={() => void clearData()}>Clear local data</button>
         </div>
       </section>
@@ -424,6 +444,8 @@ function LibraryPage({
   userState,
   persistence,
   install,
+  downloadState,
+  onClearDownloads,
   onReplaceUserState,
   onPersistenceMessage,
   catalog,
@@ -439,6 +461,10 @@ function LibraryPage({
   onToggleFavorite,
   onToggleLibrarySong,
   onAddToPlaylist,
+  downloads,
+  downloadedSongIds,
+  onDownload,
+  onRemoveDownload,
   onPlay,
 }: {
   view: LibraryView;
@@ -447,6 +473,8 @@ function LibraryPage({
   userState: UserState;
   persistence: PersistenceLoadResult;
   install: InstallSnapshot;
+  downloadState: DownloadSnapshot;
+  onClearDownloads: () => Promise<void>;
   onReplaceUserState: (state: UserState) => void;
   onPersistenceMessage: (message?: string) => void;
   catalog: CatalogState;
@@ -462,6 +490,10 @@ function LibraryPage({
   onToggleFavorite: (songId: string) => void;
   onToggleLibrarySong: (songId: string) => void;
   onAddToPlaylist: (playlistId: string, songId: string) => void;
+  downloads: Map<string, DownloadRecord>;
+  downloadedSongIds: Set<string>;
+  onDownload: (song: SearchSong) => void;
+  onRemoveDownload: (songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
   const viewCopy: Record<LibraryView, { title: string; description: string }> = {
@@ -470,6 +502,7 @@ function LibraryPage({
     albums: { title: "Albums", description: "Albums you added and albums containing songs in your Library." },
     songs: { title: "Songs", description: "Every song you added to your Library, arranged alphabetically." },
     videos: { title: "Music Videos", description: "Video performances you added to your Library." },
+    downloaded: { title: "Downloaded", description: "Music saved on this device for listening without a connection." },
   };
   const copy = viewCopy[view];
   return (
@@ -516,6 +549,10 @@ function LibraryPage({
             onToggleFavorite={onToggleFavorite}
             onToggleLibrarySong={onToggleLibrarySong}
             onAddToPlaylist={onAddToPlaylist}
+            downloads={downloads}
+            downloadedSongIds={downloadedSongIds}
+            onDownload={onDownload}
+            onRemoveDownload={onRemoveDownload}
             onPlay={onPlay}
           />
         )}
@@ -526,6 +563,8 @@ function LibraryPage({
               userState={userState}
               persistence={persistence}
               install={install}
+              downloads={downloadState}
+              onClearDownloads={onClearDownloads}
               onReplaceUserState={onReplaceUserState}
               onMessage={onPersistenceMessage}
             />
@@ -619,6 +658,7 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
   const [online, setOnline] = useState(() => navigator.onLine);
   const [pwa, setPwa] = useState(currentPwaSnapshot);
   const [install, setInstall] = useState(currentInstallSnapshot);
+  const [downloadState, setDownloadState] = useState<DownloadSnapshot>(currentDownloadSnapshot);
   const [persistenceMessage, setPersistenceMessage] = useState<string | undefined>(initialPersistence.warning);
   const mainRef = useRef<HTMLElement>(null);
   const restoredQueue = useRef(false);
@@ -627,12 +667,21 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
   const favorites = useMemo(() => new Set(userState.favorites), [userState.favorites]);
   const librarySongs = useMemo(() => new Set(userState.librarySongs), [userState.librarySongs]);
   const albums = useMemo(() => new Set(userState.albums), [userState.albums]);
+  const downloadRecords = useMemo(() => new Map(downloadState.records.map((record) => [record.songId, record])), [downloadState]);
+  const offlineSongIds = useMemo(() => downloadedSongIds(downloadState), [downloadState]);
 
   useEffect(() => engine.subscribe(setPlayer), [engine]);
 
   useEffect(() => subscribeToPwa(setPwa), []);
 
   useEffect(() => subscribeToInstall(setInstall), []);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToDownloads(setDownloadState);
+    void initializeDownloads();
+    engine.setSourceResolver((track) => playbackUrl(track.recording));
+    return unsubscribe;
+  }, [engine]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -845,11 +894,26 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
 
   const playSearchSong = async (result: SearchSong) => {
     if (catalog.status !== "ready") throw new Error("The catalog is still loading.");
+    const offlineRecord = downloadRecords.get(result.id);
+    const playSavedCopy = () => {
+      if (!offlineRecord?.song || !offlineRecord.collection) return false;
+      const track = trackForSong(offlineRecord.song, offlineRecord.collection, preferredRecording(offlineRecord.song.id));
+      if (!track) return false;
+      engine.playTracks([track], track.song.id, false);
+      return true;
+    };
     const summary = catalog.index.collections.find((entry) => entry.id === result.collectionId);
-    if (!summary) throw new Error("This song’s collection is no longer available.");
+    if (!summary) {
+      if (playSavedCopy()) return;
+      throw new Error("This song’s collection is no longer available.");
+    }
     const payload = await catalogClient.loadCollection(summary);
+    reconcileDownloads(payload.songs);
     const song = payload.songs.find((entry) => entry.id === result.id);
-    if (!song) throw new Error("This song is no longer available in its collection.");
+    if (!song) {
+      if (playSavedCopy()) return;
+      throw new Error("This song is no longer available in its collection.");
+    }
     engine.playCollection(payload.songs, summary, song.id, preferredRecording(song.id));
   };
 
@@ -923,6 +987,63 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
     }));
   };
 
+  const ensureSongsInLibrary = (songIds: string[]) => {
+    const timestamp = new Date().toISOString();
+    setUserState((current) => {
+      const next = new Set(current.librarySongs);
+      const addedAt = { ...current.librarySongAddedAt };
+      for (const songId of songIds) if (!next.has(songId)) { next.add(songId); addedAt[songId] = timestamp; }
+      return { ...current, librarySongs: [...next], librarySongAddedAt: addedAt };
+    });
+  };
+
+  const downloadFullSong = (song: Song, sourceCollection: CollectionSummary) => {
+    ensureSongsInLibrary([song.id]);
+    void downloadRecording({ song, collection: sourceCollection, preferredType: preferredRecording(song.id) })
+      .catch((error: unknown) => setPersistenceMessage(error instanceof Error ? error.message : "Download failed."));
+  };
+
+  const downloadSearchResult = (result: SearchSong) => {
+    if (catalog.status !== "ready") return;
+    const summary = catalog.index.collections.find((entry) => entry.id === result.collectionId);
+    if (!summary) return;
+    void catalogClient.loadCollection(summary).then((payload) => {
+      const song = payload.songs.find((entry) => entry.id === result.id);
+      if (!song) throw new Error("This song is no longer available.");
+      downloadFullSong(song, summary);
+    }).catch((error: unknown) => setPersistenceMessage(error instanceof Error ? error.message : "Download failed."));
+  };
+
+  const toggleAlbumDownloads = (songs: Song[], sourceCollection: CollectionSummary, remove: boolean) => {
+    if (remove) {
+      void Promise.all(songs.map((song) => removeSongDownloads(song.id))).catch(() => setPersistenceMessage("Some downloads could not be removed."));
+      return;
+    }
+    ensureSongsInLibrary(songs.map((song) => song.id));
+    void downloadMany(songs.map((song) => ({ song, collection: sourceCollection, preferredType: preferredRecording(song.id) })));
+  };
+
+  const togglePlaylistDownloads = (results: SearchSong[], remove: boolean) => {
+    if (remove) {
+      void Promise.all(results.map((song) => removeSongDownloads(song.id))).catch(() => setPersistenceMessage("Some downloads could not be removed."));
+      return;
+    }
+    if (catalog.status !== "ready") return;
+    ensureSongsInLibrary(results.map((song) => song.id));
+    const summaries = new Map(catalog.index.collections.map((entry) => [entry.id, entry]));
+    void Promise.all([...new Set(results.map((song) => song.collectionId))].map(async (collectionId) => {
+      const summary = summaries.get(collectionId);
+      return summary ? { summary, payload: await catalogClient.loadCollection(summary) } : undefined;
+    })).then((loaded) => {
+      const byCollection = new Map(loaded.flatMap((entry) => entry ? [[entry.summary.id, entry] as const] : []));
+      return downloadMany(results.flatMap((result) => {
+        const entry = byCollection.get(result.collectionId);
+        const song = entry?.payload.songs.find((candidate) => candidate.id === result.id);
+        return song && entry ? [{ song, collection: entry.summary, preferredType: preferredRecording(song.id) }] : [];
+      }));
+    }).catch((error: unknown) => setPersistenceMessage(error instanceof Error ? error.message : "Playlist download failed."));
+  };
+
   const currentDestination = navigationDestination(route);
   const currentLibraryView = route.page === "library" ? route.view : route.page === "library-album" ? "albums" : undefined;
   const currentPlaylistId = route.page === "playlist" ? route.playlistId : undefined;
@@ -988,6 +1109,9 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
             onToggleFavorite={toggleFavorite}
             onToggleLibrarySong={toggleLibrarySong}
             onAddToPlaylist={addSongToUserPlaylist}
+            downloads={downloadRecords}
+            onDownload={downloadSearchResult}
+            onRemoveDownload={(songId) => void removeSongDownloads(songId)}
             onPlay={playSearchSong}
           />
         )}
@@ -999,6 +1123,8 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
             userState={userState}
             persistence={initialPersistence}
             install={install}
+            downloadState={downloadState}
+            onClearDownloads={clearAllDownloads}
             onReplaceUserState={setUserState}
             onPersistenceMessage={setPersistenceMessage}
             catalog={catalog}
@@ -1014,6 +1140,10 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
             onToggleFavorite={toggleFavorite}
             onToggleLibrarySong={toggleLibrarySong}
             onAddToPlaylist={addSongToUserPlaylist}
+            downloads={downloadRecords}
+            downloadedSongIds={offlineSongIds}
+            onDownload={downloadSearchResult}
+            onRemoveDownload={(songId) => void removeSongDownloads(songId)}
             onPlay={playSearchSong}
           />
         )}
@@ -1036,6 +1166,10 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
                   onToggleLibrarySong={toggleLibrarySong}
                   onAddToPlaylist={addSongToUserPlaylist}
                   onPlaySongs={playPlaylistSongs}
+                  downloads={downloadRecords}
+                  onDownload={downloadSearchResult}
+                  onRemoveDownload={(songId) => void removeSongDownloads(songId)}
+                  onDownloadPlaylist={togglePlaylistDownloads}
                   onRename={() => setPlaylistDialog({ mode: "rename", playlist: currentPlaylist })}
                   onDelete={() => setPlaylistDialog({ mode: "delete", playlist: currentPlaylist })}
                 />
@@ -1066,6 +1200,11 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
               onToggleLibrarySong={toggleLibrarySong}
               playlists={userState.playlists}
               onAddToPlaylist={addSongToUserPlaylist}
+              downloads={downloadRecords}
+              onDownload={downloadFullSong}
+              onRemoveDownload={(songId) => void removeSongDownloads(songId)}
+              onDownloadAlbum={toggleAlbumDownloads}
+              onCollectionLoaded={reconcileDownloads}
               visibleSongIds={route.page === "library-album" && !albums.has(collection.id) ? librarySongs : undefined}
               libraryContext={route.page === "library-album"}
               savedAlbum={albums.has(collection.id)}
