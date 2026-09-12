@@ -162,6 +162,7 @@ Implementation record — September 12, 2026:
 - Widened the play silhouette and rebuilt Next from two overlapping copies of the same rounded form, giving both controls a longer profile and making the double-forward symbol read as one connected mark.
 - Thickened Pause into two softly rounded filled bars and increased bottom-navigation glyphs from 22 to 25 pixels for clearer visual weight inside the mobile capsule.
 - Reordered mobile navigation to Home, Browse, Library, Search and replaced the angular Home outline with a softly rounded filled-house silhouette modeled after the iOS tab-bar treatment.
+- Filled the Browse tile grid and kept the Library heart filled at rest, using color rather than outline weight to distinguish the active destination.
 
 ## Stage 4 — Controls, menus, and interaction response
 

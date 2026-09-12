@@ -132,7 +132,7 @@ function Navigation({
           aria-current={current === item.id ? "page" : undefined}
           key={item.id}
         >
-          <Icon name={item.icon} filled={current === item.id && item.id === "library"} size={mobile ? 25 : 22} />
+          <Icon name={item.icon} filled={item.id === "library"} size={mobile ? 25 : 22} />
           <span>{item.label}</span>
         </a>
       ))}

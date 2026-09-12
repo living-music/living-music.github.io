@@ -159,6 +159,10 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   const homePath = navigation.getByRole("link", { name: "Home", exact: true }).locator("path");
   await expect(homePath).toHaveAttribute("fill", "currentColor");
   await expect(homePath).not.toHaveAttribute("fill-rule", "evenodd");
+  expect(await navigation.getByRole("link", { name: "Browse", exact: true }).locator("rect").evaluateAll((tiles) =>
+    tiles.map((tile) => ({ fill: tile.getAttribute("fill"), stroke: tile.getAttribute("stroke") })),
+  )).toEqual(Array.from({ length: 4 }, () => ({ fill: "currentColor", stroke: "none" })));
+  await expect(navigation.getByRole("link", { name: "Library", exact: true }).locator("svg")).toHaveAttribute("fill", "currentColor");
   await expect(header).toHaveClass(/glass-surface--regular/);
   await expect(navigation).toHaveClass(/glass-surface--clear/);
   await expect(miniPlayer).toHaveClass(/glass-surface--regular/);

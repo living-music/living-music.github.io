@@ -2,7 +2,7 @@ import type { JSX } from "preact";
 export type IconName="home"|"browse"|"search"|"heart"|"play"|"pause"|"previous"|"next"|"queue"|"close"|"chevron"|"music"|"back"|"more"|"up"|"down"|"repeat"|"trash"|"video"|"add"|"check"|"shuffle"|"download"|"settings";
 const paths:Record<IconName,JSX.Element>={
 home:<path d="M3.6 10.35 10.55 4.5a2.25 2.25 0 0 1 2.9 0l6.95 5.85a1.7 1.7 0 0 1 .6 1.3v7.15a2.2 2.2 0 0 1-2.2 2.2H14v-5.1a2 2 0 0 0-4 0V21H5.2A2.2 2.2 0 0 1 3 18.8v-7.15a1.7 1.7 0 0 1 .6-1.3Z" fill="currentColor" stroke="none"/>,
-browse:<><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,
+browse:<><rect x="3" y="3" width="7" height="7" rx="2" fill="currentColor" stroke="none"/><rect x="14" y="3" width="7" height="7" rx="2" fill="currentColor" stroke="none"/><rect x="3" y="14" width="7" height="7" rx="2" fill="currentColor" stroke="none"/><rect x="14" y="14" width="7" height="7" rx="2" fill="currentColor" stroke="none"/></>,
 search:<><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></>,
 heart:<path d="M20.5 9c0 5.5-8.5 10.5-8.5 10.5S3.5 14.5 3.5 9A4.5 4.5 0 0 1 12 6.9 4.5 4.5 0 0 1 20.5 9Z"/>,
 play:<path d="M6.8 5.45c0-1.08 1.2-1.73 2.13-1.14l10.5 6.27a1.65 1.65 0 0 1 0 2.84l-10.5 6.27c-.93.59-2.13-.06-2.13-1.14Z"/>,pause:<><rect x="6.75" y="5" width="3.5" height="14" rx="1.2" fill="currentColor" stroke="none"/><rect x="13.75" y="5" width="3.5" height="14" rx="1.2" fill="currentColor" stroke="none"/></>,
