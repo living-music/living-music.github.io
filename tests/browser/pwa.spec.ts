@@ -160,8 +160,8 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   await expect(homePath).toHaveAttribute("fill", "currentColor");
   await expect(homePath).not.toHaveAttribute("fill-rule", "evenodd");
   expect(await navigation.getByRole("link", { name: "Browse", exact: true }).locator("rect").evaluateAll((tiles) =>
-    tiles.map((tile) => ({ fill: tile.getAttribute("fill"), stroke: tile.getAttribute("stroke") })),
-  )).toEqual(Array.from({ length: 4 }, () => ({ fill: "currentColor", stroke: "none" })));
+    tiles.map((tile) => ({ width: tile.getAttribute("width"), radius: tile.getAttribute("rx"), fill: tile.getAttribute("fill"), stroke: tile.getAttribute("stroke") })),
+  )).toEqual(Array.from({ length: 4 }, () => ({ width: "8.5", radius: "2.2", fill: "currentColor", stroke: "none" })));
   await expect(navigation.getByRole("link", { name: "Library", exact: true }).locator("svg")).toHaveAttribute("fill", "currentColor");
   await expect(header).toHaveClass(/glass-surface--regular/);
   await expect(navigation).toHaveClass(/glass-surface--clear/);
