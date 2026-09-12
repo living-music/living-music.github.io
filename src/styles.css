@@ -1309,7 +1309,7 @@ a.collection-card:active { transform: scale(0.985); }
     min-height: var(--mobile-player-height);
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.4rem;
-    padding: 0.35rem 0.55rem;
+    padding: 0.35rem 0.55rem 0.35rem 0.8rem;
     border-radius: 999px;
   }
 

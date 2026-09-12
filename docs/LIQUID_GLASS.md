@@ -149,6 +149,7 @@ Implementation record — September 12, 2026:
 - Refined both mobile surfaces to full pill curvature after installed-iOS comparison. Reduced the mini player to a 56 px target height, scaled its artwork and controls with it, and removed the mini seek line on mobile to match Apple Music's resting player. The full Now Playing seek control remains available and draggable.
 - Recalculated the bottom fade and page clearance from the actual player, navigation, gap, and safe-area values after shortening the player.
 - Replaced the crisp one-pixel capsule outlines with a layered rim: a faint half-pixel perimeter, soft upper inner light, lower inner shade, near-edge depth shadow, and diffuse ambient lift. Light and dark appearances use separate edge-shadow values, while Increased Contrast and forced colors retain their explicit boundaries.
+- Increased color transmission through the floating chrome by moving navigation to clear glass and the mini player from subdued to regular glass. Added 4 px of left breathing room inside the mini player so artwork no longer crowds the curved rim; opaque accessibility fallbacks remain unchanged.
 
 ## Stage 4 — Controls, menus, and interaction response
 

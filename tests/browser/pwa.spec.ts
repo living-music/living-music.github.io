@@ -156,8 +156,8 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   const navigation = page.locator(".mobile-navigation");
   const miniPlayer = page.locator(".mini-player");
   await expect(header).toHaveClass(/glass-surface--regular/);
-  await expect(navigation).toHaveClass(/glass-surface--regular/);
-  await expect(miniPlayer).toHaveClass(/glass-surface--subdued/);
+  await expect(navigation).toHaveClass(/glass-surface--clear/);
+  await expect(miniPlayer).toHaveClass(/glass-surface--regular/);
   await expect.poll(async () => {
     const [navigationBounds, playerBounds] = await Promise.all([
       navigation.boundingBox(),
@@ -179,6 +179,8 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   expect(playerBox?.x).toBe(navigationBox?.x);
   expect(playerBox?.width).toBe(navigationBox?.width);
   expect(844 - ((navigationBox?.y ?? 0) + (navigationBox?.height ?? 0))).toBeGreaterThanOrEqual(15);
+  const artworkBox = await page.locator(".mini-artwork").boundingBox();
+  expect((artworkBox?.x ?? 0) - (playerBox?.x ?? 0)).toBeGreaterThanOrEqual(12);
 
   const capsuleShape = await Promise.all([navigation, miniPlayer].map((surface) => surface.evaluate((element) => ({
     radius: Number.parseFloat(getComputedStyle(element).borderRadius),
@@ -220,8 +222,8 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   })));
   expect(surfaces).toEqual([
     { background: "rgba(0, 0, 0, 0)", material: "rgba(24, 24, 28, 0.66)", pointerEvents: "none", contentZIndex: "1" },
+    { background: "rgba(0, 0, 0, 0)", material: "rgba(18, 18, 22, 0.44)", pointerEvents: "none", contentZIndex: "1" },
     { background: "rgba(0, 0, 0, 0)", material: "rgba(24, 24, 28, 0.66)", pointerEvents: "none", contentZIndex: "1" },
-    { background: "rgba(0, 0, 0, 0)", material: "rgba(29, 29, 34, 0.78)", pointerEvents: "none", contentZIndex: "1" },
   ]);
 
   const session = await page.context().newCDPSession(page);
@@ -237,8 +239,8 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
     };
   })))).toEqual([
     { background: "rgb(24, 24, 28)", filters: ["none", "none"] },
+    { background: "rgb(18, 18, 22)", filters: ["none", "none"] },
     { background: "rgb(24, 24, 28)", filters: ["none", "none"] },
-    { background: "rgb(29, 29, 34)", filters: ["none", "none"] },
   ]);
 });
 

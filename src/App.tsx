@@ -119,7 +119,7 @@ function Navigation({
     ? [...navigation, { id: "library", label: "Library", icon: "heart" }]
     : navigation;
   return (
-    <nav class={mobile ? "mobile-navigation glass-surface glass-surface--regular" : "sidebar-navigation"} aria-label="Primary">
+    <nav class={mobile ? "mobile-navigation glass-surface glass-surface--clear" : "sidebar-navigation"} aria-label="Primary">
       {items.map((item) => (
         <a
           class={`navigation-item ${current === item.id ? "is-current" : ""}`}
