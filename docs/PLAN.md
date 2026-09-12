@@ -1,6 +1,6 @@
 # Living Music implementation plan
 
-Status: implementation proposal, September 7, 2026.
+Status: prototype complete; post-prototype PWA roadmap active, September 11, 2026.
 
 ## Product goal
 
@@ -174,12 +174,14 @@ Do not rely on TypeScript types alone for network data. Validate required fields
 
 ### Caching
 
-- Let the browser cache revisioned API responses normally.
-- Keep the manifest request revalidated so a new catalog version is discovered quickly.
-- Store parsed index and collection objects in an in-memory cache for the current session.
-- Persist only small user-owned state in `localStorage`: IDs, queue order, history, preferences, and schema version.
-- Do not store the full catalog in `localStorage`; it is synchronous and unnecessary for revisioned static files.
-- A generated service worker caches the versioned app shell only. It must never pre-cache catalog responses or Church-hosted media.
+- Keep the generated, content-addressed app-shell cache atomic so a release activates only after every required shell asset is available.
+- Revalidate `/musicapi/index.json` to discover new catalog revisions, using the last valid cached manifest when the network is unavailable.
+- Store revisioned catalog indexes, search indexes, and opened collection payloads in a separate runtime cache. Revisioned responses are cache-first; the mutable manifest is network-first with cached fallback.
+- Retain enough catalog data for Browse, Library, playlists, queue restoration, and previously opened collections to remain useful offline. Keep the current and immediately previous catalog revisions so an interrupted release cannot remove the last usable catalog.
+- Keep parsed index and collection objects in memory for the active session while Cache Storage provides the cross-session copy.
+- Do not put catalog data in `localStorage`; it is synchronous and poorly suited to application data.
+- Keep Church-hosted audio outside automatic caches. Artwork may receive a bounded cache-on-use policy only after storage limits and opaque-response behavior are tested.
+- Treat user-selected audio downloads as a separate feature with explicit controls, storage accounting, and removal behavior.
 
 ### Recording selection
 
@@ -304,7 +306,7 @@ interface UserStateV1 {
 const DEFAULT_THEME = "dark";
 ```
 
-Limit recents to 50 items, validate all parsed values, discard unknown IDs gracefully, and wrap storage access in `try/catch`. `localStorage` persists across sessions but can be unavailable or cleared, especially in private browsing. Reference: [MDN Web Storage API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API).
+The prototype stores its compact user record in `localStorage`. The next persistence revision moves library data, playlists, queue state, and download metadata to IndexedDB while retaining the theme in `localStorage` for synchronous first-paint selection. Migration must be transactional, validated, and safe to retry. Request persistent storage after a listener has created meaningful library data, surface write failures, and provide JSON export/import for backup and device transfer. Limit recents to 50 items and discard unknown catalog IDs gracefully. References: [MDN Web Storage API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API), [MDN IndexedDB API](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API), and [MDN StorageManager.persist()](https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/persist).
 
 Do not automatically resume audio after a page reload. Restore the queue and selected track in a paused state because browser autoplay rules require user intent.
 
@@ -330,8 +332,10 @@ Do not automatically resume audio after a page reload. Restore the queue and sel
 - **Recording fails:** mark that recording unavailable for the session and offer another version when present.
 - **Track fails in a queue:** pause and present Skip; do not silently skip repeatedly.
 - **Artwork fails:** use a stable branded placeholder with the song or collection initials.
-- **Storage fails:** continue in memory and explain that favorites will not persist.
-- **Offline:** keep the app shell and any already cached metadata useful; do not promise offline playback.
+- **Storage fails:** continue in memory, explain which changes will not persist, and offer export when an existing readable record remains available.
+- **Offline with cached catalog:** keep Browse, Search, Library, playlists, and queue restoration usable; clearly label media that still requires a connection.
+- **Offline without cached catalog:** show a dedicated first-use offline state with Retry instead of a generic fetch failure.
+- **Update available:** keep the current version running until the listener chooses to refresh; never interrupt active playback for a routine update.
 
 ## Implementation milestones
 
@@ -450,6 +454,79 @@ Acceptance:
 - A manual test confirms play, seek, queue advancement, lock-screen controls, interruption recovery, and Bluetooth/headphone behavior.
 - The production site and API workflows both pass.
 
+## Post-prototype PWA roadmap
+
+The completed prototype establishes the installable shell and playback experience. The next cycle makes the PWA dependable across weak connections, browser restarts, installation, and eventually listener-selected offline music. Each phase must remain independently deployable and must preserve playback, local library data, and rollback safety.
+
+### Phase 1 — Offline-ready catalog and controlled updates
+
+Deliver:
+
+- A separate, versioned runtime cache for the musicapi manifest, catalog index, search index, and opened collections.
+- Network-first manifest refresh with cached fallback, plus cache-first loading for immutable revisioned catalog files.
+- A connection model that distinguishes offline, upstream failure, unsupported catalog schema, and unavailable media.
+- A quiet global offline indicator, dedicated first-use offline state, and reconnect action.
+- A service-worker update flow that detects a waiting release, asks the listener to refresh, and never reloads during active playback without consent.
+- Update checks when the app returns to the foreground and predictable cleanup that retains the current and previous catalog revisions.
+- Correct initial and system-following `theme-color` behavior in browser and standalone modes.
+
+Acceptance:
+
+- After one successful visit, an offline reload can open Browse, Search, Library, playlists, the saved queue, and every previously opened collection.
+- A first visit without a network shows a branded, actionable offline state rather than a generic fetch error.
+- Returning online can refresh the manifest and retry failed content without reloading the entire app.
+- A release discovered during playback remains waiting until the listener accepts it or later opens a fresh app session.
+- A failed service-worker or catalog update leaves the last complete shell and catalog usable.
+
+### Phase 2 — Installation and durable listener data
+
+Deliver:
+
+- An Install Living Music action shown only when relevant, using `beforeinstallprompt` where supported and concise platform instructions elsewhere.
+- Standalone-mode detection so installed users do not see installation promotion.
+- Dedicated maskable and monochrome icons, manifest screenshots, English language metadata, and shortcuts for Browse, Search, Favorites, and Playlists.
+- IndexedDB persistence for library membership, favorite dates, albums, playlists, queue state, recording preferences, and future download records.
+- A transactional, retry-safe migration from `livingMusic:userState:v1`; keep theme selection in `localStorage` for first paint.
+- Persistent-storage requests after the listener creates meaningful saved data, plus visible handling for denial, quota exhaustion, and write failure.
+- JSON export/import, storage usage, and Clear Local Data controls.
+
+Acceptance:
+
+- Installation is discoverable after meaningful engagement and never blocks the primary listening journey.
+- Chromium installation metadata passes browser inspection, and iPhone/iPad instructions match the current Add to Home Screen flow.
+- Existing libraries and playlists survive the IndexedDB migration exactly once with timestamps and ordering intact.
+- A simulated failed migration retains the readable prior record and can be retried safely.
+- Users can export, clear, and restore their local library without an account.
+
+### Phase 3 — Listener-selected offline music
+
+Begin only after testing Church media CORS behavior, byte-range playback, source terms, and browser quota behavior.
+
+Deliver:
+
+- Download and Remove Download actions for songs, albums, and playlists; never cache audio merely because it was streamed.
+- Downloaded, downloading, queued, failed, and unavailable states with progress and retry controls.
+- A Downloaded Music library view and offline-aware playback selection.
+- Per-recording download metadata tied to stable recording IDs and source URLs, with catalog-revision reconciliation.
+- Storage estimates, requested persistent storage, clear size reporting, and user-controlled cleanup.
+- Correct seeking through cached recordings, including byte-range requests where required by the browser.
+- Bounded artwork caching for downloaded and recently viewed music.
+
+Acceptance:
+
+- A downloaded recording starts, seeks, advances through a downloaded playlist, and exposes Media Session controls in airplane mode on supported browsers.
+- Partial or failed downloads never appear complete and can be resumed or removed safely.
+- Catalog updates do not silently discard playable downloads; stale source references receive an explicit recovery state.
+- Quota exhaustion cannot corrupt the listener's library or existing downloads.
+- Removing a download removes its media bytes while preserving Library, Favorites, and playlist membership.
+
+### Explicitly deferred
+
+- Cloud accounts and cross-device synchronization.
+- Automatic audio caching or background bulk downloads.
+- Push notifications and app-icon badges without a clear listener-requested use case.
+- Proxying or republishing Church-hosted media.
+
 ## Test strategy
 
 ### Unit tests
@@ -462,6 +539,9 @@ Cover logic with high failure impact:
 - Queue insertion, removal, shuffle, repeat, and end-of-track transitions.
 - Persistence parsing and version migration.
 - Search normalization and ranking.
+- Request classification for shell, mutable catalog manifest, revisioned catalog data, artwork, and audio.
+- Catalog revision retention and cache-cleanup boundaries.
+- IndexedDB migration, export/import validation, and download-state transitions.
 
 ### Component and integration tests
 
@@ -472,6 +552,9 @@ Use fixed catalog fixtures to verify:
 - Mini player and Now Playing synchronization.
 - Favorite changes across views.
 - Keyboard navigation and dialog focus return.
+- Offline-with-cache, first-use-offline, reconnect, and upstream-error states.
+- Waiting-worker notification and listener-controlled update activation.
+- Storage failure, migration recovery, quota exhaustion, and download removal.
 
 Mock media events in automated tests. Do not depend on live Church audio in CI.
 
@@ -487,7 +570,11 @@ Representative manual checks:
 - A broken recording URL with a valid alternate.
 - iOS interruption, lock screen, wired/Bluetooth controls, and page backgrounding.
 - Android media notification and backgrounding.
-- Slow connection and offline reload.
+- First visit, second-load service-worker control, and installed standalone launch.
+- Slow connection, offline reload with cached catalog, and first-use offline behavior.
+- Catalog revision change, interrupted cache fill, reconnect, and worker upgrade during playback.
+- Export, clear, and restore of listener data before IndexedDB migration ships.
+- Download, seek, sequential playback, and removal in airplane mode before Phase 3 ships.
 
 ## Performance budget
 
@@ -508,7 +595,7 @@ Representative manual checks:
 - Permit only expected HTTPS media and artwork URLs.
 - Collect no analytics in the first release.
 - Store listening state only in the browser and provide a Clear Local Data action.
-- Do not proxy, download, or redistribute Church-hosted audio or artwork.
+- Do not proxy or redistribute Church-hosted audio or artwork. Enable listener-selected device caching only after source terms, CORS, and playback behavior have been reviewed.
 - Keep the independent-project notice and official source links visible.
 - Review source terms and rights before a public launch beyond development testing.
 
@@ -520,23 +607,25 @@ Representative manual checks:
 - Stack: Vite + TypeScript + Preact.
 - Routing: hash routes.
 - Playback: one `HTMLAudioElement`.
-- Persistence: versioned `localStorage` for small user state.
+- Persistence: current versioned `localStorage`, followed by transactional migration to IndexedDB with export/import.
 - Default recording: vocal-first with remembered overrides.
-- Offline: app shell and metadata only; no audio downloads.
+- Offline: app shell plus cached catalog metadata first; explicit listener-selected audio downloads in a later phase.
 - Initial language: English.
 - Initial appearance: dark, with light and system-following options.
 - Initial analytics: none.
 
-## First implementation slice
+## Next implementation slice
 
-Start with Milestone 1 and the smallest vertical path through Milestones 2 and 3:
+Complete Phase 1 as the next reviewable release:
 
-1. Set up Vite, TypeScript, Preact, and the Pages build.
-2. Load and validate the manifest and version index.
-3. Render the collection grid.
-4. Open one collection and render its song rows.
-5. Play one selected recording through the shared audio engine.
-6. Keep that track visible in a responsive mini player.
-7. Deploy and verify the path on iPhone Safari and desktop Chrome.
+1. Extract service-worker generation into shell and catalog-cache policies with separate cache prefixes.
+2. Cache the last valid manifest and revisioned catalog index, then prove Browse survives an offline reload.
+3. Extend the same policy to search and opened collections with current/previous revision cleanup.
+4. Add explicit online, offline, and upstream-error application states with retry behavior.
+5. Replace immediate worker activation with a waiting-update message and listener-controlled refresh.
+6. Recheck for updates when the app returns to the foreground without interrupting playback.
+7. Correct saved light/system `theme-color` initialization.
+8. Add browser tests for first install, second-load control, offline reload, reconnect, and worker upgrade.
+9. Deploy and verify the phase on current iPhone/iPad Safari, macOS Safari, Android Chrome, and desktop Chromium.
 
-This slice tests the highest-risk assumptions—catalog resolution, artwork, live media playback, responsive navigation, and GitHub Pages deployment—before queue and library features expand the state model.
+This slice resolves the largest PWA gap: today the shell opens offline while its catalog-dependent experience does not. It deliberately leaves persistence migration and media downloads for later releases so cache behavior can be validated before storage responsibilities expand.
