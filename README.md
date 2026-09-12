@@ -47,6 +47,7 @@ npm run preview    # Serve the production build locally
 ```text
 index.html                 Vite document entry and pre-render theme bootstrap
 public/                    Static PWA files copied into dist/
+scripts/                   Content-addressed service-worker generation and tests
 src/
   App.tsx                  Application shell, catalog state, and top-level views
   components/               Catalog, search, Library, artwork, and player views
@@ -79,6 +80,10 @@ The browser Media Session API connects playback to supported lock screens, Contr
 Search opens the compact global index only when Search or Library is visited. Queries ignore case and accents, accept multiple non-adjacent words, and match song titles, numbers, artists, and collection names. Selecting a result then downloads only its collection payload before playback. Large result sets show the first 80 entries to keep rendering responsive.
 
 Heart controls in collections, search results, Library song lists, and Now Playing add songs to the fixed Favorites playlist and ensure they are also in Library. Unfavoriting leaves Library membership intact. Adjacent add/check controls manage individual Library songs, while collection pages can add whole albums. Library exposes Recently Added, Albums, and Songs in the desktop sidebar and a compact mobile switcher. Favorites appears first under Playlists as a fixed smart playlist that cannot be renamed or deleted and sorts songs by favorite date, newest first. Recently Added groups Library songs by album and sorts each album by its newest device-local add timestamp; Albums includes both explicitly added albums and albums containing Library songs. Opening an album from Library shows only its individually added songs unless the complete album was added. Existing combined saved-song data migrates into both Favorites and Library Songs so prior choices are preserved. A separate Playlists sidebar section supports locally persisted playlist creation, rename, deletion, and direct playlist routes. Right-clicking any song opens a shared context menu for favorite, Library, queue, and playlist actions; overflow buttons expose the same menu without a pointer. Songs added to a playlist appear in insertion order on its detail page. Playing any row continues through that playlist order, while the playlist Play and Random buttons start from the beginning in saved or randomized order.
+
+## App-shell caching
+
+Production registers a generated service worker after the first page load. It precaches the document, hashed JavaScript and CSS, the web manifest, and local icons. Every file has a content-derived cache key, so deployments reuse unchanged entries from the previous cache and fetch only changed assets before activating atomically. Navigation and known same-origin shell assets are served cache-first. Catalog requests under `/musicapi/` and all Church-hosted media bypass the service worker.
 
 ## Catalog contract
 

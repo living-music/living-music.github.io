@@ -38,7 +38,7 @@ For this release, 27 unit tests pass and Vite produces the production artifact w
 
 - Favorites and queue state are local to one browser profile and do not sync across devices.
 - Search renders at most 80 results per query, while still reporting the complete result count.
-- Offline listening is unavailable. There is no service worker and audio is never pre-cached.
+- The application shell can load from its versioned service-worker cache, but offline listening remains unavailable and audio is never pre-cached.
 - Playback and artwork depend on the continued public availability and cross-origin behavior of Church media hosts.
 - Media Session controls and home-screen installation vary by browser and operating system.
 - The interface and catalog currently use English metadata.
@@ -51,6 +51,6 @@ To roll back, revert the problem commit on `main` and push the revert. The workf
 
 ## Project status
 
-This prototype is suitable for everyday browsing, queueing, favorites, and listening. The next product cycle can focus on feedback from real use, larger-library navigation, richer collection grouping, and optional offline app-shell support.
+This prototype is suitable for everyday browsing, queueing, favorites, and listening. The next product cycle can focus on feedback from real use, larger-library navigation, richer collection grouping, and listener-selected offline music.
 
 Living Music is an independent project and is not affiliated with or endorsed by The Church of Jesus Christ of Latter-day Saints.

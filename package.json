@@ -12,7 +12,7 @@
     "dev": "vite",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "npm run typecheck && vite build",
+    "build": "npm run typecheck && vite build && node scripts/generate-service-worker.mjs",
     "preview": "vite preview"
   },
   "engines": {

@@ -179,7 +179,7 @@ Do not rely on TypeScript types alone for network data. Validate required fields
 - Store parsed index and collection objects in an in-memory cache for the current session.
 - Persist only small user-owned state in `localStorage`: IDs, queue order, history, preferences, and schema version.
 - Do not store the full catalog in `localStorage`; it is synchronous and unnecessary for revisioned static files.
-- A later service worker may cache the app shell and catalog JSON. It must never pre-cache or download Church-hosted audio.
+- A generated service worker caches the versioned app shell only. It must never pre-cache catalog responses or Church-hosted media.
 
 ### Recording selection
 
