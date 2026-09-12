@@ -157,6 +157,7 @@ Implementation record — September 12, 2026:
 - Narrowed both floating mobile capsules by two pixels and introduced a restrained lower-edge reflection above a softer depth shadow, mirroring the small secondary highlight visible in iOS Liquid Glass.
 - Balanced the upper and lower inset glows around matching geometry: the upper refraction is softer, while the mirrored lower refraction remains slightly dimmer to preserve the top-lit appearance.
 - Reduced mobile capsule blur again so underlying color and form remain more legible through the material, strengthening the liquid-lens effect without changing saturation or edge lighting.
+- Increased mobile capsule transparency with dedicated dark- and light-mode tints, and lowered blur once more so more artwork color and page structure refracts through the floating controls.
 
 ## Stage 4 — Controls, menus, and interaction response
 

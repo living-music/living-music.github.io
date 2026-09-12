@@ -196,7 +196,7 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   expect(capsuleShape.every(({ edge }) => edge.includes("-1.25px 1.1px"))).toBe(true);
   expect(capsuleShape.every(({ edge }) => !edge.includes("0px 0px 0px 1px"))).toBe(true);
   expect(capsuleShape.every(({ depth }) => depth.match(/radial-gradient/g)?.length === 1 && depth.includes("linear-gradient"))).toBe(true);
-  expect(capsuleShape.map(({ blur }) => blur)).toEqual(["16px", "13px"]);
+  expect(capsuleShape.map(({ blur }) => blur)).toEqual(["13px", "10px"]);
   await expect(page.locator(".mini-progress")).toBeHidden();
 
   const contentPaddingBottom = await page.locator(".content").evaluate((element) =>
@@ -229,8 +229,8 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   })));
   expect(surfaces).toEqual([
     { background: "rgba(0, 0, 0, 0)", material: "rgba(24, 24, 28, 0.66)", pointerEvents: "none", contentZIndex: "1" },
-    { background: "rgba(0, 0, 0, 0)", material: "rgba(18, 18, 22, 0.44)", pointerEvents: "none", contentZIndex: "1" },
-    { background: "rgba(0, 0, 0, 0)", material: "rgba(24, 24, 28, 0.66)", pointerEvents: "none", contentZIndex: "1" },
+    { background: "rgba(0, 0, 0, 0)", material: "rgba(18, 18, 22, 0.39)", pointerEvents: "none", contentZIndex: "1" },
+    { background: "rgba(0, 0, 0, 0)", material: "rgba(24, 24, 28, 0.6)", pointerEvents: "none", contentZIndex: "1" },
   ]);
 
   const session = await page.context().newCDPSession(page);
