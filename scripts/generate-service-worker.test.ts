@@ -25,13 +25,16 @@ describe("service worker generation", () => {
 
     await generateServiceWorker(directory);
     const worker = await readFile(join(directory, "sw.js"), "utf8");
-    expect(worker).toContain("living-music-shell-");
+    expect(worker).toContain('SHELL_CACHE_NAME = SHELL_CACHE_PREFIX + "v2-');
+    expect(worker).toContain("shellResponseMatches(prior, entry.revision)");
+    expect(worker).toContain("fetch(requestFor(entry.cacheKey, { cache: \"reload\" }))");
+    expect(worker).toContain("shellResponseMatches(response, entry.revision)");
     expect(worker).toContain("event.request.mode === \"navigate\"");
     expect(worker).not.toContain("app.js.map");
   });
 
   it("separates shell and catalog caches with safe catalog policies", () => {
-    const worker = renderServiceWorker([{ url: "/", cacheKey: "/?__lm=root" }]);
+    const worker = renderServiceWorker([{ url: "/", revision: "root", cacheKey: "/?__lm=root" }]);
     expect(worker).toContain('CATALOG_CACHE_NAME = CATALOG_CACHE_PREFIX + "v1"');
     expect(worker).toContain('CATALOG_MANIFEST_PATH = "/musicapi/index.json"');
     expect(worker).toContain("CATALOG_REVISIONS_PER_PATH = 2");
@@ -48,7 +51,7 @@ describe("service worker generation", () => {
   });
 
   it("waits for listener approval before activating an update", () => {
-    const worker = renderServiceWorker([{ url: "/", cacheKey: "/?__lm=root" }]);
+    const worker = renderServiceWorker([{ url: "/", revision: "root", cacheKey: "/?__lm=root" }]);
     expect(worker).toContain("LIVING_MUSIC_SKIP_WAITING");
     expect(worker).toContain("void self.skipWaiting()");
     expect(worker).not.toContain("await self.skipWaiting()");

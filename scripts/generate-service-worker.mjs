@@ -28,12 +28,12 @@ export async function collectPrecacheEntries(directory) {
     const name = relative(root, path).replaceAll("\\", "/");
     const revision = digest(await readFile(path));
     const url = name === "index.html" ? "/" : `/${name}`;
-    return { url, cacheKey: `${url}${url.includes("?") ? "&" : "?"}__lm=${revision}` };
+    return { url, revision, cacheKey: `${url}${url.includes("?") ? "&" : "?"}__lm=${revision}` };
   }));
 }
 
 export function renderServiceWorker(entries) {
-  const version = digest(JSON.stringify(entries));
+  const version = "v2-" + digest(JSON.stringify(entries));
   return `const SHELL_CACHE_PREFIX = "living-music-shell-";
 const SHELL_CACHE_NAME = SHELL_CACHE_PREFIX + ${JSON.stringify(version)};
 const CATALOG_CACHE_PREFIX = "living-music-catalog-";
@@ -48,6 +48,17 @@ const PRECACHE = ${JSON.stringify(entries)};
 const ROOT_ENTRY = PRECACHE.find((entry) => entry.url === "/");
 const BY_PATH = new Map(PRECACHE.map((entry) => [new URL(entry.url, self.location.origin).pathname, entry]));
 const requestFor = (value, options) => new Request(new URL(value, self.location.origin), options);
+
+async function shellResponseMatches(response, revision) {
+  if (!response?.ok) return false;
+  const bytes = await response.clone().arrayBuffer();
+  const hash = await self.crypto.subtle.digest("SHA-256", bytes);
+  const actual = [...new Uint8Array(hash)]
+    .map((value) => value.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 16);
+  return actual === revision;
+}
 
 async function notifyClients(type) {
   const clients = await self.clients.matchAll({ type: "window" });
@@ -113,12 +124,15 @@ self.addEventListener("install", (event) => {
     await Promise.all(PRECACHE.map(async (entry) => {
       const key = requestFor(entry.cacheKey);
       const prior = await caches.match(key);
-      if (prior) {
+      if (prior && await shellResponseMatches(prior, entry.revision)) {
         await cache.put(key, prior);
         return;
       }
-      const response = await fetch(requestFor(entry.url, { cache: "reload" }));
+      const response = await fetch(requestFor(entry.cacheKey, { cache: "reload" }));
       if (!response.ok) throw new Error("Could not cache " + entry.url + ": " + response.status);
+      if (!(await shellResponseMatches(response, entry.revision))) {
+        throw new Error("Shell response did not match " + entry.url + " revision " + entry.revision);
+      }
       await cache.put(key, response);
     }));
     try {

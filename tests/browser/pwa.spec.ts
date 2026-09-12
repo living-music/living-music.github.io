@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { generateServiceWorker } from "../../scripts/generate-service-worker.mjs";
 
 const dist = resolve("dist");
 const manifest = {
@@ -133,26 +134,48 @@ test("shows a dedicated first-use offline state when no catalog is cached", asyn
   await expect(page.getByText("Offline Hymns", { exact: true })).toBeVisible();
 });
 
-test("keeps an app update waiting until the listener applies it", async ({ page }) => {
+test("applies updated shell assets only after the listener approves them", async ({ page }) => {
   await page.goto("/#/browse");
   await waitForControl(page);
-  const workerPath = `${dist}/sw.js`;
-  const original = await readFile(workerPath, "utf8");
+
+  const workerPath = resolve(dist, "sw.js");
+  const indexPath = resolve(dist, "index.html");
+  const originalWorker = await readFile(workerPath, "utf8");
+  const originalIndex = await readFile(indexPath, "utf8");
+  const stylesheetHref = originalIndex.match(/\/assets\/[^"]+\.css/)?.[0];
+  expect(stylesheetHref).toBeTruthy();
+  const originalStyles = await readFile(resolve(dist, stylesheetHref!.slice(1)), "utf8");
+  const updatedStylesheetHref = "/assets/pwa-update-probe.css";
+  const updatedStylesheetPath = resolve(dist, updatedStylesheetHref.slice(1));
+
   try {
-    await writeFile(workerPath, `${original}\n// browser-update-test\n`);
+    await writeFile(updatedStylesheetPath, originalStyles + "\n:root { --living-music-update-probe: applied; }\n");
+    await writeFile(indexPath, originalIndex.replace(stylesheetHref!, updatedStylesheetHref));
+    await generateServiceWorker(dist);
+
     await page.evaluate(async () => {
       const registration = await navigator.serviceWorker.getRegistration();
       await registration?.update();
     });
+
     await expect(page.getByText("Update ready", { exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Browse" })).toBeVisible();
+    await expect.poll(() => page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue("--living-music-update-probe").trim(),
+    )).toBe("");
+
     await Promise.all([
       page.waitForEvent("load"),
       page.getByRole("button", { name: "Update now" }).click(),
     ]);
+
+    await expect.poll(() => page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue("--living-music-update-probe").trim(),
+    )).toBe("applied");
     await expect(page.getByRole("heading", { name: "Browse" })).toBeVisible();
   } finally {
-    await writeFile(workerPath, original);
+    await writeFile(indexPath, originalIndex);
+    await writeFile(workerPath, originalWorker);
+    await rm(updatedStylesheetPath, { force: true });
   }
 });
 
