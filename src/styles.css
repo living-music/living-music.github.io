@@ -717,9 +717,9 @@ h1 {
     --glass-material-saturation: 180%;
     position: fixed;
     z-index: 30;
-    inset: auto calc(var(--mobile-chrome-inset) + env(safe-area-inset-right))
+    inset: auto calc(var(--mobile-chrome-inset) + env(safe-area-inset-right) + 1px)
       max(var(--mobile-chrome-inset), env(safe-area-inset-bottom))
-      calc(var(--mobile-chrome-inset) + env(safe-area-inset-left));
+      calc(var(--mobile-chrome-inset) + env(safe-area-inset-left) + 1px);
     min-height: var(--mobile-nav-height);
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -734,7 +734,8 @@ h1 {
       inset 0 0 0 0.5px color-mix(in srgb, var(--glass-border) 42%, transparent),
       inset 0 1.5px 1.25px -0.25px var(--glass-lens-highlight),
       inset 0 3px 4px -3px var(--glass-lens-sheen),
-      inset 0 -1.5px 2px -1px color-mix(in srgb, var(--glass-lens-shadow) 72%, transparent),
+      inset 0 -0.75px 0.8px color-mix(in srgb, var(--glass-lens-highlight) 16%, transparent),
+      inset 0 -1.75px 2.5px -1px color-mix(in srgb, var(--glass-lens-shadow) 52%, transparent),
       0 0.16rem 0.38rem rgba(0, 0, 0, 0.13),
       0 0.65rem 1.9rem rgba(0, 0, 0, 0.18);
   }
@@ -1328,9 +1329,9 @@ a.collection-card:active { transform: scale(0.985); }
   .mini-player {
     --glass-material-blur: 18px;
     --glass-material-saturation: 165%;
-    inset: auto calc(var(--mobile-chrome-inset) + env(safe-area-inset-right))
+    inset: auto calc(var(--mobile-chrome-inset) + env(safe-area-inset-right) + 1px)
       calc(var(--mobile-nav-height) + max(var(--mobile-chrome-inset), env(safe-area-inset-bottom)) + var(--mobile-chrome-gap))
-      calc(var(--mobile-chrome-inset) + env(safe-area-inset-left));
+      calc(var(--mobile-chrome-inset) + env(safe-area-inset-left) + 1px);
     min-height: var(--mobile-player-height);
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.4rem;
@@ -1344,7 +1345,8 @@ a.collection-card:active { transform: scale(0.985); }
       inset 0 0 0 0.5px color-mix(in srgb, var(--glass-border) 42%, transparent),
       inset 0 1.5px 1.25px -0.25px var(--glass-lens-highlight),
       inset 0 3px 4px -3px var(--glass-lens-sheen),
-      inset 0 -1.5px 2px -1px color-mix(in srgb, var(--glass-lens-shadow) 72%, transparent),
+      inset 0 -0.75px 0.8px color-mix(in srgb, var(--glass-lens-highlight) 16%, transparent),
+      inset 0 -1.75px 2.5px -1px color-mix(in srgb, var(--glass-lens-shadow) 52%, transparent),
       0 0.16rem 0.38rem rgba(0, 0, 0, 0.14),
       0 0.65rem 1.9rem rgba(0, 0, 0, 0.2);
   }

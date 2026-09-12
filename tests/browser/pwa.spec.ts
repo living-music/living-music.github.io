@@ -174,8 +174,8 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   expect(headerBox?.height).toBeLessThanOrEqual(58);
   expect(navigationBox?.height).toBeLessThanOrEqual(62);
   expect(playerBox?.height).toBeLessThanOrEqual(58);
-  expect(navigationBox?.x).toBeGreaterThanOrEqual(15);
-  expect((navigationBox?.x ?? 0) + (navigationBox?.width ?? 0)).toBeLessThanOrEqual(375);
+  expect(navigationBox?.x).toBeGreaterThanOrEqual(17);
+  expect((navigationBox?.x ?? 0) + (navigationBox?.width ?? 0)).toBeLessThanOrEqual(373);
   expect(playerBox?.x).toBe(navigationBox?.x);
   expect(playerBox?.width).toBe(navigationBox?.width);
   expect(844 - ((navigationBox?.y ?? 0) + (navigationBox?.height ?? 0))).toBeGreaterThanOrEqual(15);
@@ -193,6 +193,7 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   }))));
   expect(capsuleShape.every(({ radius, height }) => radius >= height / 2)).toBe(true);
   expect(capsuleShape.every(({ edge }) => edge.includes("0.5px") && edge.includes("1.5px"))).toBe(true);
+  expect(capsuleShape.every(({ edge }) => edge.includes("-0.75px 0.8px"))).toBe(true);
   expect(capsuleShape.every(({ edge }) => !edge.includes("0px 0px 0px 1px"))).toBe(true);
   expect(capsuleShape.every(({ depth }) => depth.match(/radial-gradient/g)?.length === 1 && depth.includes("linear-gradient"))).toBe(true);
   expect(capsuleShape.map(({ blur }) => blur)).toEqual(["22px", "18px"]);
@@ -210,8 +211,8 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
     navigation.boundingBox(),
     miniPlayer.boundingBox(),
   ]);
-  expect(compactNavigationBox?.x).toBeGreaterThanOrEqual(15);
-  expect((compactNavigationBox?.x ?? 0) + (compactNavigationBox?.width ?? 0)).toBeLessThanOrEqual(305);
+  expect(compactNavigationBox?.x).toBeGreaterThanOrEqual(17);
+  expect((compactNavigationBox?.x ?? 0) + (compactNavigationBox?.width ?? 0)).toBeLessThanOrEqual(303);
   expect(compactPlayerBox?.x).toBe(compactNavigationBox?.x);
   await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Library", exact: true })).toBeVisible();
