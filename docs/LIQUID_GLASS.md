@@ -1,0 +1,236 @@
+# Liquid Glass implementation plan
+
+Status: planned. Baseline: commit `7279cca` as restored by `8787b20`.
+
+## Goal
+
+Evolve Living Music toward Apple's Liquid Glass design language while preserving its reliability as a static, installable web app. Glass belongs to the navigation and control layer: the desktop sidebar, mobile header and navigation, mini player, Now Playing controls, menus, and dialogs. Album artwork, song lists, and other content remain visually direct.
+
+The web implementation will use standards-based CSS and progressive enhancement. It will resemble Liquid Glass through translucency, depth, edge light, adaptive tint, and responsive motion. It will not depend on WebKit's private `-apple-system-glass-material` or `-apple-visual-effect` values, which are not stable web APIs.
+
+## Non-negotiable behavior
+
+- Playback, queue progression, downloads, Library, playlists, and service-worker updates must behave exactly as they do before the visual migration.
+- The document keeps its existing scroll ownership and safe-area layout until a separately reviewed stage explicitly changes geometry.
+- Fixed chrome must remain translucent when content passes behind it, without fading, clipping, or blurring its labels and icons.
+- Installed iOS testing is required. Chromium emulation is useful but does not approve a stage involving WebKit compositing.
+- Dark remains the default. Light and System appearances receive complete glass and opaque-fallback treatments.
+- `prefers-reduced-transparency`, `prefers-reduced-motion`, increased contrast, forced colors, keyboard navigation, and 200% text zoom remain supported.
+- A browser without `backdrop-filter` receives an opaque surface with the same hierarchy and readable contrast.
+- Each stage is independently deployable and revertible. Do not combine stages into one release.
+
+## Stage 0 — Baseline and visual test matrix
+
+Establish evidence before changing the interface.
+
+Deliver:
+
+- Capture reference images for Browse, an album, a playlist, Settings, the mini player, and Now Playing.
+- Record phone layouts with and without the mini player, in browser and installed PWA modes.
+- Add a manual test sheet for current iPhone Safari, installed iOS PWA, macOS Safari, Chromium, and Firefox.
+- Record computed safe-area dimensions and which element owns vertical scrolling.
+- Document the expected service-worker update sequence for visual releases.
+
+Acceptance:
+
+- The baseline images are labeled by browser, operating system, viewport, theme, and commit.
+- The installed iOS header has no label or icon fade.
+- The top and bottom chrome blur content that visibly passes behind them.
+- Playback remains controllable from the page and the operating-system media surface.
+- The app can update from one deployed test build to the next without clearing browser storage.
+
+Rollback boundary: documentation and test tooling only; no production visual changes.
+
+## Stage 1 — Material tokens and one reusable surface
+
+Create a single CSS material primitive without changing component geometry.
+
+Deliver:
+
+- Add semantic tokens for glass tint, border, edge highlight, shadow, blur, saturation, and fallback color in dark and light appearances.
+- Define regular, clear, and subdued project variants. Use clear only over artwork-rich surfaces.
+- Implement the material with a pseudo-element so blur and decorative light stay isolated from labels and icons.
+- Gate enhanced styling with `@supports (backdrop-filter: blur(1px))` and retain `-webkit-backdrop-filter` for older Safari.
+- Keep an opaque fallback and existing reduced-transparency behavior.
+- Apply the primitive to one low-risk surface, initially the desktop sidebar.
+
+Acceptance:
+
+- Sidebar content stays sharp while only the layer behind it is blurred.
+- Text and icons pass contrast checks over the lightest and darkest available content.
+- No stacking-context, menu-z-index, pointer-event, or scroll regression appears.
+- Unsupported blur and Reduced Transparency both produce a deliberate opaque surface.
+
+Rollback boundary: remove the shared material class and token block.
+
+## Stage 2 — Persistent navigation and player chrome
+
+Apply the proven primitive to the surfaces listeners use throughout a session.
+
+Deliver:
+
+- Adopt regular glass for the mobile header and navigation.
+- Adopt a slightly stronger material for the mini player so playback remains legible above navigation.
+- Add restrained one-pixel edge light and content-aware-looking shadows without sampling pixels in JavaScript.
+- Preserve the current header, player, navigation, safe-area, padding, and scrollbar geometry.
+- Keep all interactive children in a content layer above the glass pseudo-element.
+
+Acceptance:
+
+- Real-device iOS browser and installed PWA views retain transparency at the top and bottom.
+- The Living Music label and Settings icon never fade or blur.
+- Scrolling does not expose seams, black flashes, or opaque blocks.
+- The mini player remains usable at 320 px and does not overlap navigation.
+- Opening a playlist menu still places it above the independent-project bar and other fixed chrome.
+
+Rollback boundary: revert the three surfaces to their Stage 1 backgrounds without changing layout.
+
+## Stage 3 — Floating geometry and scroll edges
+
+Introduce the most visible Liquid Glass composition after material stability is proven.
+
+Deliver:
+
+- Prototype a floating mobile navigation capsule and a visually related mini-player accessory.
+- Add soft scroll-edge fades behind pinned controls, separate from the glass material itself.
+- Preserve safe-area spacing and ensure page content remains reachable above all fixed controls.
+- Keep the native page scrollbar behavior unless real-device testing proves an alternative reliable.
+- Evaluate a desktop floating player treatment without reducing queue or seek-control space.
+
+Acceptance:
+
+- Content never becomes hidden beneath the player or navigation at the end of a page.
+- The scrollbar does not pass visibly through control labels or disappear unexpectedly.
+- Top and bottom blur continue to sample scrolling content.
+- Layout passes portrait, landscape, dynamic text, keyboard, and 200% zoom checks.
+- Any scroll-edge effect disappears when no pinned control requires separation.
+
+Rollback boundary: material styling remains, while geometry returns to the existing full-width bars.
+
+## Stage 4 — Controls, menus, and interaction response
+
+Make glass respond to input without adding distracting continuous animation.
+
+Deliver:
+
+- Add edge-light and scale responses for press, hover, keyboard focus, and selected states.
+- Apply subdued glass to context menus, recording menus, playlist actions, and dialogs.
+- Prototype morph-like transitions between a triggering control and its menu or sheet using transforms and opacity.
+- Use the View Transitions API only as progressive enhancement; retain the current immediate route and dialog behavior.
+- Keep routine transitions within the existing 160–320 ms motion range.
+
+Acceptance:
+
+- Every action responds immediately and remains usable during or after interrupted animation.
+- Focus enters dialogs, stays trapped where required, and returns to the invoking control.
+- Reduced Motion replaces spatial movement with a brief fade or immediate state change.
+- Right-click, touch, keyboard, and pointer paths expose the same song actions.
+- No animation interrupts audio or delays queue mutations.
+
+Rollback boundary: remove interaction decoration while retaining the stable materials from Stages 1–3.
+
+## Stage 5 — Now Playing depth and restrained tint
+
+Use artwork to strengthen the player experience without turning all content into glass.
+
+Deliver:
+
+- Refine the existing artwork-derived Now Playing background into distinct content, atmosphere, and control layers.
+- Use clear glass only for bold playback controls over the media-rich background; use regular glass for menus and detailed text.
+- Add a restrained Living Music green tint to the primary action rather than tinting every control.
+- Adjust shadow and tint by theme through tokens, without canvas pixel sampling or cross-origin artwork processing.
+
+Acceptance:
+
+- Titles, recording labels, time values, and control symbols stay readable over every fixture artwork and the fallback artwork.
+- Missing or failed artwork produces an intentional neutral composition.
+- Changing tracks does not flash an unstyled or incorrectly tinted control layer.
+- Reduced Transparency replaces glass with solid surfaces while keeping artwork and controls clearly separated.
+
+Rollback boundary: restore the current Now Playing styling independently of persistent navigation glass.
+
+## Stage 6 — Performance, accessibility, and resilience gate
+
+Harden the complete treatment before making it the default.
+
+Deliver:
+
+- Profile scroll, menu, and Now Playing interactions on a representative iPhone and Mac.
+- Limit backdrop filters to persistent navigation and active overlays; remove nested or visually redundant filters.
+- Add browser tests for fallback classes, accessibility preferences, z-index ordering, and service-worker visual updates.
+- Run VoiceOver, keyboard-only, increased-contrast, Reduced Transparency, Reduced Motion, forced-colors, and 200% zoom checks.
+- Verify no visual effect changes Media Session, background playback recovery, downloads, or offline startup.
+
+Acceptance:
+
+- Scrolling and player interactions remain smooth during audio playback.
+- No fixed control becomes illegible over light or high-detail artwork.
+- Accessibility preferences change the material immediately and consistently.
+- A deployed update applies through the in-app Update action without manual cache clearing.
+- All type, unit, browser, production-build, and live smoke checks pass.
+
+Rollback boundary: a single release commit restores the Stage 5 candidate while retaining test coverage and findings.
+
+## Stage 7 — Controlled rollout
+
+Ship the verified design without trapping users on a broken visual release.
+
+Deliver:
+
+- Deploy the complete candidate behind one root class or versioned material switch.
+- Perform the installed-iOS smoke test against the actual GitHub Pages artifact.
+- Make the new material the default only after the live artifact passes.
+- Update screenshots, release notes, brand guidance, version, and build ID.
+- Keep the previous stable material definitions for one release cycle so rollback is a small, reviewable change.
+
+Acceptance:
+
+- GitHub Pages serves the expected hashed CSS and JavaScript assets.
+- The service worker presents and applies the update correctly.
+- Browser mode and installed mode match the approved visual references.
+- No unresolved severity-one visual, playback, navigation, or update issue remains.
+
+Rollback boundary: switch the root material class to the prior stable implementation and publish a patch release.
+
+## Validation matrix
+
+Every visual stage must cover:
+
+| Environment | Required checks |
+| --- | --- |
+| Installed iPhone PWA | Safe areas, header content, blur, bottom chrome, scrolling, background playback, update flow |
+| iPhone Safari | Browser chrome resizing, portrait/landscape, scroll edges, playback |
+| macOS Safari | Sidebar/player materials, menus, keyboard, reduced transparency |
+| Chromium desktop/mobile | Layout, fallback paths, automated browser suite |
+| Firefox | Opaque or standard-blur fallback, keyboard, playback |
+| Offline installed PWA | Cached shell, settings, library, downloaded playback, update recovery |
+
+For each environment, test dark, light, and system appearances. Accessibility passes add Reduced Transparency, Reduced Motion, increased contrast, forced colors where available, and 200% text zoom.
+
+## Implementation order and commit policy
+
+1. Complete only one stage at a time.
+2. Keep the stage diff limited to its listed surfaces and tests.
+3. Run type checking, unit tests, the production build, and browser tests before each push.
+4. Deploy the stage to GitHub Pages and use the in-app Update action.
+5. Test the installed iOS PWA on a physical device.
+6. Record the result in this document or the release notes.
+7. Continue only after the stage meets its acceptance criteria; otherwise revert that stage.
+
+Recommended commit sequence:
+
+- `Document Liquid Glass baseline`
+- `Add Liquid Glass material tokens`
+- `Apply glass to persistent chrome`
+- `Introduce floating navigation geometry`
+- `Add responsive glass interactions`
+- `Refine Now Playing glass depth`
+- `Harden Liquid Glass accessibility and performance`
+- `Release Liquid Glass interface`
+
+## References
+
+- [Apple: Meet Liquid Glass](https://developer.apple.com/videos/play/wwdc2025/219/)
+- [Apple: Get to know the new design system](https://developer.apple.com/videos/play/wwdc2025/356/)
+- [WebKit: Backdrop Filter in Safari](https://webkit.org/blog/15865/webkit-features-in-safari-18-0/)
+- [WebKit CSS Feature Status](https://webkit.org/css-status/)

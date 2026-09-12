@@ -6,7 +6,7 @@ The companion [musicapi](https://github.com/living-music/musicapi) repository pu
 
 ## Status
 
-The first seven-step prototype is complete. It supports live browsing, playback, Now Playing, an editable queue, global search, favorites, a populated Library, durable on-device listening state, and system media controls. All three post-prototype PWA phases are complete: offline-ready catalog updates, installation polish, durable IndexedDB listener data, and listener-selected offline music. See the [release notes](docs/RELEASE.md), [prototype checklist](docs/PROTOTYPE.md), and [implementation plan](docs/PLAN.md#post-prototype-pwa-roadmap).
+The first seven-step prototype is complete. It supports live browsing, playback, Now Playing, an editable queue, global search, favorites, a populated Library, durable on-device listening state, and system media controls. All three post-prototype PWA phases are complete: offline-ready catalog updates, installation polish, durable IndexedDB listener data, and listener-selected offline music. See the [release notes](docs/RELEASE.md), [prototype checklist](docs/PROTOTYPE.md), [implementation plan](docs/PLAN.md#post-prototype-pwa-roadmap), and [staged Liquid Glass plan](docs/LIQUID_GLASS.md).
 
 ## Requirements
 
@@ -68,6 +68,7 @@ src/
 tests/browser/             Production offline and update smoke tests
 playwright.config.ts        Browser PWA test configuration
 docs/PLAN.md               Product and implementation plan
+docs/LIQUID_GLASS.md       Staged Liquid Glass migration and validation plan
 docs/BRAND.md              App icon concept, assets, and usage rules
 docs/PROTOTYPE.md          Seven-step delivery checklist and current behavior
 docs/RELEASE.md            Prototype scope, QA record, limits, and release process

@@ -1,6 +1,6 @@
 # Living Music implementation plan
 
-Status: prototype and PWA Phases 1–3 complete, September 11, 2026.
+Status: prototype and PWA Phases 1–3 complete; Liquid Glass migration planned, September 12, 2026. See [Liquid Glass implementation plan](LIQUID_GLASS.md).
 
 ## Product goal
 
