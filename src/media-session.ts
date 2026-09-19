@@ -5,6 +5,8 @@ type MediaAction =
   | "pause"
   | "previoustrack"
   | "nexttrack"
+  | "seekbackward"
+  | "seekforward"
   | "seekto";
 
 interface MediaActionDetails {
@@ -36,6 +38,8 @@ const actions: MediaAction[] = [
   "seekto",
 ];
 
+const disabledSeekActions: MediaAction[] = ["seekbackward", "seekforward"];
+
 export function mediaArtist(track: PlayerTrack): string {
   return track.song.artists[0]
     || track.song.composers[0]
@@ -58,6 +62,7 @@ function browserMetadataFactory(): MetadataFactory | undefined {
 /** Keeps lock-screen, Control Center, and hardware media controls in sync with the shared audio engine. */
 export class MediaSessionController {
   private metadataKey: string | undefined;
+  private playbackActive = false;
 
   constructor(
     private readonly engine: AudioEngine,
@@ -66,19 +71,36 @@ export class MediaSessionController {
   ) {
     if (!session) return;
 
+    this.installActionHandlers();
+  }
+
+  private installActionHandlers(): void {
+    if (!this.session) return;
     const handlers: Record<MediaAction, (details: MediaActionDetails) => void> = {
       play: () => this.engine.play(),
       pause: () => this.engine.pause(),
       previoustrack: () => this.engine.previous(),
       nexttrack: () => this.engine.next(),
+      seekbackward: () => undefined,
+      seekforward: () => undefined,
       seekto: (details) => {
         if (typeof details.seekTime === "number") this.engine.seek(details.seekTime);
       },
     };
 
+    // WebKit can install its default ten-second seek controls when an audio
+    // session becomes active. Clear those commands before advertising the
+    // music-style previous/next controls.
+    for (const action of disabledSeekActions) {
+      try {
+        this.session.setActionHandler(action, null);
+      } catch {
+        // Browsers may expose Media Session while omitting individual actions.
+      }
+    }
     for (const action of actions) {
       try {
-        session.setActionHandler(action, handlers[action]);
+        this.session.setActionHandler(action, handlers[action]);
       } catch {
         // Browsers may expose Media Session while omitting individual actions.
       }
@@ -90,6 +112,13 @@ export class MediaSessionController {
 
     const track = snapshot.track;
     const nextKey = track ? `${track.song.id}:${track.recording.id}` : "";
+    const playbackActive = snapshot.status === "playing";
+    if (nextKey !== this.metadataKey || (playbackActive && !this.playbackActive)) {
+      // iOS may discard handlers registered before the underlying audio
+      // element starts playing or when its source changes.
+      this.installActionHandlers();
+    }
+    this.playbackActive = playbackActive;
     if (nextKey !== this.metadataKey) {
       this.metadataKey = nextKey;
       try {
@@ -127,9 +156,20 @@ export class MediaSessionController {
     }
   }
 
+  refresh(): void {
+    this.installActionHandlers();
+  }
+
   destroy(): void {
     if (!this.session) return;
     for (const action of actions) {
+      try {
+        this.session.setActionHandler(action, null);
+      } catch {
+        // Match the defensive setup path for partially supported browsers.
+      }
+    }
+    for (const action of disabledSeekActions) {
       try {
         this.session.setActionHandler(action, null);
       } catch {

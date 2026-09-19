@@ -104,9 +104,21 @@ describe("MediaSessionController", () => {
     expect(engine.pause).toHaveBeenCalledOnce();
     expect(engine.previous).toHaveBeenCalledOnce();
     expect(engine.next).toHaveBeenCalledOnce();
-    expect([...handlers.keys()]).toEqual(["play", "pause", "previoustrack", "nexttrack", "seekto"]);
-    expect(handlers.has("seekbackward")).toBe(false);
-    expect(handlers.has("seekforward")).toBe(false);
+    expect([...handlers.keys()]).toEqual([
+      "seekbackward",
+      "seekforward",
+      "play",
+      "pause",
+      "previoustrack",
+      "nexttrack",
+      "seekto",
+    ]);
+    expect(handlers.get("seekbackward")).toBeNull();
+    expect(handlers.get("seekforward")).toBeNull();
+
+    const callsBeforePlayback = session.setActionHandler.mock.calls.length;
+    controller.update(snapshot({ status: "playing" }));
+    expect(session.setActionHandler).toHaveBeenCalledTimes(callsBeforePlayback + 7);
 
     controller.destroy();
     expect([...handlers.values()].every((handler) => handler === null)).toBe(true);

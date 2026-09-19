@@ -879,6 +879,18 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
     mediaSessionRef.current?.update(player);
   }, [player]);
 
+  useEffect(() => {
+    const refreshMediaSession = () => {
+      if (document.visibilityState === "visible") mediaSessionRef.current?.refresh();
+    };
+    document.addEventListener("visibilitychange", refreshMediaSession);
+    window.addEventListener("pageshow", refreshMediaSession);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshMediaSession);
+      window.removeEventListener("pageshow", refreshMediaSession);
+    };
+  }, []);
+
   useEffect(() => () => mediaSessionRef.current?.destroy(), []);
 
   useEffect(() => {
