@@ -334,7 +334,7 @@ function BrowsePage({ catalog, onRetry }: { catalog: CatalogState; onRetry: () =
         eyebrow="All music"
         title="Browse"
         description={stats
-          ? `${stats.collectionCount.toLocaleString()} collections and ${stats.songCount.toLocaleString()} songs from the Living Music catalog.`
+          ? `${stats.collectionCount.toLocaleString()} ${stats.collectionCount === 1 ? "collection" : "collections"} and ${stats.playableSongCount.toLocaleString()} ${stats.playableSongCount === 1 ? "song" : "songs"} from the Living Music catalog.`
           : "Explore every collection in the Living Music catalog."}
       />
       <CatalogSection state={catalog} onRetry={onRetry} />

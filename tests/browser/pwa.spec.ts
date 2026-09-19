@@ -55,6 +55,12 @@ test("reloads Browse and an opened collection from catalog cache while offline",
   await expect(page.getByRole("heading", { name: "Search 2 songs." })).toBeVisible();
 });
 
+test("reports playable songs in the Browse catalog count", async ({ page }) => {
+  await page.goto("/#/browse");
+  await expect(page.getByText("1 collection and 2 songs from the Living Music catalog.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Unplayable Song", { exact: true })).toHaveCount(0);
+});
+
 test("shows a dedicated first-use offline state when no catalog is cached", async ({ page, context }) => {
   await page.goto("/#/browse");
   await waitForControl(page);

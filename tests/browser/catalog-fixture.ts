@@ -14,7 +14,7 @@ export const collection = {
   title: "Offline Hymns",
   artworkUrl: null,
   sourceUrl: "https://example.test/offline-hymns",
-  songCount: 2,
+  songCount: 3,
   playableSongCount: 2,
   revision: "sha256:collection",
   href: "collections/offline-hymns.json?v=collection",
@@ -23,8 +23,8 @@ export const catalog = {
   schemaVersion: 1,
   language: "eng",
   collections: [collection],
-  stats: { collectionCount: 1, songCount: 2, playableSongCount: 2 },
-  search: { revision: "sha256:search", href: "search.json?v=search", songCount: 2 },
+  stats: { collectionCount: 1, songCount: 3, playableSongCount: 2 },
+  search: { revision: "sha256:search", href: "search.json?v=search", songCount: 3 },
   revision: "sha256:index",
 };
 export const song = {
@@ -53,6 +53,13 @@ export const secondSong = {
   title: "Second Offline Song",
   recordings: [{ ...song.recordings[0], id: "offline-recording-two", url: "http://127.0.0.1:4173/musicapi/offline-two.wav" }],
 };
+export const unplayableSong = {
+  ...song,
+  id: "unplayable-song",
+  slug: "unplayable-song",
+  title: "Unplayable Song",
+  recordings: [],
+};
 
 export function silentWav(seconds = 2): Uint8Array {
   const sampleRate = 8000;
@@ -75,19 +82,19 @@ export async function writeCatalogFixture(): Promise<void> {
   await writeFile(`${dist}/musicapi/v1/index.json`, JSON.stringify(catalog));
   await writeFile(`${dist}/musicapi/v1/search.json`, JSON.stringify({
     schemaVersion: 1,
-    songs: [song, secondSong].map((entry) => ({
+    songs: [song, secondSong, unplayableSong].map((entry) => ({
       id: entry.id,
       title: entry.title,
       collectionId: collection.id,
       artists: [],
-      recordingTypes: ["AUDIO_VOCAL"],
+      recordingTypes: entry.recordings.map((recording) => recording.type),
     })),
     revision: "sha256:search",
   }));
   await writeFile(`${dist}/musicapi/v1/collections/offline-hymns.json`, JSON.stringify({
     schemaVersion: 1,
     collection,
-    songs: [song, secondSong],
+    songs: [song, secondSong, unplayableSong],
     revision: "sha256:collection",
   }));
 }

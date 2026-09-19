@@ -8,6 +8,7 @@ All notable user-visible changes to Living Music are recorded here.
 - Refined desktop transport proportions with smaller, sharper Previous and Next glyphs and a still smaller Repeat control, matching macOS Music's visual hierarchy.
 - Widened the desktop transport glyphs, preserved the softly rounded double-triangle silhouette, tightened their spacing, and enlarged Play/Pause for clearer hierarchy.
 - Added a View Complete Album action beneath Library album track lists so listeners can move from their saved songs to the full catalog album.
+- Corrected the Browse catalog total to count playable song titles and exclude entries without a playable recording.
 
 - Fixed consented Google Analytics events remaining queued instead of being sent to Google Analytics.
 
