@@ -66,13 +66,15 @@ export function MiniPlayer({
     <section class="mini-player glass-surface glass-surface--regular" aria-label="Player">
       <div class="mini-controls">
         <button type="button" onClick={onPrevious} aria-label="Previous song" disabled={!player.hasPrevious && progress === 0}>
-          <Icon name="previous" size={21} />
+          <span class="desktop-transport-icon"><Icon name="previousDesktop" size={16} /></span>
+          <span class="mobile-transport-icon"><Icon name="previous" size={21} /></span>
         </button>
         <button type="button" class="play-toggle" onClick={onToggle} aria-label={isActive ? "Pause" : "Play"}>
           <Icon name={isActive ? "pause" : "play"} filled={!isActive} size={22} />
         </button>
         <button type="button" onClick={onNext} aria-label="Next song" disabled={!player.hasNext}>
-          <Icon name="next" size={21} />
+          <span class="desktop-transport-icon"><Icon name="nextDesktop" size={16} /></span>
+          <span class="mobile-transport-icon"><Icon name="next" size={21} /></span>
         </button>
         <button
           type="button"
@@ -81,7 +83,7 @@ export function MiniPlayer({
           aria-label={repeatLabel(player.repeatMode)}
           aria-pressed={player.repeatMode !== "off"}
         >
-          <Icon name="repeat" size={18} />
+          <Icon name="repeat" size={14} />
           {player.repeatMode === "one" && <span>1</span>}
         </button>
       </div>

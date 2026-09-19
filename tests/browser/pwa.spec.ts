@@ -262,7 +262,7 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
     { width: "3.5", radius: "1.2" },
     { width: "3.5", radius: "1.2" },
   ]);
-  const nextIconPaths = await page.getByRole("button", { name: "Next song" }).locator("path").evaluateAll((paths) =>
+  const nextIconPaths = await page.getByRole("button", { name: "Next song" }).locator(".mobile-transport-icon path").evaluateAll((paths) =>
     paths.map((path) => ({ fill: path.getAttribute("fill"), stroke: path.getAttribute("stroke") })),
   );
   expect(nextIconPaths).toEqual([
@@ -328,6 +328,9 @@ test("uses a compact macOS-style desktop mini player", async ({ page }) => {
     buttons.map((button) => button.getAttribute("aria-label")),
   );
   expect(transportLabels).toEqual(["Previous song", "Pause", "Next song", "Repeat off"]);
+  expect(await player.locator(".mini-controls button svg").evaluateAll((icons) =>
+    icons.filter((icon) => getComputedStyle(icon.parentElement!).display !== "none").map((icon) => icon.getAttribute("width")),
+  )).toEqual(["16", "22", "16", "14"]);
   await expect(player).toHaveCSS("--glass-material-blur", "10px");
   await expect(player).toHaveCSS("--glass-material-saturation", "165%");
   await expect(page.getByRole("button", { name: "Repeat off" })).toBeVisible();

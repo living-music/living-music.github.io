@@ -1303,6 +1303,16 @@ a.collection-card:active { transform: scale(0.985); }
   font-weight: 760;
 }
 
+.mini-controls .desktop-transport-icon,
+.mini-controls .mobile-transport-icon {
+  position: static;
+  align-items: center;
+  justify-content: center;
+}
+
+.desktop-transport-icon { display: inline-flex; }
+.mobile-transport-icon { display: none; }
+
 .mini-controls .play-toggle {
   color: var(--text);
   background: transparent;
@@ -1440,6 +1450,8 @@ a.collection-card:active { transform: scale(0.985); }
   .mini-controls button { width: 2.5rem; height: 2.5rem; }
   .mini-controls button:first-child { display: none; }
   .mini-controls button:nth-child(4) { display: none; }
+  .desktop-transport-icon { display: none; }
+  .mobile-transport-icon { display: inline-flex; }
   .mini-controls .play-toggle,
   .mini-controls .play-toggle:hover:not(:disabled) {
     color: var(--text);

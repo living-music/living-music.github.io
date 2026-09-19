@@ -168,6 +168,7 @@ Implementation record — September 12, 2026:
 - Restored Chromium backdrop blur by placing the unprefixed `backdrop-filter` after its WebKit-prefixed fallback. Vite's production CSS optimizer otherwise retained only the final prefixed declaration; browser coverage now asserts the capsules' computed filters rather than only their blur variables.
 - Released the mini-player's entrance transform when its animation completes. Chromium kept the filter in computed styles but could not sample the page backdrop while the outer glass element remained in a retained transformed layer; coverage now verifies that the persistent player returns to `transform: none`.
 - Reworked the desktop mini player around the macOS 27 Music reference: a centered floating capsule now uses the same material recipe as the iOS player, places Repeat directly after Next, keeps artwork and metadata on the capsule's unified surface, and presents a short timeline without time labels. The desktop player no longer reads as a full-width footer, while the established mobile capsule remains unchanged.
+- Matched the macOS transport hierarchy with compact, sharply triangular Previous and Next glyphs below the visual weight of Play/Pause, followed by a still smaller Repeat glyph. Mobile retains its wider rounded double-forward symbol.
 
 ## Stage 4 — Controls, menus, and interaction response
 
