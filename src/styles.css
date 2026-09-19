@@ -1313,6 +1313,13 @@ a.collection-card:active { transform: scale(0.985); }
 .desktop-transport-icon { display: inline-flex; }
 .mobile-transport-icon { display: none; }
 
+@media (min-width: 761px) {
+  .mini-controls { gap: 0; }
+  .mini-controls > button:nth-child(-n + 3) { width: 2.15rem; }
+  .mini-controls > button:nth-child(4) { width: 2rem; margin-left: 0.1rem; }
+  .mini-controls .play-toggle .icon { width: 29px; height: 27px; }
+}
+
 .mini-controls .play-toggle {
   color: var(--text);
   background: transparent;

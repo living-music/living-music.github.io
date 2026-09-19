@@ -330,7 +330,7 @@ test("uses a compact macOS-style desktop mini player", async ({ page }) => {
   expect(transportLabels).toEqual(["Previous song", "Pause", "Next song", "Repeat off"]);
   expect(await player.locator(".mini-controls button svg").evaluateAll((icons) =>
     icons.filter((icon) => getComputedStyle(icon.parentElement!).display !== "none").map((icon) => icon.getAttribute("width")),
-  )).toEqual(["16", "22", "16", "14"]);
+  )).toEqual(["19", "27", "19", "14"]);
   await expect(player).toHaveCSS("--glass-material-blur", "10px");
   await expect(player).toHaveCSS("--glass-material-saturation", "165%");
   await expect(page.getByRole("button", { name: "Repeat off" })).toBeVisible();

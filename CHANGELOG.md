@@ -6,6 +6,7 @@ All notable user-visible changes to Living Music are recorded here.
 
 - Reworked the desktop mini player into a compact macOS Music-inspired capsule using the iOS player glass, with Repeat beside Next and a unified track/timeline surface without time labels.
 - Refined desktop transport proportions with smaller, sharper Previous and Next glyphs and a still smaller Repeat control, matching macOS Music's visual hierarchy.
+- Widened the desktop transport glyphs, preserved the softly rounded double-triangle silhouette, tightened their spacing, and enlarged Play/Pause for clearer hierarchy.
 
 - Fixed consented Google Analytics events remaining queued instead of being sent to Google Analytics.
 

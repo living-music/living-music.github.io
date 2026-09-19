@@ -66,14 +66,14 @@ export function MiniPlayer({
     <section class="mini-player glass-surface glass-surface--regular" aria-label="Player">
       <div class="mini-controls">
         <button type="button" onClick={onPrevious} aria-label="Previous song" disabled={!player.hasPrevious && progress === 0}>
-          <span class="desktop-transport-icon"><Icon name="previousDesktop" size={16} /></span>
+          <span class="desktop-transport-icon"><Icon name="previousDesktop" size={19} /></span>
           <span class="mobile-transport-icon"><Icon name="previous" size={21} /></span>
         </button>
         <button type="button" class="play-toggle" onClick={onToggle} aria-label={isActive ? "Pause" : "Play"}>
-          <Icon name={isActive ? "pause" : "play"} filled={!isActive} size={22} />
+          <Icon name={isActive ? "pause" : "play"} filled={!isActive} size={27} />
         </button>
         <button type="button" onClick={onNext} aria-label="Next song" disabled={!player.hasNext}>
-          <span class="desktop-transport-icon"><Icon name="nextDesktop" size={16} /></span>
+          <span class="desktop-transport-icon"><Icon name="nextDesktop" size={19} /></span>
           <span class="mobile-transport-icon"><Icon name="next" size={21} /></span>
         </button>
         <button
