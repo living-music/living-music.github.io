@@ -123,6 +123,8 @@ test("applies updated shell assets only after the listener approves them", async
 
 test("applies saved light and system appearance to the browser theme color", async ({ page }) => {
   await page.goto("/");
+  await expect(page.locator('meta[name="color-scheme"][content="dark light"]')).toHaveCount(1);
+  await expect(page.locator('meta[name="darkreader-lock"]')).toHaveCount(1);
   await page.evaluate(() => localStorage.setItem("livingMusic:theme", "light"));
   await page.reload();
   await expect.poll(() => page.locator('meta[name="theme-color"]').getAttribute("content")).toBe("#f2f2f7");

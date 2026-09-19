@@ -9,6 +9,7 @@ All notable user-visible changes to Living Music are recorded here.
 - Widened the desktop transport glyphs, preserved the softly rounded double-triangle silhouette, tightened their spacing, and enlarged Play/Pause for clearer hierarchy.
 - Added a View Complete Album action beneath Library album track lists so listeners can move from their saved songs to the full catalog album.
 - Corrected the Browse catalog total to count playable song titles and exclude entries without a playable recording.
+- Marked Living Music as theme-aware and opted it out of Dark Reader recoloring so its built-in dark and light appearances remain intact.
 
 - Fixed consented Google Analytics events remaining queued instead of being sent to Google Analytics.
 
