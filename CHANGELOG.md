@@ -4,6 +4,8 @@ All notable user-visible changes to Living Music are recorded here.
 
 ## Unreleased
 
+- Reworked the desktop mini player into a compact macOS Music-inspired glass capsule with separated transport, track, timeline, repeat, and queue regions.
+
 - Fixed consented Google Analytics events remaining queued instead of being sent to Google Analytics.
 
 - Hidden songs without playable recordings from collection, search, Library, Favorites, and playlist views.

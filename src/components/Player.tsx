@@ -46,6 +46,7 @@ export function MiniPlayer({
   onNext,
   onSeek,
   onOpen,
+  onCycleRepeat,
 }: {
   player: PlayerSnapshot;
   onToggle: () => void;
@@ -53,6 +54,7 @@ export function MiniPlayer({
   onNext: () => void;
   onSeek: (seconds: number) => void;
   onOpen: () => void;
+  onCycleRepeat: () => void;
 }) {
   if (!player.track) return null;
 
@@ -62,17 +64,6 @@ export function MiniPlayer({
 
   return (
     <section class="mini-player glass-surface glass-surface--regular" aria-label="Player">
-      <SeekBar player={player} onSeek={onSeek} />
-
-      <button id="now-playing-trigger" type="button" class="mini-track" onClick={onOpen} aria-label="Open Now Playing">
-        <Artwork url={player.track.artworkUrl} alt="" className="mini-artwork" />
-        <span class="mini-copy">
-          <strong>{player.track.song.title}</strong>
-          <small>{player.track.recording.label} · {player.track.collectionTitle}</small>
-        </span>
-      </button>
-
-      <span class="player-time elapsed">{formatTime(progress)}</span>
       <div class="mini-controls">
         <button type="button" onClick={onPrevious} aria-label="Previous song" disabled={!player.hasPrevious && progress === 0}>
           <Icon name="previous" size={21} />
@@ -84,7 +75,37 @@ export function MiniPlayer({
           <Icon name="next" size={21} />
         </button>
       </div>
-      <span class="player-time remaining">−{formatTime(Math.max(0, duration - progress))}</span>
+
+      <div class="mini-track-region">
+        <button id="now-playing-trigger" type="button" class="mini-track" onClick={onOpen} aria-label="Open Now Playing">
+          <Artwork url={player.track.artworkUrl} alt="" className="mini-artwork" />
+          <span class="mini-copy">
+            <strong>{player.track.song.title}</strong>
+            <small>{player.track.recording.label} · {player.track.collectionTitle}</small>
+          </span>
+        </button>
+        <div class="mini-timeline">
+          <span class="player-time elapsed">{formatTime(progress)}</span>
+          <SeekBar player={player} onSeek={onSeek} />
+          <span class="player-time remaining">−{formatTime(Math.max(0, duration - progress))}</span>
+        </div>
+      </div>
+
+      <div class="mini-secondary-controls">
+        <button
+          type="button"
+          class={player.repeatMode !== "off" ? "is-active" : ""}
+          onClick={onCycleRepeat}
+          aria-label={repeatLabel(player.repeatMode)}
+          aria-pressed={player.repeatMode !== "off"}
+        >
+          <Icon name="repeat" size={18} />
+          {player.repeatMode === "one" && <span>1</span>}
+        </button>
+        <button type="button" onClick={onOpen} aria-label="Open Playing Next">
+          <Icon name="queue" size={19} />
+        </button>
+      </div>
 
       <span class="player-announcement" aria-live="polite">
         {player.error || (player.status === "loading" ? `Loading ${player.track.song.title}` : "")}

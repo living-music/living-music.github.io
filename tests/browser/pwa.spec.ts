@@ -306,6 +306,27 @@ test("floats persistent mobile chrome while keeping content reachable", async ({
   ]);
 });
 
+test("uses a compact macOS-style desktop mini player", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/#/collection/offline-hymns");
+  await page.getByRole("button", { name: "Play Offline Song" }).click();
+
+  const player = page.locator(".mini-player");
+  const trackRegion = page.locator(".mini-track-region");
+  await expect.poll(() => player.evaluate((element) => getComputedStyle(element).transform)).toBe("none");
+  const [playerBox, trackBox] = await Promise.all([player.boundingBox(), trackRegion.boundingBox()]);
+  expect(playerBox?.width).toBeLessThanOrEqual(840);
+  expect(playerBox?.height).toBeLessThanOrEqual(62);
+  expect(playerBox?.x).toBeGreaterThan(300);
+  expect(900 - ((playerBox?.y ?? 0) + (playerBox?.height ?? 0))).toBeGreaterThanOrEqual(15);
+  expect(Number.parseFloat(await player.evaluate((element) => getComputedStyle(element).borderRadius))).toBeGreaterThanOrEqual((playerBox?.height ?? 0) / 2);
+  expect(trackBox?.width).toBeGreaterThan(300);
+  expect(trackBox?.height).toBeLessThan(playerBox?.height ?? 0);
+  await expect(page.getByRole("button", { name: "Repeat off" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open Playing Next" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Playback position" })).toBeVisible();
+});
+
 test("retains only the two newest revisions for each catalog path", async ({ page }) => {
   await page.goto("/#/browse");
   await waitForControl(page);

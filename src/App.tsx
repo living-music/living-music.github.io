@@ -1418,6 +1418,7 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
         onNext={() => engine.next()}
         onSeek={(seconds) => engine.seek(seconds)}
         onOpen={() => setNowPlayingOpen(true)}
+        onCycleRepeat={() => engine.cycleRepeat()}
       />
 
       <NowPlaying
