@@ -7,7 +7,7 @@ type GtagCommand = [command: string, ...arguments_: unknown[]];
 
 declare global {
   interface Window {
-    dataLayer?: GtagCommand[];
+    dataLayer?: unknown[];
     gtag?: (...arguments_: GtagCommand) => void;
     [key: `ga-disable-${string}`]: boolean | undefined;
   }
@@ -36,9 +36,11 @@ export function isAnalyticsConfigured(): boolean {
   return analyticsAvailable();
 }
 
-function command(...arguments_: GtagCommand): void {
+function command(..._arguments: GtagCommand): void {
   window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push(arguments_);
+  // Google Tag consumes the Arguments objects produced by the standard gtag
+  // wrapper. Plain arrays remain in dataLayer but are not dispatched.
+  window.dataLayer.push(arguments);
 }
 
 function initializeAnalytics(): void {

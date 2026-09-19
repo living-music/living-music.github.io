@@ -4,6 +4,8 @@ All notable user-visible changes to Living Music are recorded here.
 
 ## Unreleased
 
+- Fixed consented Google Analytics events remaining queued instead of being sent to Google Analytics.
+
 - Hidden songs without playable recordings from collection, search, Library, Favorites, and playlist views.
 
 - Added opt-in Google Analytics page views with a required first-run choice, sanitized routes, disabled advertising features, and a Settings privacy control.

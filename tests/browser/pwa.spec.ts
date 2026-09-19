@@ -26,6 +26,15 @@ test("loads Google Analytics only after the listener allows it", async ({ page }
   await expect(banner).toHaveCount(0);
   await expect(page.locator('script[src*="googletagmanager.com/gtag/js?id=G-28F9HDLPNC"]')).toHaveCount(1);
   await expect.poll(() => page.evaluate(() => localStorage.getItem("livingMusic:analyticsEnabled:v1"))).toBe("true");
+  await expect.poll(() => page.evaluate(() => window.dataLayer?.slice(0, 4).map((entry) => ({
+    kind: Object.prototype.toString.call(entry),
+    command: Array.from(entry as ArrayLike<unknown>)[0],
+  })))).toEqual([
+    { kind: "[object Arguments]", command: "consent" },
+    { kind: "[object Arguments]", command: "js" },
+    { kind: "[object Arguments]", command: "config" },
+    { kind: "[object Arguments]", command: "event" },
+  ]);
 });
 
 test("reloads Browse and an opened collection from catalog cache while offline", async ({ page, context }) => {
