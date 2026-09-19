@@ -4,6 +4,8 @@ All notable user-visible changes to Living Music are recorded here.
 
 ## Unreleased
 
+- Hidden songs without playable recordings from collection, search, Library, Favorites, and playlist views.
+
 - Added opt-in Google Analytics page views with a required first-run choice, sanitized routes, disabled advertising features, and a Settings privacy control.
 
 - Added explicit song, album, and playlist downloads with queued, active, completed, failed, interrupted, and stale-source states.

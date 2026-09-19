@@ -1,5 +1,6 @@
 import type { Playlist } from "./storage";
 import type { SearchSong } from "./types";
+import { isPlayableSearchSong } from "./playability";
 
 export function createPlaylist(name: string, id: string, timestamp: string): Playlist {
   return { id, name: name.trim(), createdAt: timestamp, updatedAt: timestamp, songIds: [] };
@@ -33,7 +34,7 @@ export function resolvePlaylistSongs(songs: SearchSong[], songIds: string[]): Se
   const byId = new Map(songs.map((song) => [song.id, song]));
   return songIds.flatMap((songId) => {
     const song = byId.get(songId);
-    return song ? [song] : [];
+    return song && isPlayableSearchSong(song) ? [song] : [];
   });
 }
 

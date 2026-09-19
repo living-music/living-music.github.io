@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "preact/hooks";
 import { normalizeSearch, CatalogClient } from "../api";
 import { catalogFailure, type CatalogFailureKind } from "../connectivity";
 import { Icon } from "../Icon";
+import { isPlayableSearchSong } from "../playability";
 import type { PlayerStatus } from "../player";
 import type { Playlist } from "../storage";
 import type { DownloadRecord } from "../downloads";
@@ -45,6 +46,7 @@ export function filterSearchSongs(
   const collectionNames = new Map(catalog.collections.map((collection) => [collection.id, collection.title]));
   const terms = normalized.split(/\s+/).filter(Boolean);
   return search.songs.filter((song) => {
+    if (!isPlayableSearchSong(song)) return false;
     const searchable = normalizeSearch([
       song.title,
       song.number,
@@ -126,6 +128,7 @@ export function SongResults({
     () => new Map(catalog.collections.map((collection) => [collection.id, collection])),
     [catalog],
   );
+  const playableSongs = songs.filter(isPlayableSearchSong);
 
   const play = async (song: SearchSong) => {
     setPendingId(song.id);
@@ -143,11 +146,10 @@ export function SongResults({
     <>
       {actionError && <p class="result-action-error" role="alert">{actionError}</p>}
       <ol class="result-list">
-        {songs.map((song) => {
+        {playableSongs.map((song) => {
           const collection = collections.get(song.collectionId);
           const current = currentSongId === song.id;
           const active = current && (playerStatus === "playing" || playerStatus === "loading");
-          const playable = song.recordingTypes.length > 0;
           const download = downloads.get(song.id);
           return (
             <li
@@ -162,10 +164,8 @@ export function SongResults({
                 type="button"
                 class="result-main"
                 onClick={() => void play(song)}
-                disabled={!playable || pendingId === song.id}
-                aria-label={playable
-                  ? active ? `Pause ${song.title}` : `Play ${song.title}`
-                  : `${song.title}, no audio available`}
+                disabled={pendingId === song.id}
+                aria-label={active ? `Pause ${song.title}` : `Play ${song.title}`}
               >
                 <Artwork url={collection?.artworkUrl} alt="" className="result-artwork" />
                 <span class="result-copy">
@@ -201,7 +201,6 @@ export function SongResults({
                 <DownloadStatus
                   title={song.title}
                   download={download}
-                  disabled={!playable}
                   onDownload={onDownload ? () => onDownload(song) : undefined}
                   onRemoveDownload={onRemoveDownload ? () => onRemoveDownload(song.id) : undefined}
                 />
@@ -277,6 +276,10 @@ export function SearchExperience({
   const search = useSearchIndex(client);
   const [query, setQuery] = useState("");
   const normalized = normalizeSearch(query);
+  const playableSongCount = useMemo(
+    () => search.status === "ready" ? search.index.songs.filter(isPlayableSearchSong).length : 0,
+    [search],
+  );
 
   const matches = useMemo(
     () => search.status === "ready" ? filterSearchSongs(search.index, catalog, normalized) : [],
@@ -308,7 +311,7 @@ export function SearchExperience({
       {search.status === "ready" && !normalized && (
         <section class="search-prompt">
           <Icon name="music" size={28} />
-          <h2>Search {search.index.songs.length.toLocaleString()} songs.</h2>
+          <h2>Search {playableSongCount.toLocaleString()} songs.</h2>
           <p>Try a title, song number, artist, or collection name.</p>
         </section>
       )}

@@ -35,9 +35,9 @@ describe("playlist management", () => {
   it("resolves playlist songs in insertion order and ignores removed catalog IDs", () => {
     const songs = [
       { id: "one", title: "One", collectionId: "album", artists: [], recordingTypes: [] },
-      { id: "two", title: "Two", collectionId: "album", artists: [], recordingTypes: [] },
+      { id: "two", title: "Two", collectionId: "album", artists: [], recordingTypes: ["AUDIO_VOCAL"] },
     ];
-    expect(resolvePlaylistSongs(songs, ["two", "missing", "one"]).map((song) => song.id)).toEqual(["two", "one"]);
+    expect(resolvePlaylistSongs(songs, ["two", "missing", "one"]).map((song) => song.id)).toEqual(["two"]);
   });
 
   it("randomizes a copy without changing the saved playlist order", () => {

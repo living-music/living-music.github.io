@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
 import type { CatalogClient } from "../api";
 import { Icon } from "../Icon";
+import { isPlayableSearchSong, isPlayableSong } from "../playability";
 import type { PlayerStatus } from "../player";
 import type { Playlist } from "../storage";
 import type { DownloadRecord } from "../downloads";
@@ -30,7 +31,7 @@ export function libraryAlbumGroups(
 
   for (const albumId of albumIds) {
     const collection = collections.get(albumId);
-    if (!collection) continue;
+    if (!collection || collection.playableSongCount === 0) continue;
     groups.set(albumId, {
       collection,
       savedSongIds: [],
@@ -40,7 +41,7 @@ export function libraryAlbumGroups(
   }
 
   for (const song of search.songs) {
-    if (!songIds.has(song.id)) continue;
+    if (!songIds.has(song.id) || !isPlayableSearchSong(song)) continue;
     const collection = collections.get(song.collectionId);
     if (!collection) continue;
     const group = groups.get(song.collectionId) || {
@@ -66,7 +67,7 @@ export function recentLibraryAlbumGroups(groups: LibraryAlbumGroup[]): LibraryAl
 
 export function savedSongs(search: SearchIndex, songIds: Set<string>, videosOnly = false): SearchSong[] {
   return search.songs
-    .filter((song) => songIds.has(song.id) && (!videosOnly || song.recordingTypes.includes("VIDEO")))
+    .filter((song) => isPlayableSearchSong(song) && songIds.has(song.id) && (!videosOnly || song.recordingTypes.includes("VIDEO")))
     .sort((left, right) => left.title.localeCompare(right.title, undefined, { sensitivity: "base" }));
 }
 
@@ -76,7 +77,7 @@ export function favoriteSongsByAddedDate(
   favoriteAddedAt: Record<string, string>,
 ): SearchSong[] {
   return search.songs
-    .filter((song) => favoriteIds.has(song.id))
+    .filter((song) => isPlayableSearchSong(song) && favoriteIds.has(song.id))
     .sort((left, right) =>
       (favoriteAddedAt[right.id] || "").localeCompare(favoriteAddedAt[left.id] || "") ||
       left.title.localeCompare(right.title, undefined, { sensitivity: "base" }),
@@ -132,7 +133,7 @@ function RecentAlbums({ groups }: { groups: LibraryAlbumGroup[] }) {
         const savedCount = group.savedSongIds.length;
         const detail = savedCount > 0
           ? `${savedCount.toLocaleString()} Library ${savedCount === 1 ? "song" : "songs"}`
-          : `${group.collection.songCount.toLocaleString()} ${group.collection.songCount === 1 ? "song" : "songs"}`;
+          : `${group.collection.playableSongCount.toLocaleString()} ${group.collection.playableSongCount === 1 ? "song" : "songs"}`;
         return (
           <a class="recent-library-card" href={hrefForLibraryAlbum(group.collection.id)} key={group.collection.id}>
             <Artwork url={group.collection.artworkUrl} alt="" />
@@ -219,7 +220,7 @@ export function LibraryViews({
   const downloadedSongs = searchIndex ? [
     ...savedSongs(searchIndex, downloadedSongIds),
     ...[...downloads.values()].flatMap((record) => {
-      if ((record.status !== "downloaded" && record.status !== "stale") || !record.song || searchIndex.songs.some((song) => song.id === record.songId)) return [];
+      if ((record.status !== "downloaded" && record.status !== "stale") || !record.song || !isPlayableSong(record.song) || searchIndex.songs.some((song) => song.id === record.songId && isPlayableSearchSong(song))) return [];
       return [{ id: record.song.id, title: record.song.title, number: record.song.number, collectionId: record.collectionId, artists: record.song.artists, recordingTypes: record.song.recordings.map((entry) => entry.type) }];
     }),
   ].sort((left, right) => left.title.localeCompare(right.title, undefined, { sensitivity: "base" })) : [];
@@ -232,7 +233,7 @@ export function LibraryViews({
         {needsSearch && search.status === "error" && <ResultsError message={search.message} kind={search.kind} />}
 
         {searchIndex && view === "favorites" && (
-          favorites.size > 0
+          favoriteSongs.length > 0
             ? <div class="library-song-view">
                 <div class="results-heading">
                   <h2>Favorites</h2>
@@ -269,49 +270,43 @@ export function LibraryViews({
             : <LibraryEmpty icon="browse" title="Add an album." description="Add an album or one of its songs to keep it in your Library." href="#/browse" action="Browse albums" />
         )}
 
-        {view === "songs" && !librarySongs.size && (
+        {view === "songs" && searchIndex && !songs.length && (
           <LibraryEmpty icon="browse" title="Add songs to your Library." description="Select the add button beside any song and it will appear here." href="#/search" action="Find music" />
         )}
-        {view === "videos" && !librarySongs.size && (
+        {view === "videos" && searchIndex && !videos.length && (
           <LibraryEmpty icon="video" title="Add a music video." description="Video-backed songs you add to your Library will appear here." href="#/search" action="Find music videos" />
         )}
-        {view === "downloaded" && !downloadedSongIds.size && (
+        {view === "downloaded" && searchIndex && !downloadedSongs.length && (
           <LibraryEmpty icon="browse" title="Download music for offline listening." description="Open a song, album, or playlist menu and choose Download." href="#/browse" action="Browse music" />
         )}
-        {(view === "songs" || view === "videos" || view === "downloaded") && searchIndex && (view === "downloaded" ? downloadedSongIds.size > 0 : librarySongs.size > 0) && (
-          activeSongs.length ? (
-            <div class="library-song-view">
-              <div class="results-heading">
-                <h2>{view === "videos" ? "Music Videos" : view === "downloaded" ? "Downloaded" : "Songs"}</h2>
-                <p>{activeSongs.length.toLocaleString()} saved</p>
-              </div>
-              <SongResults
-                songs={activeSongs.slice(0, visibleCount)}
-                catalog={catalog}
-                favorites={favorites}
-                librarySongs={librarySongs}
-                playlists={playlists}
-                currentSongId={currentSongId}
-                playerStatus={playerStatus}
-                onToggleFavorite={onToggleFavorite}
-                onToggleLibrarySong={onToggleLibrarySong}
-                onAddToPlaylist={onAddToPlaylist}
-                downloads={downloads}
-                onDownload={onDownload}
-                onRemoveDownload={onRemoveDownload}
-                onPlay={onPlay}
-              />
-              {visibleCount < activeSongs.length && (
-                <button type="button" class="library-load-more secondary-action" onClick={() => setVisibleCount((count) => count + 100)}>
-                  Show more
-                </button>
-              )}
+        {(view === "songs" || view === "videos" || view === "downloaded") && searchIndex && activeSongs.length > 0 && (
+          <div class="library-song-view">
+            <div class="results-heading">
+              <h2>{view === "videos" ? "Music Videos" : view === "downloaded" ? "Downloaded" : "Songs"}</h2>
+              <p>{activeSongs.length.toLocaleString()} saved</p>
             </div>
-          ) : view === "videos" ? (
-            <LibraryEmpty icon="video" title="No Library music videos." description="Add a video-backed song to your Library and it will appear here." href="#/search" action="Find music videos" />
-          ) : (
-            <ResultsError message="Your Library song IDs are no longer present in the current catalog." />
-          )
+            <SongResults
+              songs={activeSongs.slice(0, visibleCount)}
+              catalog={catalog}
+              favorites={favorites}
+              librarySongs={librarySongs}
+              playlists={playlists}
+              currentSongId={currentSongId}
+              playerStatus={playerStatus}
+              onToggleFavorite={onToggleFavorite}
+              onToggleLibrarySong={onToggleLibrarySong}
+              onAddToPlaylist={onAddToPlaylist}
+              downloads={downloads}
+              onDownload={onDownload}
+              onRemoveDownload={onRemoveDownload}
+              onPlay={onPlay}
+            />
+            {visibleCount < activeSongs.length && (
+              <button type="button" class="library-load-more secondary-action" onClick={() => setVisibleCount((count) => count + 100)}>
+                Show more
+              </button>
+            )}
+          </div>
         )}
       </div>
     </section>

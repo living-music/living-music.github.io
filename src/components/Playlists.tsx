@@ -192,6 +192,7 @@ export function PlaylistPage({
     const status = downloads.get(song.id)?.status;
     return status === "queued" || status === "downloading";
   });
+  const visibleSongCount = search.status === "ready" ? songs.length : playlist.songIds.length;
 
   const start = async (orderedSongs: SearchSong[], songId?: string) => {
     setStarting(true);
@@ -211,7 +212,7 @@ export function PlaylistPage({
       <header class="page-header">
         <p class="eyebrow">Playlist</p>
         <h1>{playlist.name}</h1>
-        <p class="page-description">{playlist.songIds.length} {playlist.songIds.length === 1 ? "song" : "songs"}</p>
+        <p class="page-description">{visibleSongCount} {visibleSongCount === 1 ? "song" : "songs"}</p>
         {playlist.songIds.length > 0 && (
           <div class="playlist-playback-actions">
             <button type="button" class="playlist-play-action" disabled={!songs.length || starting} onClick={() => void start(songs)}>

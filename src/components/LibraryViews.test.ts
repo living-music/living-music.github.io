@@ -9,6 +9,7 @@ const search: SearchIndex = {
     { id: "one", title: "Zion", collectionId: "album", artists: [], recordingTypes: ["AUDIO_VOCAL"] },
     { id: "two", title: "Abide", collectionId: "album", artists: [], recordingTypes: ["VIDEO"] },
     { id: "three", title: "Hidden", collectionId: "other", artists: [], recordingTypes: ["VIDEO"] },
+    { id: "unplayable", title: "Unavailable", collectionId: "other", artists: [], recordingTypes: [] },
   ],
 };
 
@@ -65,8 +66,13 @@ describe("library views", () => {
   });
 
   it("returns saved songs alphabetically and filters music videos", () => {
-    const ids = new Set(["one", "two"]);
+    const ids = new Set(["one", "two", "unplayable"]);
     expect(savedSongs(search, ids).map((song) => song.id)).toEqual(["two", "one"]);
     expect(savedSongs(search, ids, true).map((song) => song.id)).toEqual(["two"]);
+  });
+
+  it("excludes unplayable songs from Favorites and album groups", () => {
+    expect(favoriteSongsByAddedDate(search, new Set(["unplayable"]), {})).toEqual([]);
+    expect(libraryAlbumGroups(search, catalog, new Set(["unplayable"]), new Set(), {}, {})).toEqual([]);
   });
 });

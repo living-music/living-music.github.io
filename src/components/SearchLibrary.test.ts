@@ -38,6 +38,13 @@ const search: SearchIndex = {
       artists: [],
       recordingTypes: ["AUDIO_VOCAL"],
     },
+    {
+      id: "children:unavailable",
+      title: "Silent Song",
+      collectionId: "children",
+      artists: [],
+      recordingTypes: [],
+    },
   ],
   revision: "revision",
 };
@@ -52,5 +59,10 @@ describe("filterSearchSongs", () => {
 
   it("returns no results for an empty query", () => {
     expect(filterSearchSongs(search, catalog, "  ")).toEqual([]);
+  });
+
+  it("excludes songs without a playable recording", () => {
+    expect(filterSearchSongs(search, catalog, "silent")).toEqual([]);
+    expect(filterSearchSongs(search, catalog, "songbook")).toHaveLength(2);
   });
 });

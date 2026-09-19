@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { CatalogClient } from "../api";
 import { catalogFailure, type CatalogFailureKind } from "../connectivity";
 import { Icon } from "../Icon";
+import { isPlayableSong } from "../playability";
 import type { PlayerStatus } from "../player";
 import { hrefForCollection } from "../router";
 import type { Playlist } from "../storage";
@@ -67,14 +68,15 @@ export function CollectionGrid({
   label: string;
   hrefForItem?: (collectionId: string) => string;
 }) {
+  const playableCollections = collections.filter((collection) => collection.playableSongCount > 0);
   return (
     <div class="collection-grid" aria-label={label}>
-      {collections.map((collection) => (
+      {playableCollections.map((collection) => (
         <a class="collection-card" href={hrefForItem(collection.id)} key={collection.id}>
           <Artwork url={collection.artworkUrl} alt="" />
           <strong>{collection.title}</strong>
           <small>
-            {collection.songCount.toLocaleString()} {collection.songCount === 1 ? "song" : "songs"}
+            {collection.playableSongCount.toLocaleString()} {collection.playableSongCount === 1 ? "song" : "songs"}
           </small>
         </a>
       ))}
@@ -93,7 +95,7 @@ function songCredits(song: Song): string {
 }
 
 export function visibleCollectionSongs(songs: Song[], visibleSongIds?: Set<string>): Song[] {
-  return visibleSongIds ? songs.filter((song) => visibleSongIds.has(song.id)) : songs;
+  return songs.filter((song) => isPlayableSong(song) && (!visibleSongIds || visibleSongIds.has(song.id)));
 }
 
 export function CollectionPage({
@@ -189,7 +191,7 @@ export function CollectionPage({
 
   const { collection, songs: collectionSongs } = state.payload;
   const songs = visibleCollectionSongs(collectionSongs, visibleSongIds);
-  const downloadableSongs = songs.filter((song) => song.recordings.length > 0);
+  const downloadableSongs = songs;
   const downloadedCount = downloadableSongs.filter((song) => {
     const record = downloads.get(song.id);
     return record?.status === "downloaded" || record?.status === "stale";
@@ -211,7 +213,7 @@ export function CollectionPage({
           <p>
             {libraryContext
               ? `${songs.length.toLocaleString()} ${songs.length === 1 ? "song" : "songs"} in your Library`
-              : `${collection.songCount.toLocaleString()} songs · ${collection.playableSongCount.toLocaleString()} with audio`}
+              : `${songs.length.toLocaleString()} ${songs.length === 1 ? "song" : "songs"}`}
           </p>
           <div class="collection-header-actions">
             <button
@@ -252,7 +254,6 @@ export function CollectionPage({
           {songs.map((song, index) => {
             const isCurrent = currentSongId === song.id;
             const isPlaying = isCurrent && (playerStatus === "playing" || playerStatus === "loading");
-            const unavailable = song.recordings.length === 0;
             const download = downloads.get(song.id);
             return (
               <li
@@ -267,10 +268,7 @@ export function CollectionPage({
                   type="button"
                   class="song-button"
                   onClick={() => onPlay(song, songs, collection)}
-                  disabled={unavailable}
-                  aria-label={unavailable
-                    ? `${song.title}, no audio available`
-                    : isPlaying ? `Pause ${song.title}` : `Play ${song.title}`}
+                  aria-label={isPlaying ? `Pause ${song.title}` : `Play ${song.title}`}
                 >
                   <span class="song-number">{song.number || index + 1}</span>
                   <Artwork url={song.artworkUrl || collection.artworkUrl} alt="" className="song-artwork" />
@@ -279,9 +277,7 @@ export function CollectionPage({
                     <small>{songCredits(song)}</small>
                   </span>
                   <span class="recording-count">
-                    {unavailable
-                      ? "No audio"
-                      : `${song.recordings.length} ${song.recordings.length === 1 ? "recording" : "recordings"}`}
+                    {`${song.recordings.length} ${song.recordings.length === 1 ? "recording" : "recordings"}`}
                   </span>
                 </button>
                 <div class="song-row-actions">
@@ -309,24 +305,21 @@ export function CollectionPage({
                   <DownloadStatus
                     title={song.title}
                     download={download}
-                    disabled={unavailable}
                     onDownload={() => onDownload(song, collection)}
                     onRemoveDownload={() => onRemoveDownload(song.id)}
                   />
-                  {!unavailable && (
-                    <button
-                      type="button"
-                      class="song-more-button"
-                      onClick={(event) => {
-                        const rect = event.currentTarget.getBoundingClientRect();
-                        setMenu(menu?.songId === song.id ? undefined : { songId: song.id, position: { x: rect.right, y: rect.bottom } });
-                      }}
-                      aria-label={`Options for ${song.title}`}
-                      aria-expanded={menu?.songId === song.id}
-                    >
-                      <Icon name="more" size={20} />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    class="song-more-button"
+                    onClick={(event) => {
+                      const rect = event.currentTarget.getBoundingClientRect();
+                      setMenu(menu?.songId === song.id ? undefined : { songId: song.id, position: { x: rect.right, y: rect.bottom } });
+                    }}
+                    aria-label={`Options for ${song.title}`}
+                    aria-expanded={menu?.songId === song.id}
+                  >
+                    <Icon name="more" size={20} />
+                  </button>
                 </div>
                 {menu?.songId === song.id && (
                   <SongContextMenu
