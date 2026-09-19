@@ -338,6 +338,28 @@ test("uses a compact macOS-style desktop mini player", async ({ page }) => {
   await expect(page.getByRole("slider", { name: "Playback position" })).toBeVisible();
 });
 
+test("opens the complete catalog album from a Library album", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("livingMusic:userState:v1", JSON.stringify({
+    favorites: [], favoriteAddedAt: {},
+    librarySongs: ["offline-song"],
+    librarySongAddedAt: { "offline-song": "2026-09-01T12:00:00.000Z" },
+    albums: [], albumAddedAt: {}, playlists: [], queue: [], currentQueueIndex: -1,
+    repeatMode: "off", songRecordingPreferences: {},
+  })));
+  await page.goto("/#/library/album/offline-hymns");
+
+  await expect(page.getByRole("heading", { name: "Offline Hymns" })).toBeVisible();
+  await expect(page.getByText("Offline Song", { exact: true })).toBeVisible();
+  await expect(page.getByText("Second Offline Song", { exact: true })).toHaveCount(0);
+
+  const completeAlbum = page.getByRole("link", { name: "View Complete Album" });
+  await expect(completeAlbum).toHaveAttribute("href", "#/collection/offline-hymns");
+  await completeAlbum.click();
+
+  await expect(page).toHaveURL(/#\/collection\/offline-hymns$/);
+  await expect(page.getByText("Second Offline Song", { exact: true })).toBeVisible();
+});
+
 test("retains only the two newest revisions for each catalog path", async ({ page }) => {
   await page.goto("/#/browse");
   await waitForControl(page);

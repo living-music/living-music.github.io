@@ -1005,6 +1005,17 @@ a.collection-card:active { transform: scale(0.985); }
   list-style: none;
 }
 
+.complete-album-action {
+  display: flex;
+  justify-content: center;
+  padding-top: 1.25rem;
+}
+
+.view-complete-album-button {
+  width: min(100%, 22rem);
+  color: var(--text);
+}
+
 .song-row {
   min-height: 4.5rem;
   display: grid;

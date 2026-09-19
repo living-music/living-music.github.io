@@ -345,6 +345,13 @@ export function CollectionPage({
             );
           })}
         </ol>
+        {libraryContext && (
+          <div class="complete-album-action">
+            <a class="secondary-action view-complete-album-button" href={hrefForCollection(collection.id)}>
+              View Complete Album <Icon name="chevron" size={16} />
+            </a>
+          </div>
+        )}
       </section>
     </div>
   );
