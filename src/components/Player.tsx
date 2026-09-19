@@ -74,6 +74,16 @@ export function MiniPlayer({
         <button type="button" onClick={onNext} aria-label="Next song" disabled={!player.hasNext}>
           <Icon name="next" size={21} />
         </button>
+        <button
+          type="button"
+          class={player.repeatMode !== "off" ? "is-active" : ""}
+          onClick={onCycleRepeat}
+          aria-label={repeatLabel(player.repeatMode)}
+          aria-pressed={player.repeatMode !== "off"}
+        >
+          <Icon name="repeat" size={18} />
+          {player.repeatMode === "one" && <span>1</span>}
+        </button>
       </div>
 
       <div class="mini-track-region">
@@ -85,23 +95,11 @@ export function MiniPlayer({
           </span>
         </button>
         <div class="mini-timeline">
-          <span class="player-time elapsed">{formatTime(progress)}</span>
           <SeekBar player={player} onSeek={onSeek} />
-          <span class="player-time remaining">−{formatTime(Math.max(0, duration - progress))}</span>
         </div>
       </div>
 
       <div class="mini-secondary-controls">
-        <button
-          type="button"
-          class={player.repeatMode !== "off" ? "is-active" : ""}
-          onClick={onCycleRepeat}
-          aria-label={repeatLabel(player.repeatMode)}
-          aria-pressed={player.repeatMode !== "off"}
-        >
-          <Icon name="repeat" size={18} />
-          {player.repeatMode === "one" && <span>1</span>}
-        </button>
         <button type="button" onClick={onOpen} aria-label="Open Playing Next">
           <Icon name="queue" size={19} />
         </button>

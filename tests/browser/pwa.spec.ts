@@ -322,6 +322,14 @@ test("uses a compact macOS-style desktop mini player", async ({ page }) => {
   expect(Number.parseFloat(await player.evaluate((element) => getComputedStyle(element).borderRadius))).toBeGreaterThanOrEqual((playerBox?.height ?? 0) / 2);
   expect(trackBox?.width).toBeGreaterThan(300);
   expect(trackBox?.height).toBeLessThan(playerBox?.height ?? 0);
+  await expect(trackRegion).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(page.locator(".mini-timeline .player-time")).toHaveCount(0);
+  const transportLabels = await player.locator(".mini-controls button").evaluateAll((buttons) =>
+    buttons.map((button) => button.getAttribute("aria-label")),
+  );
+  expect(transportLabels).toEqual(["Previous song", "Pause", "Next song", "Repeat off"]);
+  await expect(player).toHaveCSS("--glass-material-blur", "10px");
+  await expect(player).toHaveCSS("--glass-material-saturation", "165%");
   await expect(page.getByRole("button", { name: "Repeat off" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Open Playing Next" })).toBeVisible();
   await expect(page.getByRole("slider", { name: "Playback position" })).toBeVisible();
