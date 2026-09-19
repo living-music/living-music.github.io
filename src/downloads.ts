@@ -6,7 +6,7 @@ const DATABASE_VERSION = 1;
 const DOWNLOAD_STORE = "downloads";
 const DOWNLOAD_CACHE = "living-music-downloads-v1";
 const ARTWORK_CACHE = "living-music-artwork-v1";
-const MAX_ARTWORK_ENTRIES = 60;
+const MAX_ARTWORK_ENTRIES = 512;
 
 export type DownloadStatus = "queued" | "downloading" | "downloaded" | "failed" | "stale";
 export interface DownloadRecord {

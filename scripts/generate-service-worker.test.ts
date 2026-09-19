@@ -48,6 +48,8 @@ describe("service worker generation", () => {
     expect(worker).toContain('const match = /^bytes=(\\d+)-(\\d*)$/');
     expect(worker).toContain('status: 206');
     expect(worker).toContain('ARTWORK_CACHE_NAME = "living-music-artwork-v1"');
+    expect(worker).toContain("MAX_ARTWORK_ENTRIES = 512");
+    expect(worker).toContain("if (cached) return cached");
   });
 
   it("waits for listener approval before activating an update", () => {

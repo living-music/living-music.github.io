@@ -25,7 +25,7 @@ Opaque responses do not expose content length or a readable stream. Living Music
 - Interrupted work becomes retryable at startup. A complete cached response found after interruption is recovered as downloaded.
 - A changed or removed catalog source becomes stale while the saved response remains available. The listener can update or remove it.
 - Quota failures update only the download record. Library, Favorites, playlists, and existing downloads are stored independently.
-- Recently viewed and downloaded artwork uses a separate cache capped at 60 entries.
+- Viewed and downloaded artwork uses a separate cache-first store capped at 512 entries. This retains the complete album grid plus a substantial working set of song artwork while remaining bounded.
 
 ## Rights boundary
 

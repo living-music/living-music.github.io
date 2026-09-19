@@ -10,6 +10,7 @@ All notable user-visible changes to Living Music are recorded here.
 - Added a View Complete Album action beneath Library album track lists so listeners can move from their saved songs to the full catalog album.
 - Corrected the Browse catalog total to count playable song titles and exclude entries without a playable recording.
 - Marked Living Music as theme-aware and opted it out of Dark Reader recoloring so its built-in dark and light appearances remain intact.
+- Expanded the cache-first artwork store from 60 to 512 entries and prioritized the first 12 album covers so Browse artwork appears sooner and survives substantially more navigation.
 
 - Fixed consented Google Analytics events remaining queued instead of being sent to Google Analytics.
 

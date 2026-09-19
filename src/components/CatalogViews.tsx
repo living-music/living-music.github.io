@@ -71,9 +71,9 @@ export function CollectionGrid({
   const playableCollections = collections.filter((collection) => collection.playableSongCount > 0);
   return (
     <div class="collection-grid" aria-label={label}>
-      {playableCollections.map((collection) => (
+      {playableCollections.map((collection, index) => (
         <a class="collection-card" href={hrefForItem(collection.id)} key={collection.id}>
-          <Artwork url={collection.artworkUrl} alt="" />
+          <Artwork url={collection.artworkUrl} alt="" eager={index < 12} />
           <strong>{collection.title}</strong>
           <small>
             {collection.playableSongCount.toLocaleString()} {collection.playableSongCount === 1 ? "song" : "songs"}

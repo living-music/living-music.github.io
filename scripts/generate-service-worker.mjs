@@ -43,7 +43,7 @@ const CATALOG_MANIFEST_PATH = "/musicapi/index.json";
 const CATALOG_REVISIONS_PER_PATH = 2;
 const DOWNLOAD_CACHE_NAME = "living-music-downloads-v1";
 const ARTWORK_CACHE_NAME = "living-music-artwork-v1";
-const MAX_ARTWORK_ENTRIES = 60;
+const MAX_ARTWORK_ENTRIES = 512;
 const PRECACHE = ${JSON.stringify(entries)};
 const ROOT_ENTRY = PRECACHE.find((entry) => entry.url === "/");
 const BY_PATH = new Map(PRECACHE.map((entry) => [new URL(entry.url, self.location.origin).pathname, entry]));

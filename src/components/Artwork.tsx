@@ -23,6 +23,7 @@ export function Artwork({
           src={url}
           alt={alt}
           loading={eager ? "eager" : "lazy"}
+          fetchPriority={eager ? "high" : "auto"}
           decoding="async"
           onError={() => setFailed(true)}
         />
