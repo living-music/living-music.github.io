@@ -176,7 +176,7 @@ export function PlaylistPage({
   onRename: () => void;
   onDelete: () => void;
 }) {
-  const search = useSearchIndex(client, playlist.songIds.length > 0);
+  const search = useSearchIndex(client, "all", playlist.songIds.length > 0);
   const [starting, setStarting] = useState(false);
   const [playbackError, setPlaybackError] = useState<string>();
   const songs = useMemo(() => {

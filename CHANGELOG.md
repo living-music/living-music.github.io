@@ -4,6 +4,10 @@ All notable user-visible changes to Living Music are recorded here.
 
 ## Unreleased
 
+- Added a persistent language selector to Browse for English, Spanish, Portuguese, French, German, Italian, Japanese, and Korean catalogs.
+- Made Library albums, saved songs, downloads, queues, and playlists language-aware, allowing translations to coexist and mixed-language playlists to play in their saved order.
+- Migrated existing unqualified listener data to English and updated offline catalog warm-up for the multilingual v2 API.
+
 - Reworked the desktop mini player into a compact macOS Music-inspired capsule using the iOS player glass, with Repeat beside Next and a unified track/timeline surface without time labels.
 - Refined desktop transport proportions with smaller, sharper Previous and Next glyphs and a still smaller Repeat control, matching macOS Music's visual hierarchy.
 - Widened the desktop transport glyphs, preserved the softly rounded double-triangle silhouette, tightened their spacing, and enlarged Play/Pause for clearer hierarchy.

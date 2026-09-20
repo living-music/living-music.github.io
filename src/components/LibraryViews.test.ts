@@ -3,7 +3,7 @@ import { favoriteSongsByAddedDate, libraryAlbumGroups, recentLibraryAlbumGroups,
 import type { CatalogIndex, SearchIndex } from "../types";
 
 const search: SearchIndex = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   revision: "revision",
   songs: [
     { id: "one", title: "Zion", collectionId: "album", artists: [], recordingTypes: ["AUDIO_VOCAL"] },
@@ -14,8 +14,8 @@ const search: SearchIndex = {
 };
 
 const catalog: CatalogIndex = {
-  schemaVersion: 1,
-  language: "eng",
+  schemaVersion: 2,
+  language: { code: "eng", locale: "en", name: "English", autonym: "English" },
   revision: "revision",
   collections: [
     { id: "album", slug: "album", title: "First Album", sourceUrl: "", songCount: 2, playableSongCount: 2, revision: "", href: "" },

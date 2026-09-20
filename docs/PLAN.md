@@ -106,7 +106,6 @@ Apple’s guidance favors persistent, labeled top-level navigation, visible play
 - Offline audio downloads or caching Church-hosted audio.
 - Lyrics, sheet music, casting, AirPlay-specific controls, or playlists shared between users.
 - Personalized recommendations.
-- Multiple languages.
 - Editorial content that requires a separate content-management workflow.
 
 ## Technical foundation
@@ -363,7 +362,7 @@ Acceptance:
 
 Deliver:
 
-- Collection grid from `/musicapi/v1/index.json`.
+- Collection grid from the selected language in `/musicapi/v2/index.json`.
 - Lazy-loaded collection detail pages.
 - Song rows with title, number, artwork, creator metadata, and recording count.
 - Search index loading, normalization, debounced input, and ranked results.
@@ -610,14 +609,14 @@ Representative manual checks:
 
 - Target: everyday listening.
 - Hosting: organization-root GitHub Pages site.
-- API: `https://living-music.github.io/musicapi/`, schema version 1.
+- API: `https://living-music.github.io/musicapi/`, multilingual schema version 2 (with the legacy v1 discovery entry retained upstream).
 - Stack: Vite + TypeScript + Preact.
 - Routing: hash routes.
 - Playback: one `HTMLAudioElement`.
 - Persistence: IndexedDB with transactional migration from the prior versioned `localStorage` record and validated export/import.
 - Default recording: vocal-first with remembered overrides.
 - Offline: app shell and catalog metadata plus explicit listener-selected recording downloads; streamed audio is never cached automatically.
-- Initial language: English.
+- Languages: English is the complete baseline; Browse can select any published translated catalog, while Library and playlists can combine languages.
 - Initial appearance: dark, with light and system-following options.
 - Analytics: optional GA4 page views after an explicit first-run choice, with advertising features disabled and an in-app off switch.
 

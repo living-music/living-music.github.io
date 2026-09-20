@@ -1,4 +1,5 @@
 import { chooseRecording } from "./audio";
+import { DEFAULT_CATALOG_LANGUAGE, migrateCatalogItemId } from "./catalog-identity";
 import type { CollectionSummary, Recording, Song } from "./types";
 
 const DATABASE_NAME = "livingMusic";
@@ -93,9 +94,40 @@ async function update(record: DownloadRecord): Promise<void> {
 export function currentDownloadSnapshot(): DownloadSnapshot { return snapshot; }
 export function subscribeToDownloads(listener: Listener): () => void { listeners.add(listener); listener(snapshot); return () => listeners.delete(listener); }
 
+function migrateDownloadRecord(record: DownloadRecord): DownloadRecord {
+  const songId = migrateCatalogItemId(record.songId);
+  const collectionId = migrateCatalogItemId(record.collectionId);
+  return {
+    ...record,
+    songId,
+    collectionId,
+    song: record.song ? {
+      ...record.song,
+      id: songId,
+      language: record.song.language || DEFAULT_CATALOG_LANGUAGE,
+      languageName: record.song.languageName || "English",
+      availableLanguages: record.song.availableLanguages || [DEFAULT_CATALOG_LANGUAGE],
+    } : undefined,
+    collection: record.collection ? {
+      ...record.collection,
+      id: collectionId,
+      language: record.collection.language || DEFAULT_CATALOG_LANGUAGE,
+      languageName: record.collection.languageName || "English",
+      availableLanguages: record.collection.availableLanguages || [DEFAULT_CATALOG_LANGUAGE],
+    } : undefined,
+  };
+}
+
 export async function initializeDownloads(): Promise<void> {
   try {
-    records = new Map((await allRecords()).map((record) => [record.recordingId, record]));
+    const storedRecords = await allRecords();
+    const migratedRecords = storedRecords.map(migrateDownloadRecord);
+    records = new Map(migratedRecords.map((record) => [record.recordingId, record]));
+    await Promise.all(migratedRecords.map((record, index) =>
+      record.songId !== storedRecords[index].songId || record.collectionId !== storedRecords[index].collectionId
+        ? persistRecord(record)
+        : Promise.resolve(),
+    ));
     const cache = await caches.open(DOWNLOAD_CACHE);
     for (const record of records.values()) {
       const cached = await cache.match(record.sourceUrl, { ignoreVary: true });
@@ -286,8 +318,18 @@ export function reconcileDownloads(songs: Song[]): void {
   for (const record of records.values()) {
     const song = knownSongs.get(record.songId);
     if (!song) continue;
-    const recording = song.recordings.find((entry) => entry.id === record.recordingId);
-    if (recording?.url === record.sourceUrl || record.status === "queued" || record.status === "downloading" || record.status === "failed") continue;
+    const recording = song.recordings.find((entry) => entry.id === record.recordingId)
+      || song.recordings.find((entry) => entry.url === record.sourceUrl);
+    if (recording?.url === record.sourceUrl) {
+      if (recording.id !== record.recordingId) {
+        const migrated = { ...record, recordingId: recording.id, song };
+        records.delete(record.recordingId);
+        records.set(migrated.recordingId, migrated);
+        void persistRecord(migrated).then(() => deleteRecord(record.recordingId));
+      }
+      continue;
+    }
+    if (record.status === "queued" || record.status === "downloading" || record.status === "failed") continue;
     const stale = {
       ...record, status: "stale" as const,
       error: recording ? "The catalog has a newer source. Update this download when you are online." : "This recording is no longer in the catalog. The saved copy remains playable.",

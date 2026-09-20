@@ -139,7 +139,7 @@ function RecentAlbums({ groups }: { groups: LibraryAlbumGroup[] }) {
             <Artwork url={group.collection.artworkUrl} alt="" />
             <span class="recent-library-copy">
               <strong>{group.collection.title}</strong>
-              <small>{detail}</small>
+              <small>{[detail, group.collection.languageName].filter(Boolean).join(" · ")}</small>
               <time dateTime={group.addedAt}>Added {formatAddedDate(group.addedAt)}</time>
             </span>
           </a>
@@ -149,7 +149,7 @@ function RecentAlbums({ groups }: { groups: LibraryAlbumGroup[] }) {
   );
 }
 
-const emptySearch: SearchIndex = { schemaVersion: 1, songs: [], revision: "" };
+const emptySearch: SearchIndex = { schemaVersion: 2, language: "all", songs: [], revision: "" };
 
 export function LibraryViews({
   view,
@@ -196,7 +196,7 @@ export function LibraryViews({
 }) {
   const [visibleCount, setVisibleCount] = useState(100);
   const needsSearch = favorites.size > 0 || librarySongs.size > 0 || downloadedSongIds.size > 0;
-  const search = useSearchIndex(client, needsSearch);
+  const search = useSearchIndex(client, "all", needsSearch);
 
   useEffect(() => setVisibleCount(100), [view]);
 

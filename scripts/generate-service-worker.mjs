@@ -37,7 +37,7 @@ export function renderServiceWorker(entries) {
   return `const SHELL_CACHE_PREFIX = "living-music-shell-";
 const SHELL_CACHE_NAME = SHELL_CACHE_PREFIX + ${JSON.stringify(version)};
 const CATALOG_CACHE_PREFIX = "living-music-catalog-";
-const CATALOG_CACHE_NAME = CATALOG_CACHE_PREFIX + "v1";
+const CATALOG_CACHE_NAME = CATALOG_CACHE_PREFIX + "v2";
 const CATALOG_PATH_PREFIX = "/musicapi/";
 const CATALOG_MANIFEST_PATH = "/musicapi/index.json";
 const CATALOG_REVISIONS_PER_PATH = 2;
@@ -96,8 +96,15 @@ async function catalogManifestNetworkFirst(request) {
     const response = await fetch(request);
     if (!response.ok) throw new Error("Catalog manifest returned " + response.status);
     const manifest = await response.clone().json();
-    if (!manifest || typeof manifest.href !== "string") throw new Error("Catalog manifest has no index link");
-    const indexRequest = new Request(new URL(manifest.href, request.url), { headers: { Accept: "application/json" } });
+    if (!manifest?.multilingual || typeof manifest.multilingual.href !== "string") throw new Error("Catalog manifest has no multilingual index link");
+    const multilingualRequest = new Request(new URL(manifest.multilingual.href, request.url), { headers: { Accept: "application/json" } });
+    const multilingualResponse = await catalogCacheFirst(multilingualRequest);
+    if (!multilingualResponse.ok) throw new Error("Multilingual catalog index returned " + multilingualResponse.status);
+    const multilingual = await multilingualResponse.clone().json();
+    if (!Array.isArray(multilingual?.languages) || typeof multilingual.defaultLanguage !== "string") throw new Error("Multilingual catalog has no languages");
+    const defaultLanguage = multilingual.languages.find((language) => language.code === multilingual.defaultLanguage);
+    if (!defaultLanguage || typeof defaultLanguage.href !== "string") throw new Error("Multilingual catalog has no default language link");
+    const indexRequest = new Request(new URL(defaultLanguage.href, multilingualRequest.url), { headers: { Accept: "application/json" } });
     const indexResponse = await catalogCacheFirst(indexRequest);
     if (!indexResponse.ok) throw new Error("Catalog index returned " + indexResponse.status);
     const index = await indexResponse.clone().json();

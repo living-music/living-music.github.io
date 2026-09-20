@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { createPortal } from "preact/compat";
-import { CatalogClient } from "./api";
+import { ALL_CATALOG_LANGUAGES, CatalogClient } from "./api";
+import { catalogItemId, catalogLanguageFromId, DEFAULT_CATALOG_LANGUAGE } from "./catalog-identity";
 import { isAnalyticsConfigured, readAnalyticsConsent, setAnalyticsEnabled, trackPageView } from "./analytics";
 import { chooseRecording } from "./audio";
 import { catalogFailure, type CatalogFailureKind } from "./connectivity";
@@ -19,8 +20,8 @@ import { clearUserState, emptyUserState, exportUserState, getStorageSnapshot, im
 import { toggleFavoriteInState } from "./library-state";
 import { addSongToPlaylist, createPlaylist as createPlaylistRecord, deletePlaylist as deletePlaylistRecord, renamePlaylist as renamePlaylistRecord } from "./playlists";
 import { hrefFor, hrefForLibrary, hrefForPlaylist, navigationDestination, routeFromHash, type Destination, type LibraryView, type Route } from "./router";
-import { readTheme, writeTheme, type Playlist, type Theme, type UserState } from "./storage";
-import type { CatalogIndex, CollectionSummary, SearchSong, Song } from "./types";
+import { readCatalogLanguage, readTheme, writeCatalogLanguage, writeTheme, type Playlist, type Theme, type UserState } from "./storage";
+import type { CatalogIndex, CatalogLanguageSummary, CollectionSummary, SearchSong, Song } from "./types";
 
 interface NavigationItem {
   id: Destination;
@@ -325,8 +326,15 @@ function HomePage({ catalog, onRetry }: { catalog: CatalogState; onRetry: () => 
   );
 }
 
-function BrowsePage({ catalog, onRetry }: { catalog: CatalogState; onRetry: () => void }) {
+function BrowsePage({ catalog, languages, selectedLanguage, onLanguageChange, onRetry }: {
+  catalog: CatalogState;
+  languages: CatalogLanguageSummary[];
+  selectedLanguage: string;
+  onLanguageChange: (language: string) => void;
+  onRetry: () => void;
+}) {
   const stats = catalog.status === "ready" ? catalog.index.stats : undefined;
+  const selected = languages.find((language) => language.code === selectedLanguage);
   return (
     <div class="page">
       <MobileContentHeader />
@@ -334,9 +342,17 @@ function BrowsePage({ catalog, onRetry }: { catalog: CatalogState; onRetry: () =
         eyebrow="All music"
         title="Browse"
         description={stats
-          ? `${stats.collectionCount.toLocaleString()} ${stats.collectionCount === 1 ? "collection" : "collections"} and ${stats.playableSongCount.toLocaleString()} ${stats.playableSongCount === 1 ? "song" : "songs"} from the Living Music catalog.`
+          ? `${stats.collectionCount.toLocaleString()} ${stats.collectionCount === 1 ? "collection" : "collections"} and ${stats.playableSongCount.toLocaleString()} ${stats.playableSongCount === 1 ? "song" : "songs"} in ${selected?.autonym || "this language"}.`
           : "Explore every collection in the Living Music catalog."}
       />
+      <label class="browse-language-picker">
+        <span>Catalog language</span>
+        <select value={selectedLanguage} onChange={(event) => onLanguageChange(event.currentTarget.value)}>
+          {languages.map((language) => (
+            <option value={language.code} key={language.code}>{language.autonym}</option>
+          ))}
+        </select>
+      </label>
       <CatalogSection state={catalog} onRetry={onRetry} />
     </div>
   );
@@ -830,7 +846,18 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
   const [route, setRoute] = useState<Route>(() => routeFromHash(window.location.hash));
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [catalogAttempt, setCatalogAttempt] = useState(0);
+  const [selectedLanguage, setSelectedLanguage] = useState(readCatalogLanguage);
+  const [languages, setLanguages] = useState<CatalogLanguageSummary[]>([{
+    code: DEFAULT_CATALOG_LANGUAGE,
+    locale: "en",
+    name: "English",
+    autonym: "English",
+    revision: "",
+    href: "",
+    stats: { collectionCount: 0, songCount: 0, playableSongCount: 0 },
+  }]);
   const [catalog, setCatalog] = useState<CatalogState>({ status: "loading" });
+  const [combinedCatalog, setCombinedCatalog] = useState<CatalogState>({ status: "loading" });
   const [online, setOnline] = useState(() => navigator.onLine);
   const [pwa, setPwa] = useState(currentPwaSnapshot);
   const [install, setInstall] = useState(currentInstallSnapshot);
@@ -840,13 +867,18 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
   const analyticsAvailable = isAnalyticsConfigured();
   const mainRef = useRef<HTMLElement>(null);
   const restoredQueue = useRef(false);
-  const loadedCatalogOnce = useRef(false);
+  const loadedCatalogLanguages = useRef(new Set<string>());
   const requestedPersistence = useRef(false);
   const favorites = useMemo(() => new Set(userState.favorites), [userState.favorites]);
   const librarySongs = useMemo(() => new Set(userState.librarySongs), [userState.librarySongs]);
   const albums = useMemo(() => new Set(userState.albums), [userState.albums]);
   const downloadRecords = useMemo(() => new Map(downloadState.records.map((record) => [record.songId, record])), [downloadState]);
   const offlineSongIds = useMemo(() => downloadedSongIds(downloadState), [downloadState]);
+  const activeCatalogLanguage = route.page === "collection"
+    ? catalogLanguageFromId(route.collectionId) || selectedLanguage
+    : selectedLanguage;
+  const needsCombinedCatalog = route.page === "library" || route.page === "library-album" || route.page === "playlist" || userState.queue.length > 0;
+  const routeCatalog = route.page === "library-album" ? combinedCatalog : catalog;
 
   useEffect(() => engine.subscribe(setPlayer), [engine]);
 
@@ -922,10 +954,10 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
   }, [userState.favorites.length, userState.librarySongs.length, userState.albums.length, userState.playlists.length]);
 
   useEffect(() => {
-    if (restoredQueue.current || catalog.status !== "ready") return;
+    if (restoredQueue.current || combinedCatalog.status !== "ready") return;
     restoredQueue.current = true;
     if (!userState.queue.length) return;
-    const catalogIndex = catalog.index;
+    const catalogIndex = combinedCatalog.index;
     let active = true;
 
     void Promise.all(userState.queue.map(async (reference, originalIndex) => {
@@ -959,7 +991,7 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
     });
 
     return () => { active = false; };
-  }, [catalog, engine]);
+  }, [combinedCatalog, engine]);
 
   useEffect(() => {
     if (!restoredQueue.current || !player.track) return;
@@ -977,11 +1009,25 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
 
   useEffect(() => {
     let active = true;
+    catalogClient.loadLanguages().then((root) => {
+      if (!active) return;
+      setLanguages(root.languages);
+      if (!root.languages.some((language) => language.code === selectedLanguage)) {
+        setSelectedLanguage(root.defaultLanguage);
+        writeCatalogLanguage(root.defaultLanguage);
+      }
+    }, () => undefined);
+    return () => { active = false; };
+  }, [catalogAttempt, selectedLanguage]);
+
+  useEffect(() => {
+    let active = true;
     setCatalog({ status: "loading" });
-    const request = loadedCatalogOnce.current
-      ? catalogClient.refreshIndex()
-      : catalogClient.loadIndex();
-    loadedCatalogOnce.current = true;
+    const seen = loadedCatalogLanguages.current.has(activeCatalogLanguage);
+    const request = seen
+      ? catalogClient.refreshIndex(activeCatalogLanguage)
+      : catalogClient.loadIndex(activeCatalogLanguage);
+    loadedCatalogLanguages.current.add(activeCatalogLanguage);
     request.then(
       (index) => active && setCatalog({ status: "ready", index }),
       (error: unknown) => {
@@ -990,7 +1036,21 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
       },
     );
     return () => { active = false; };
-  }, [catalogAttempt]);
+  }, [catalogAttempt, activeCatalogLanguage]);
+
+  useEffect(() => {
+    if (!needsCombinedCatalog) return;
+    let active = true;
+    setCombinedCatalog({ status: "loading" });
+    catalogClient.loadIndex(ALL_CATALOG_LANGUAGES).then(
+      (index) => active && setCombinedCatalog({ status: "ready", index }),
+      (error: unknown) => {
+        const failure = catalogFailure(error, "Your multilingual library could not be loaded.");
+        if (active) setCombinedCatalog({ status: "error", ...failure });
+      },
+    );
+    return () => { active = false; };
+  }, [catalogAttempt, needsCombinedCatalog]);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -1003,8 +1063,8 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
 
   useEffect(() => {
     const isCollection = route.page === "collection" || route.page === "library-album";
-    const collectionTitle = isCollection && catalog.status === "ready"
-      ? catalog.index.collections.find((entry) => entry.id === route.collectionId)?.title
+    const collectionTitle = isCollection && routeCatalog.status === "ready"
+      ? routeCatalog.index.collections.find((entry) => entry.id === catalogItemId(activeCatalogLanguage, route.collectionId))?.title
       : undefined;
     const fallbackTitle = route.page === "library-album"
       ? "Library Album"
@@ -1018,7 +1078,7 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
     document.title = `${collectionTitle || fallbackTitle} · Living Music`;
     trackPageView(window.location.hash);
     window.scrollTo({ top: 0, behavior: "instant" });
-  }, [route, catalog, userState.playlists]);
+  }, [route, routeCatalog, activeCatalogLanguage, userState.playlists]);
 
   useEffect(() => {
     const appearance = window.matchMedia("(prefers-color-scheme: light)");
@@ -1083,8 +1143,13 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
     engine.playCollection(songs, sourceCollection, song.id, preferredRecording(song.id));
   };
 
+  const loadSummary = async (collectionId: string, language?: string) => {
+    const catalogLanguage = language || catalogLanguageFromId(collectionId) || DEFAULT_CATALOG_LANGUAGE;
+    const index = await catalogClient.loadIndex(catalogLanguage);
+    return index.collections.find((entry) => entry.id === catalogItemId(catalogLanguage, collectionId));
+  };
+
   const playSearchSong = async (result: SearchSong) => {
-    if (catalog.status !== "ready") throw new Error("The catalog is still loading.");
     const offlineRecord = downloadRecords.get(result.id);
     const playSavedCopy = () => {
       if (!offlineRecord?.song || !offlineRecord.collection) return false;
@@ -1093,7 +1158,7 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
       engine.playTracks([track], track.song.id, false);
       return true;
     };
-    const summary = catalog.index.collections.find((entry) => entry.id === result.collectionId);
+    const summary = await loadSummary(result.collectionId, result.language);
     if (!summary) {
       if (playSavedCopy()) return;
       throw new Error("This song’s collection is no longer available.");
@@ -1109,11 +1174,10 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
   };
 
   const playPlaylistSongs = async (results: SearchSong[], songId?: string) => {
-    if (catalog.status !== "ready") throw new Error("The catalog is still loading.");
-    const summaries = new Map(catalog.index.collections.map((entry) => [entry.id, entry]));
+    const collectionLanguages = new Map(results.map((result) => [result.collectionId, result.language]));
     const collectionIds = [...new Set(results.map((result) => result.collectionId))];
     const payloads = await Promise.all(collectionIds.map(async (collectionId) => {
-      const summary = summaries.get(collectionId);
+      const summary = await loadSummary(collectionId, collectionLanguages.get(collectionId));
       if (!summary) return undefined;
       return { summary, payload: await catalogClient.loadCollection(summary) };
     }));
@@ -1195,10 +1259,10 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
   };
 
   const downloadSearchResult = (result: SearchSong) => {
-    if (catalog.status !== "ready") return;
-    const summary = catalog.index.collections.find((entry) => entry.id === result.collectionId);
-    if (!summary) return;
-    void catalogClient.loadCollection(summary).then((payload) => {
+    void loadSummary(result.collectionId, result.language).then((summary) => {
+      if (!summary) throw new Error("This song’s collection is no longer available.");
+      return catalogClient.loadCollection(summary).then((payload) => ({ summary, payload }));
+    }).then(({ summary, payload }) => {
       const song = payload.songs.find((entry) => entry.id === result.id);
       if (!song) throw new Error("This song is no longer available.");
       downloadFullSong(song, summary);
@@ -1219,11 +1283,10 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
       void Promise.all(results.map((song) => removeSongDownloads(song.id))).catch(() => setPersistenceMessage("Some downloads could not be removed."));
       return;
     }
-    if (catalog.status !== "ready") return;
     ensureSongsInLibrary(results.map((song) => song.id));
-    const summaries = new Map(catalog.index.collections.map((entry) => [entry.id, entry]));
+    const collectionLanguages = new Map(results.map((result) => [result.collectionId, result.language]));
     void Promise.all([...new Set(results.map((song) => song.collectionId))].map(async (collectionId) => {
-      const summary = summaries.get(collectionId);
+      const summary = await loadSummary(collectionId, collectionLanguages.get(collectionId));
       return summary ? { summary, payload: await catalogClient.loadCollection(summary) } : undefined;
     })).then((loaded) => {
       const byCollection = new Map(loaded.flatMap((entry) => entry ? [[entry.summary.id, entry] as const] : []));
@@ -1241,8 +1304,8 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
   const currentPlaylist = currentPlaylistId ? userState.playlists.find((playlist) => playlist.id === currentPlaylistId) : undefined;
   const retryCatalog = () => setCatalogAttempt((attempt) => attempt + 1);
   const collectionRoute = route.page === "collection" || route.page === "library-album";
-  const collection = collectionRoute && catalog.status === "ready"
-    ? catalog.index.collections.find((entry) => entry.id === route.collectionId)
+  const collection = collectionRoute && routeCatalog.status === "ready"
+    ? routeCatalog.index.collections.find((entry) => entry.id === catalogItemId(activeCatalogLanguage, route.collectionId))
     : undefined;
   const iosStandalone = install.mode === "installed"
     && Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
@@ -1296,7 +1359,18 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
 
       <main id="main-content" class="content" ref={mainRef} tabIndex={-1}>
         {route.page === "home" && <HomePage catalog={catalog} onRetry={retryCatalog} />}
-        {route.page === "browse" && <BrowsePage catalog={catalog} onRetry={retryCatalog} />}
+        {route.page === "browse" && (
+          <BrowsePage
+            catalog={catalog}
+            languages={languages}
+            selectedLanguage={selectedLanguage}
+            onLanguageChange={(language) => {
+              setSelectedLanguage(language);
+              writeCatalogLanguage(language);
+            }}
+            onRetry={retryCatalog}
+          />
+        )}
         {route.page === "search" && (
           <SearchPage
             catalog={catalog}
@@ -1333,7 +1407,7 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
         {route.page === "library" && (
           <LibraryPage
             view={route.view}
-            catalog={catalog}
+            catalog={combinedCatalog}
             favorites={favorites}
             favoriteAddedAt={userState.favoriteAddedAt}
             librarySongs={librarySongs}
@@ -1358,11 +1432,11 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
         )}
         {route.page === "playlist" && (
           currentPlaylist
-            ? catalog.status === "ready"
+            ? combinedCatalog.status === "ready"
               ? <PlaylistPage
                   playlist={currentPlaylist}
                   client={catalogClient}
-                  catalog={catalog.index}
+                  catalog={combinedCatalog.index}
                   favorites={favorites}
                   librarySongs={librarySongs}
                   playlists={userState.playlists}
@@ -1379,18 +1453,18 @@ export function App({ initialPersistence }: { initialPersistence: PersistenceLoa
                   onRename={() => setPlaylistDialog({ mode: "rename", playlist: currentPlaylist })}
                   onDelete={() => setPlaylistDialog({ mode: "delete", playlist: currentPlaylist })}
                 />
-              : catalog.status === "error"
-                ? <div class="page"><CatalogError message={catalog.message} kind={catalog.kind} onRetry={retryCatalog} /></div>
+              : combinedCatalog.status === "error"
+                ? <div class="page"><CatalogError message={combinedCatalog.message} kind={combinedCatalog.kind} onRetry={retryCatalog} /></div>
                 : <div class="page"><CatalogSkeleton count={7} /></div>
             : <PlaylistsPage playlists={userState.playlists} favoriteCount={favorites.size} onCreate={() => setPlaylistDialog({ mode: "create" })} />
         )}
-        {collectionRoute && catalog.status === "loading" && (
+        {collectionRoute && routeCatalog.status === "loading" && (
           <div class="page"><CatalogSkeleton count={8} /></div>
         )}
-        {collectionRoute && catalog.status === "error" && (
-          <div class="page"><CatalogError message={catalog.message} kind={catalog.kind} onRetry={retryCatalog} /></div>
+        {collectionRoute && routeCatalog.status === "error" && (
+          <div class="page"><CatalogError message={routeCatalog.message} kind={routeCatalog.kind} onRetry={retryCatalog} /></div>
         )}
-        {collectionRoute && catalog.status === "ready" && (
+        {collectionRoute && routeCatalog.status === "ready" && (
           collection ? (
             <CollectionPage
               client={catalogClient}

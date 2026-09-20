@@ -16,14 +16,14 @@ export type SearchState =
   | { status: "ready"; index: SearchIndex }
   | { status: "error"; message: string; kind: CatalogFailureKind };
 
-export function useSearchIndex(client: CatalogClient, enabled = true): SearchState {
+export function useSearchIndex(client: CatalogClient, language = "eng", enabled = true): SearchState {
   const [state, setState] = useState<SearchState>({ status: "loading" });
 
   useEffect(() => {
     if (!enabled) return;
     let active = true;
     setState({ status: "loading" });
-    client.loadSearch().then(
+    client.loadSearch(language).then(
       (index) => active && setState({ status: "ready", index }),
       (error: unknown) => {
         const failure = catalogFailure(error, "An unexpected search error occurred.");
@@ -31,7 +31,7 @@ export function useSearchIndex(client: CatalogClient, enabled = true): SearchSta
       },
     );
     return () => { active = false; };
-  }, [client, enabled]);
+  }, [client, language, enabled]);
 
   return state;
 }
@@ -171,7 +171,7 @@ export function SongResults({
                 <span class="result-copy">
                   <strong>{song.title}</strong>
                   <small>
-                    {[song.number && `No. ${song.number}`, song.artists[0], collection?.title]
+                    {[song.number && `No. ${song.number}`, song.artists[0], collection?.title, song.languageName]
                       .filter(Boolean).join(" · ")}
                   </small>
                 </span>
@@ -273,7 +273,7 @@ export function SearchExperience({
   onRemoveDownload?: (songId: string) => void;
   onPlay: (song: SearchSong) => Promise<void>;
 }) {
-  const search = useSearchIndex(client);
+  const search = useSearchIndex(client, catalog.language.code);
   const [query, setQuery] = useState("");
   const normalized = normalizeSearch(query);
   const playableSongCount = useMemo(

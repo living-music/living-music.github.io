@@ -35,12 +35,14 @@ describe("service worker generation", () => {
 
   it("separates shell and catalog caches with safe catalog policies", () => {
     const worker = renderServiceWorker([{ url: "/", revision: "root", cacheKey: "/?__lm=root" }]);
-    expect(worker).toContain('CATALOG_CACHE_NAME = CATALOG_CACHE_PREFIX + "v1"');
+    expect(worker).toContain('CATALOG_CACHE_NAME = CATALOG_CACHE_PREFIX + "v2"');
     expect(worker).toContain('CATALOG_MANIFEST_PATH = "/musicapi/index.json"');
     expect(worker).toContain("CATALOG_REVISIONS_PER_PATH = 2");
     expect(worker).toContain("name.startsWith(CATALOG_CACHE_PREFIX) && name !== CATALOG_CACHE_NAME");
     expect(worker).toContain("catalogManifestNetworkFirst(event.request)");
     expect(worker).toContain("catalogCacheFirst(event.request)");
+    expect(worker).toContain("Catalog manifest has no multilingual index link");
+    expect(worker).toContain("Multilingual catalog has no default language link");
     expect(worker).toContain("Catalog index has no search link");
     expect(worker).toContain("await cache.put(manifestKey, response.clone())");
     expect(worker).toContain("LIVING_MUSIC_CATALOG_FALLBACK");

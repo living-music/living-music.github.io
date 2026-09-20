@@ -57,14 +57,40 @@ test("reloads Browse and an opened collection from catalog cache while offline",
 
 test("reports playable songs in the Browse catalog count", async ({ page }) => {
   await page.goto("/#/browse");
-  await expect(page.getByText("1 collection and 2 songs from the Living Music catalog.", { exact: true })).toBeVisible();
+  await expect(page.getByText("1 collection and 2 songs in English.", { exact: true })).toBeVisible();
   await expect(page.getByText("Unplayable Song", { exact: true })).toHaveCount(0);
+});
+
+test("switches Browse languages and keeps translated albums and songs distinct", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("livingMusic:userState:v1", JSON.stringify({
+    albums: ["eng::offline-hymns", "spa::offline-hymns"],
+    albumAddedAt: {
+      "eng::offline-hymns": "2026-09-01T12:00:00.000Z",
+      "spa::offline-hymns": "2026-09-02T12:00:00.000Z",
+    },
+    playlists: [{
+      id: "multilingual", name: "Multilingual", createdAt: "2026-09-01T12:00:00.000Z",
+      updatedAt: "2026-09-02T12:00:00.000Z", songIds: ["spa::offline-song", "eng::offline-song"],
+    }],
+  })));
+  await page.goto("/#/browse");
+  await page.getByRole("combobox", { name: "Catalog language" }).selectOption("spa");
+  await expect(page.getByText("Himnos sin conexión", { exact: true })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("livingMusic:catalogLanguage:v1"))).toBe("spa");
+
+  await page.goto("/#/library/albums");
+  await expect(page.getByText("Offline Hymns", { exact: true })).toBeVisible();
+  await expect(page.getByText("Himnos sin conexión", { exact: true })).toBeVisible();
+
+  await page.goto("/#/playlist/multilingual");
+  const rows = page.locator(".result-row strong");
+  await expect(rows).toHaveText(["Canción sin conexión", "Offline Song"]);
 });
 
 test("shows a dedicated first-use offline state when no catalog is cached", async ({ page, context }) => {
   await page.goto("/#/browse");
   await waitForControl(page);
-  await page.evaluate(() => caches.delete("living-music-catalog-v1"));
+  await page.evaluate(() => caches.delete("living-music-catalog-v2"));
   await context.setOffline(true);
   await page.reload();
 
@@ -361,10 +387,10 @@ test("opens the complete catalog album from a Library album", async ({ page }) =
   await expect(page.getByText("Second Offline Song", { exact: true })).toHaveCount(0);
 
   const completeAlbum = page.getByRole("link", { name: "View Complete Album" });
-  await expect(completeAlbum).toHaveAttribute("href", "#/collection/offline-hymns");
+  await expect(completeAlbum).toHaveAttribute("href", "#/collection/eng%3A%3Aoffline-hymns");
   await completeAlbum.click();
 
-  await expect(page).toHaveURL(/#\/collection\/offline-hymns$/);
+  await expect(page).toHaveURL(/#\/collection\/eng%3A%3Aoffline-hymns$/);
   await expect(page.getByText("Second Offline Song", { exact: true })).toBeVisible();
 });
 
@@ -372,16 +398,16 @@ test("retains only the two newest revisions for each catalog path", async ({ pag
   await page.goto("/#/browse");
   await waitForControl(page);
   await page.evaluate(async () => {
-    await fetch("/musicapi/v1/search.json?v=one");
-    await fetch("/musicapi/v1/search.json?v=two");
-    await fetch("/musicapi/v1/search.json?v=three");
+    await fetch("/musicapi/v2/languages/eng/search.json?v=one");
+    await fetch("/musicapi/v2/languages/eng/search.json?v=two");
+    await fetch("/musicapi/v2/languages/eng/search.json?v=three");
   });
   const revisions = await page.evaluate(async () => {
-    const cache = await caches.open("living-music-catalog-v1");
+    const cache = await caches.open("living-music-catalog-v2");
     const keys = await cache.keys();
     return keys
       .map((key) => new URL(key.url))
-      .filter((url) => url.pathname === "/musicapi/v1/search.json")
+      .filter((url) => url.pathname === "/musicapi/v2/languages/eng/search.json")
       .map((url) => url.searchParams.get("v"));
   });
   expect(revisions).toEqual(["two", "three"]);
@@ -395,14 +421,13 @@ test("keeps the last complete manifest when a catalog release is interrupted", a
   try {
     await writeFile(manifestPath, JSON.stringify({
       ...manifest,
-      revision: "sha256:incomplete",
-      href: "v1/missing-index.json?v=incomplete",
+      multilingual: { ...manifest.multilingual, revision: "sha256:incomplete", href: "v2/missing-index.json?v=incomplete" },
     }));
     const resolvedHref = await page.evaluate(async () => {
       const response = await fetch("/musicapi/index.json", { cache: "no-cache" });
-      return (await response.json()).href;
+      return (await response.json()).multilingual.href;
     });
-    expect(resolvedHref).toBe(manifest.href);
+    expect(resolvedHref).toBe(manifest.multilingual.href);
     await expect(page.getByText("Using saved catalog", { exact: true })).toBeVisible();
   } finally {
     await writeFile(manifestPath, original);
@@ -434,7 +459,17 @@ test("migrates existing listener data into IndexedDB before rendering", async ({
     });
     return { state, legacy: localStorage.getItem("livingMusic:userState:v1") };
   });
-  expect(migrated).toEqual({ state: legacy, legacy: null });
+  expect(migrated).toEqual({
+    state: {
+      ...legacy,
+      favorites: ["eng::offline-song"],
+      favoriteAddedAt: { "eng::offline-song": "2026-09-01T12:00:00.000Z" },
+      librarySongs: ["eng::offline-song"],
+      librarySongAddedAt: { "eng::offline-song": "2026-09-01T12:00:00.000Z" },
+      preferredRecordingType: undefined,
+    },
+    legacy: null,
+  });
 });
 
 test("keeps legacy data and explains limited storage when IndexedDB cannot open", async ({ page }) => {

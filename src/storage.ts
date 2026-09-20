@@ -1,8 +1,10 @@
+import { DEFAULT_CATALOG_LANGUAGE, catalogSourceId, migrateCatalogItemId } from "./catalog-identity";
 import type { RepeatMode } from "./player";
 
 export const USER_STATE_KEY = "livingMusic:userState:v1";
 export const LEGACY_FAVORITES_KEY = "livingMusic:favorites:v1";
 const THEME_KEY = "livingMusic:theme";
+const CATALOG_LANGUAGE_KEY = "livingMusic:catalogLanguage:v1";
 
 export type Theme = "dark" | "light" | "system";
 
@@ -61,6 +63,11 @@ function queueReferences(value: unknown): QueueReference[] {
       typeof (entry as QueueReference).songId === "string" &&
       typeof (entry as QueueReference).collectionId === "string" &&
       typeof (entry as QueueReference).recordingId === "string")
+      .map((entry) => ({
+        ...entry,
+        songId: migrateCatalogItemId(entry.songId),
+        collectionId: migrateCatalogItemId(entry.collectionId),
+      }))
     : [];
 }
 
@@ -79,7 +86,7 @@ function playlists(value: unknown): Playlist[] {
     const updatedAt = typeof candidate.updatedAt === "string" && Number.isFinite(Date.parse(candidate.updatedAt))
       ? candidate.updatedAt
       : createdAt;
-    const songIds = stringArray(candidate.songIds) ? [...new Set(candidate.songIds)] : [];
+    const songIds = stringArray(candidate.songIds) ? [...new Set(candidate.songIds.map(migrateCatalogItemId))] : [];
     seen.add(id);
     return [{ id, name, createdAt, updatedAt, songIds }];
   });
@@ -88,7 +95,7 @@ function playlists(value: unknown): Playlist[] {
 function recordingPreferences(value: unknown): Record<string, string> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
   return Object.fromEntries(
-    Object.entries(value).filter(([key, entry]) => key && typeof entry === "string"),
+    Object.entries(value).filter(([key, entry]) => key && typeof entry === "string").map(([key, entry]) => [migrateCatalogItemId(key), entry]),
   );
 }
 
@@ -97,7 +104,7 @@ function addedAtValues(value: unknown, ids: string[], fallback: string): Record<
     ? value as Record<string, unknown>
     : {};
   return Object.fromEntries(ids.map((id) => {
-    const timestamp = source[id];
+    const timestamp = source[id] ?? source[catalogSourceId(id)];
     return [id, typeof timestamp === "string" && Number.isFinite(Date.parse(timestamp)) ? timestamp : fallback];
   }));
 }
@@ -110,7 +117,7 @@ export function parseUserState(
   let legacy: string[] = [];
   try {
     const value: unknown = JSON.parse(legacyFavorites || "[]");
-    if (stringArray(value)) legacy = value;
+    if (stringArray(value)) legacy = value.map(migrateCatalogItemId);
   } catch {}
 
   try {
@@ -126,13 +133,13 @@ export function parseUserState(
     }
     const data = value as Record<string, unknown>;
     const repeatMode = data.repeatMode === "all" || data.repeatMode === "one" ? data.repeatMode : "off";
-    const favorites = stringArray(data.favorites) ? [...new Set(data.favorites)] : legacy;
+    const favorites = stringArray(data.favorites) ? [...new Set(data.favorites.map(migrateCatalogItemId))] : legacy;
     const favoriteAddedAt = addedAtValues(data.favoriteAddedAt, favorites, migrationTime);
-    const librarySongs = stringArray(data.librarySongs) ? [...new Set(data.librarySongs)] : favorites;
+    const librarySongs = stringArray(data.librarySongs) ? [...new Set(data.librarySongs.map(migrateCatalogItemId))] : favorites;
     const librarySongAddedAtSource = data.librarySongAddedAt === undefined
       ? favoriteAddedAt
       : data.librarySongAddedAt;
-    const albums = stringArray(data.albums) ? [...new Set(data.albums)] : [];
+    const albums = stringArray(data.albums) ? [...new Set(data.albums.map(migrateCatalogItemId))] : [];
     return {
       favorites,
       favoriteAddedAt,
@@ -204,5 +211,20 @@ export function writeTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme;
   try {
     localStorage.setItem(THEME_KEY, theme);
+  } catch {}
+}
+
+export function readCatalogLanguage(): string {
+  try {
+    const language = localStorage.getItem(CATALOG_LANGUAGE_KEY);
+    return language && /^[a-z]{3}$/.test(language) ? language : DEFAULT_CATALOG_LANGUAGE;
+  } catch {
+    return DEFAULT_CATALOG_LANGUAGE;
+  }
+}
+
+export function writeCatalogLanguage(language: string): void {
+  try {
+    localStorage.setItem(CATALOG_LANGUAGE_KEY, language);
   } catch {}
 }

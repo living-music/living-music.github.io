@@ -16,7 +16,7 @@ describe("parseUserState", () => {
         { id: "", name: "Broken", songIds: [] },
       ],
       queue: [
-        { songId: "song:one", collectionId: "hymns", recordingId: "vocal" },
+        { songId: "eng::song:one", collectionId: "eng::hymns", recordingId: "vocal" },
         { songId: 3, collectionId: "broken", recordingId: "broken" },
       ],
       currentQueueIndex: 4,
@@ -25,27 +25,27 @@ describe("parseUserState", () => {
       songRecordingPreferences: { "song:one": "AUDIO_INSTRUMENTAL", broken: 4 },
     }), null, "2026-09-07T12:00:00.000Z");
 
-    expect(state.favorites).toEqual(["song:one", "song:two"]);
+    expect(state.favorites).toEqual(["eng::song:one", "eng::song:two"]);
     expect(state.favoriteAddedAt).toEqual({
-      "song:one": "2026-09-01T12:00:00.000Z",
-      "song:two": "2026-09-07T12:00:00.000Z",
+      "eng::song:one": "2026-09-01T12:00:00.000Z",
+      "eng::song:two": "2026-09-07T12:00:00.000Z",
     });
-    expect(state.librarySongs).toEqual(["song:two"]);
-    expect(state.librarySongAddedAt).toEqual({ "song:two": "2026-09-03T12:00:00.000Z" });
-    expect(state.albums).toEqual(["album:one"]);
-    expect(state.albumAddedAt).toEqual({ "album:one": "2026-09-02T12:00:00.000Z" });
+    expect(state.librarySongs).toEqual(["eng::song:two"]);
+    expect(state.librarySongAddedAt).toEqual({ "eng::song:two": "2026-09-03T12:00:00.000Z" });
+    expect(state.albums).toEqual(["eng::album:one"]);
+    expect(state.albumAddedAt).toEqual({ "eng::album:one": "2026-09-02T12:00:00.000Z" });
     expect(state.playlists).toEqual([{
       id: "playlist:one",
       name: "Sunday",
       createdAt: "2026-09-01T12:00:00.000Z",
       updatedAt: "2026-09-01T12:00:00.000Z",
-      songIds: ["song:one"],
+      songIds: ["eng::song:one"],
     }]);
     expect(state.queue).toEqual([
-      { songId: "song:one", collectionId: "hymns", recordingId: "vocal" },
+      { songId: "eng::song:one", collectionId: "eng::hymns", recordingId: "vocal" },
     ]);
     expect(state.repeatMode).toBe("all");
-    expect(state.songRecordingPreferences).toEqual({ "song:one": "AUDIO_INSTRUMENTAL" });
+    expect(state.songRecordingPreferences).toEqual({ "eng::song:one": "AUDIO_INSTRUMENTAL" });
   });
 
   it("falls back safely and migrates legacy favorites", () => {
@@ -54,10 +54,10 @@ describe("parseUserState", () => {
       JSON.stringify(["legacy:song"]),
       "2026-09-07T12:00:00.000Z",
     )).toMatchObject({
-      favorites: ["legacy:song"],
-      favoriteAddedAt: { "legacy:song": "2026-09-07T12:00:00.000Z" },
-      librarySongs: ["legacy:song"],
-      librarySongAddedAt: { "legacy:song": "2026-09-07T12:00:00.000Z" },
+      favorites: ["eng::legacy:song"],
+      favoriteAddedAt: { "eng::legacy:song": "2026-09-07T12:00:00.000Z" },
+      librarySongs: ["eng::legacy:song"],
+      librarySongAddedAt: { "eng::legacy:song": "2026-09-07T12:00:00.000Z" },
       albums: [],
       queue: [],
       currentQueueIndex: -1,
@@ -71,9 +71,24 @@ describe("parseUserState", () => {
       favoriteAddedAt: { "existing:song": "2026-09-01T12:00:00.000Z" },
     }), null, "2026-09-07T12:00:00.000Z");
 
-    expect(state.favorites).toEqual(["existing:song"]);
-    expect(state.librarySongs).toEqual(["existing:song"]);
-    expect(state.librarySongAddedAt).toEqual({ "existing:song": "2026-09-01T12:00:00.000Z" });
+    expect(state.favorites).toEqual(["eng::existing:song"]);
+    expect(state.librarySongs).toEqual(["eng::existing:song"]);
+    expect(state.librarySongAddedAt).toEqual({ "eng::existing:song": "2026-09-01T12:00:00.000Z" });
+  });
+
+  it("preserves qualified language identities in libraries and mixed playlists", () => {
+    const state = parseUserState(JSON.stringify({
+      albums: ["eng::album", "spa::album"],
+      librarySongs: ["eng::song", "spa::song"],
+      playlists: [{
+        id: "mixed", name: "Mixed", createdAt: "2026-09-01T00:00:00.000Z",
+        updatedAt: "2026-09-01T00:00:00.000Z", songIds: ["spa::song", "eng::song"],
+      }],
+    }));
+
+    expect(state.albums).toEqual(["eng::album", "spa::album"]);
+    expect(state.librarySongs).toEqual(["eng::song", "spa::song"]);
+    expect(state.playlists[0].songIds).toEqual(["spa::song", "eng::song"]);
   });
 
 });

@@ -77,6 +77,7 @@ export function CollectionGrid({
           <strong>{collection.title}</strong>
           <small>
             {collection.playableSongCount.toLocaleString()} {collection.playableSongCount === 1 ? "song" : "songs"}
+            {collection.languageName ? ` · ${collection.languageName}` : ""}
           </small>
         </a>
       ))}
@@ -208,7 +209,7 @@ export function CollectionPage({
       <header class="collection-header">
         <Artwork url={collection.artworkUrl} alt="" className="collection-artwork" eager />
         <div class="collection-header-copy">
-          <p class="section-kicker">Collection</p>
+          <p class="section-kicker">{["Collection", summary.languageName].filter(Boolean).join(" · ")}</p>
           <h1>{collection.title}</h1>
           <p>
             {libraryContext

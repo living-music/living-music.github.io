@@ -3,8 +3,8 @@ import { filterSearchSongs } from "./SearchLibrary";
 import type { CatalogIndex, SearchIndex } from "../types";
 
 const catalog: CatalogIndex = {
-  schemaVersion: 1,
-  language: "eng",
+  schemaVersion: 2,
+  language: { code: "eng", locale: "en", name: "English", autonym: "English" },
   collections: [{
     id: "children",
     slug: "children",
@@ -21,7 +21,7 @@ const catalog: CatalogIndex = {
 };
 
 const search: SearchIndex = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   songs: [
     {
       id: "children:one",

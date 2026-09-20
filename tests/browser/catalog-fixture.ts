@@ -2,16 +2,31 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 export const dist = resolve("dist");
+const stats = { collectionCount: 1, songCount: 3, playableSongCount: 2 };
+const language = { code: "eng", locale: "en", name: "English", autonym: "English" };
+const spanishLanguage = { code: "spa", locale: "es", name: "Spanish", autonym: "Español" };
 export const manifest = {
   schemaVersion: 1,
   currentVersion: "v1",
-  revision: "sha256:index",
-  href: "v1/index.json?v=index",
+  revision: "sha256:legacy-index",
+  href: "v1/index.json?v=legacy-index",
+  multilingual: { schemaVersion: 2, revision: "sha256:multilingual", href: "v2/index.json?v=multilingual", languageCount: 2 },
+};
+export const multilingualCatalog = {
+  schemaVersion: 2,
+  defaultLanguage: "eng",
+  languages: [
+    { ...language, revision: "sha256:index", href: "languages/eng/index.json?v=index", stats },
+    { ...spanishLanguage, revision: "sha256:spanish-index", href: "languages/spa/index.json?v=spanish-index", stats: { collectionCount: 1, songCount: 1, playableSongCount: 1 } },
+  ],
+  revision: "sha256:multilingual",
 };
 export const collection = {
   id: "offline-hymns",
   slug: "offline-hymns",
   title: "Offline Hymns",
+  language: "eng",
+  availableLanguages: ["eng"],
   artworkUrl: null,
   sourceUrl: "https://example.test/offline-hymns",
   songCount: 3,
@@ -20,10 +35,10 @@ export const collection = {
   href: "collections/offline-hymns.json?v=collection",
 };
 export const catalog = {
-  schemaVersion: 1,
-  language: "eng",
+  schemaVersion: 2,
+  language,
   collections: [collection],
-  stats: { collectionCount: 1, songCount: 3, playableSongCount: 2 },
+  stats,
   search: { revision: "sha256:search", href: "search.json?v=search", songCount: 3 },
   revision: "sha256:index",
 };
@@ -31,6 +46,8 @@ export const song = {
   id: "offline-song",
   slug: "offline-song",
   title: "Offline Song",
+  language: "eng",
+  availableLanguages: ["eng"],
   artworkUrl: null,
   artists: [],
   authors: [],
@@ -61,6 +78,25 @@ export const unplayableSong = {
   recordings: [],
 };
 
+const spanishCollection = {
+  ...collection,
+  title: "Himnos sin conexión",
+  language: "spa",
+  availableLanguages: ["eng", "spa"],
+  songCount: 1,
+  playableSongCount: 1,
+  revision: "sha256:spanish-collection",
+  href: "collections/offline-hymns.json?v=spanish-collection",
+};
+const spanishSong = {
+  ...song,
+  title: "Canción sin conexión",
+  language: "spa",
+  availableLanguages: ["eng", "spa"],
+  sourceUrl: "https://example.test/offline-song?lang=spa",
+  recordings: [{ ...song.recordings[0], id: "offline-recording-spa", language: "spa" }],
+};
+
 export function silentWav(seconds = 2): Uint8Array {
   const sampleRate = 8000;
   const dataSize = sampleRate * seconds * 2;
@@ -75,28 +111,58 @@ export function silentWav(seconds = 2): Uint8Array {
 }
 
 export async function writeCatalogFixture(): Promise<void> {
-  await mkdir(`${dist}/musicapi/v1/collections`, { recursive: true });
+  const languageRoot = `${dist}/musicapi/v2/languages/eng`;
+  const spanishRoot = `${dist}/musicapi/v2/languages/spa`;
+  await mkdir(`${languageRoot}/collections`, { recursive: true });
+  await mkdir(`${spanishRoot}/collections`, { recursive: true });
   await writeFile(`${dist}/musicapi/index.json`, JSON.stringify(manifest));
   await writeFile(`${dist}/musicapi/offline.wav`, silentWav());
   await writeFile(`${dist}/musicapi/offline-two.wav`, silentWav());
-  await writeFile(`${dist}/musicapi/v1/index.json`, JSON.stringify(catalog));
-  await writeFile(`${dist}/musicapi/v1/search.json`, JSON.stringify({
-    schemaVersion: 1,
+  await writeFile(`${dist}/musicapi/v2/index.json`, JSON.stringify(multilingualCatalog));
+  await writeFile(`${languageRoot}/index.json`, JSON.stringify(catalog));
+  await writeFile(`${languageRoot}/search.json`, JSON.stringify({
+    schemaVersion: 2,
+    language: "eng",
     songs: [song, secondSong, unplayableSong].map((entry) => ({
       id: entry.id,
       title: entry.title,
       collectionId: collection.id,
       artists: [],
       recordingTypes: entry.recordings.map((recording) => recording.type),
+      language: "eng",
+      availableLanguages: ["eng"],
     })),
     revision: "sha256:search",
   }));
-  await writeFile(`${dist}/musicapi/v1/collections/offline-hymns.json`, JSON.stringify({
-    schemaVersion: 1,
+  await writeFile(`${languageRoot}/collections/offline-hymns.json`, JSON.stringify({
+    schemaVersion: 2,
+    language: "eng",
     collection,
     songs: [song, secondSong, unplayableSong],
     revision: "sha256:collection",
   }));
+  await writeFile(`${spanishRoot}/index.json`, JSON.stringify({
+    schemaVersion: 2,
+    language: spanishLanguage,
+    collections: [spanishCollection],
+    stats: { collectionCount: 1, songCount: 1, playableSongCount: 1 },
+    search: { revision: "sha256:spanish-search", href: "search.json?v=spanish-search", songCount: 1 },
+    revision: "sha256:spanish-index",
+  }));
+  await writeFile(`${spanishRoot}/search.json`, JSON.stringify({
+    schemaVersion: 2,
+    language: "spa",
+    songs: [{
+      id: spanishSong.id, title: spanishSong.title, collectionId: spanishCollection.id,
+      artists: [], recordingTypes: ["AUDIO_VOCAL"], language: "spa", availableLanguages: ["eng", "spa"],
+    }],
+    revision: "sha256:spanish-search",
+  }));
+  await writeFile(`${spanishRoot}/collections/offline-hymns.json`, JSON.stringify({
+    schemaVersion: 2, language: "spa", collection: spanishCollection,
+    songs: [spanishSong], revision: "sha256:spanish-collection",
+  }));
+
 }
 
 export async function removeCatalogFixture(): Promise<void> {
